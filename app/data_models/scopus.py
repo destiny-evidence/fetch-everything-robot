@@ -7,9 +7,8 @@ from app.config import Settings
 from app.data_models.generic import (
     APIConfig,
     APIKeyNotPresentError,
-    FullTextUnpackStrategy
+    FullTextUnpackStrategy,
 )
-
 
 SCOPUS_URL = "https://api.elsevier.com/content/article/doi"
 SCOPUS_QUERY_PARAMS = {"next_cursor": "*", "view": "FULL"}
