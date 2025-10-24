@@ -1,9 +1,9 @@
-site_name: "Fetch Abstracts Robot (FAR)"
-site_description: "Documentation website for Fetch Abstracts Robot (FAR)"
+site_name: "Fetch Everything Robot (FER)"
+site_description: "Documentation website for Fetch Everything Robot (FER)"
 site_author: "DESTinY Consortium"
 copyright: "Copyright © 2025 DESTinY Consortium"
-repo_url: "https://github.com/destiny-evidence/fetch-abstracts-robot/"
-repo_name: "destiny-evidence/fetch-abstracts-robot"
+repo_url: "https://github.com/destiny-evidence/fetch-everything-robot/"
+repo_name: "destiny-evidence/fetch-everything-robot"
 edit_uri: edit/main/docs/
 
 validation:

@@ -1,4 +1,4 @@
-"""Authentication strategies for the Fetch Abstracts Robot."""
+"""Authentication strategies for the Fetch Everything Robot."""
 
 import destiny_sdk
 

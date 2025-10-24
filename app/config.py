@@ -9,7 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Environment(StrEnum):
     """
-    Environment that the Fetch Abstracts Robot is running in.
+    Environment that the Fetch Everything Robot is running in.
 
     **Allowed values**:
     - `local`: The robot is running locally
@@ -33,7 +33,7 @@ class Settings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
     robot_title: str = Field(
-        default="Fetch Abstracts Robot (FAR)",
+        default="Fetch Everything Robot (FER)",
         description="The title of the robot.",
     )
     robot_secret: str | None = Field(

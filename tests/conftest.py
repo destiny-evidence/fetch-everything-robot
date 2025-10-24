@@ -102,7 +102,7 @@ def test_abstract_enhancement_processor(
 ) -> AbstractEnhancementProcessor:
     return AbstractEnhancementProcessor(
         robot_version="9.9.9",
-        source_name="Test Fetch Abstracts Robot",
+        source_name="Test Fetch Everything Robot",
         global_api_config=test_global_api_config,
         available_api_configs=[
             scopus_api_config_valid_batch,

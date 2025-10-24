@@ -1,4 +1,4 @@
-"""Main module for the Fetch Abstracts Robot."""
+"""Main module for the Fetch Everything Robot."""
 
 import asyncio
 import contextlib
