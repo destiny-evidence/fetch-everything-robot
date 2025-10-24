@@ -12,17 +12,17 @@ class APIKeyNotPresentError(Exception):
     """Raised when the required API key is not present in the settings."""
 
 
-class AbstractUnpackError(Exception):
-    """Raise when we fail to unpack an abstract."""
+class FullTextUnpackError(Exception):
+    """Raise when we fail to unpack a full text."""
 
 
-class AbstractNotFoundError(Exception):
-    """Raise when we fail to find an abstract."""
+class FullTextNotFoundError(Exception):
+    """Raise when we fail to find a full text."""
 
 
 class ExternalAPI(StrEnum):
     """
-    Exhaustive list of permitted external APIs which we can hit to retrieve abstracts.
+    Exhaustive list of permitted external APIs which we can hit to retrieve full texts.
 
     New additions here will require definition of
     new pydantic models for parsing their output and new
@@ -45,7 +45,7 @@ class QueryType(StrEnum):
 
 
 class ExternalAPIPriority(BaseModel):
-    """Priority definition of APIs to call for any given abstract."""
+    """Priority definition of APIs to call for any given DOI."""
 
     name: str = Field(description="name of the api priority")
     priorities: dict[ExternalAPI, int] = Field(
@@ -61,6 +61,7 @@ external_api_priority_batch = ExternalAPIPriority(
     },
 )
 
+
 class FullTextUnpackStrategy(BaseModel):
     """
     Strategy for unpacking a retrieved full text object.
@@ -70,7 +71,7 @@ class FullTextUnpackStrategy(BaseModel):
 
     This will be hidden in different places for different
     APIs, so here we can stick all the sequential sub-keys we need
-    to reference to find our abstract.
+    to reference to find our full text.
     """
 
     source: ExternalAPI
@@ -78,23 +79,24 @@ class FullTextUnpackStrategy(BaseModel):
     doi_strategy: list[str] | None = Field(
         default=None, description="Strategy for unpacking DOI from response. Optional."
     )
-    pdf_link_strategy: list[str] | list[list] = Field(
+    pdf_link_strategy: list[str] | list[list] | None = Field(
         default=None,
         description="""A list of keys to sequentially
         pass to the json response object to retrieve
-        PDF link. Optional."""
+        PDF link. Optional.""",
     )
-    xml_strategy: list[str] | list[list] = Field(
+    xml_strategy: list[str] | list[list] | None = Field(
         default=None,
         description="""A list of keys to sequentially
         pass to the json response object to retrieve
-        XML representation. Optional."""
+        XML representation. Optional.""",
     )
+
 
 class APIConfig(BaseModel):
     """
     Essential config required to use an external API to get
-    abstracts, clean them, and make them available to a destiny Work.
+    full texts and make them available to a destiny Work.
     """
 
     name: ExternalAPI = Field(
@@ -117,10 +119,9 @@ class APIConfig(BaseModel):
         default={},
         description="Query params to pass with the api call.",
     )
-    headers: dict | dict[str, dict] = Field(
+    headers: dict = Field(
         default={"Accept": "application/json"},
-        description=("Headers to pass with the request.",
-                "Optionally a nested dict to change headers per request type."),
+        description="Headers (or set of headers) to pass with the request.",
     )
 
     @model_validator(mode="before")
@@ -177,20 +178,23 @@ class APIConfig(BaseModel):
         return f"{url}{doi}"
 
     @staticmethod
-    def build_query_batch(url, dois: list[str], max_array_length: int = 50) -> str:
+    def build_query_batch(
+        url: AnyUrl | str, dois: list[str], max_array_length: int = 50
+    ) -> str:
         """
         Build a query string for QueryType.Batch.
 
         Will be used for OpenAlex
         See https://blog.openalex.org/fetch-multiple-dois-in-one-openalex-api-request/
         for details, including the 50 DOI limit per request.
+
         Args:
             dois (list): list of dois
             max_array_length (int, optional): n DOIs to concat into query string.
                                               Defaults to 50.
 
         Raises:
-            ValueError: If the number of items in the dois list exceeds max_array_length.
+            ValueError: If number of items in the dois list exceeds max_array_length.
 
         Returns:
             str: query string
@@ -204,8 +208,7 @@ class APIConfig(BaseModel):
             )
             raise ValueError(error_msg)
         pipe_separated_dois = "|".join(dois)
-        return f"{url}?filter=doi:{pipe_separated_dois}"
-
+        return f"{url!s}?filter=doi:{pipe_separated_dois}"
 
     def populate_query(
         self, query: str | list[str], max_array_length: int = 15
@@ -226,8 +229,8 @@ class APIConfig(BaseModel):
 
         Returns:
             dict: a dictionary containing the url, query_params, and headers.
-                   All passed to the http request for retrieving an
-                   abstract given target query and APIConfig.
+                   All passed to the http request for retrieving a full text
+                   given target query and APIConfig.
 
         """
         if self.query_type == QueryType.BATCH:
@@ -237,7 +240,11 @@ class APIConfig(BaseModel):
             url = self.build_query_batch(
                 url=self.url, dois=query, max_array_length=max_array_length
             )
-            return {"url": url, "query_params": self.query_params, "headers": self.headers}
+            return {
+                "url": url,
+                "query_params": self.query_params,
+                "headers": self.headers,
+            }
 
         if self.query_type == QueryType.BATCHED_SINGLE:
             is_multi_item_list = isinstance(query, list) and len(query) > 1

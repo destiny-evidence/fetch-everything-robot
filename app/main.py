@@ -13,13 +13,13 @@ from destiny_sdk.robots import (
     RobotEnhancementBatchResult,
     RobotError,
 )
-from enhancement_processor import AbstractEnhancementProcessor
+from enhancement_processor import FullTextEnhancementProcessor
 
 from app.config import Settings, get_settings
-from app.data_models.crossref import get_crossref_batch_api_config
+from app.data_models.openalex import get_openalex_batch_api_config
 from app.data_models.scopus import get_scopus_batch_api_config
 from app.enhancement_processor import BatchEnhancementGenerationError
-from app.fetch_abstract import prepare_api_config
+from app.fetch_fulltext import prepare_api_config
 from app.logger import logger, set_up_logger
 from app.server import start_health_check_server
 from app.utils import get_version_number
@@ -27,16 +27,16 @@ from app.utils import get_version_number
 
 async def process_robot_enhancement_batch(
     client: DestinyClient,
-    processor: AbstractEnhancementProcessor,
+    processor: FullTextEnhancementProcessor,
     batch: RobotEnhancementBatch,
 ) -> None:
     """
-    Process a robot enhancement batch by creating abstract enhancements.
+    Process a robot enhancement batch by creating full text enhancements.
 
     Args:
         client (DestinyClient): The Destiny SDK client
             to communicate with the repository.
-        processor (AbstractEnhancementProcessor): Processor to generate enhancements.
+        processor (FullTextEnhancementProcessor): Processor to generate enhancements.
         batch (RobotEnhancementBatch): The batch of enhancements to process.
 
     """
@@ -85,7 +85,7 @@ async def process_robot_enhancement_batch(
 
 
 async def poll_for_batches(
-    settings: Settings, client: DestinyClient, processor: AbstractEnhancementProcessor
+    settings: Settings, client: DestinyClient, processor: FullTextEnhancementProcessor
 ) -> None:
     """Poll for new robot enhancement batches and process them."""
     logger.info("Starting to poll for robot enhancement batches...")
@@ -147,14 +147,14 @@ async def main() -> None:
 
     # configurations for all APIs we can hit to get abstracts
     available_api_configs = [
-        get_crossref_batch_api_config(settings),
+        get_openalex_batch_api_config(settings),
         get_scopus_batch_api_config(),
     ]
     global_api_config = prepare_api_config(
         api_configs=available_api_configs, settings=settings
     )
 
-    processor = AbstractEnhancementProcessor(
+    processor = FullTextEnhancementProcessor(
         robot_version=get_version_number(),
         source_name=title,
         global_api_config=global_api_config,
