@@ -5,13 +5,12 @@ from pydantic import ValidationError
 
 from app.config import get_settings
 from app.data_models.generic import (
-    AbstractNotFoundError,
-    AbstractUnpackError,
-    AbstractUnpackStrategy,
     APIConfig,
     APIKeyNotPresentError,
     ExternalAPI,
     ExternalAPIPriority,
+    FullTextNotFoundError,
+    FullTextUnpackError,
 )
 
 
@@ -20,19 +19,19 @@ def test_custom_exceptions():
     with pytest.raises(APIKeyNotPresentError):
         raise APIKeyNotPresentError(error_msg)
     error_msg = "Unpack failed"
-    with pytest.raises(AbstractUnpackError):
-        raise AbstractUnpackError(error_msg)
+    with pytest.raises(FullTextUnpackError):
+        raise FullTextUnpackError(error_msg)
     error_msg = "Not found"
-    with pytest.raises(AbstractNotFoundError):
-        raise AbstractNotFoundError(error_msg)
+    with pytest.raises(FullTextNotFoundError):
+        raise FullTextNotFoundError(error_msg)
 
 
 def test_external_api_enum():
-    assert ExternalAPI.SCOPUS_BATCH == "scopus_batch"
-    assert ExternalAPI.CROSSREF_BATCH == "crossref_batch"
+    assert ExternalAPI.SCOPUS == "scopus"
+    assert ExternalAPI.OPENALEX == "openalex"
     assert set(ExternalAPI) == {
-        ExternalAPI.CROSSREF_BATCH,
-        ExternalAPI.SCOPUS_BATCH,
+        ExternalAPI.OPENALEX,
+        ExternalAPI.SCOPUS,
     }
 
 
@@ -40,20 +39,12 @@ def test_external_api_priority_model():
     model = ExternalAPIPriority(
         name="test_priority",
         priorities={
-            ExternalAPI.CROSSREF_BATCH: 1,
-            ExternalAPI.SCOPUS_BATCH: 2,
+            ExternalAPI.OPENALEX: 1,
+            ExternalAPI.SCOPUS: 2,
         },
     )
-    assert model.priorities[ExternalAPI.CROSSREF_BATCH] == 1
-    assert model.priorities[ExternalAPI.SCOPUS_BATCH] == 2
-
-
-def test_abstract_unpack_strategy_():
-    my_strategy = AbstractUnpackStrategy(
-        source=ExternalAPI.SCOPUS_BATCH, strategy=["abstracts", "abstractText"]
-    )
-    assert my_strategy.source == ExternalAPI.SCOPUS_BATCH
-    assert my_strategy.strategy == ["abstracts", "abstractText"]
+    assert model.priorities[ExternalAPI.OPENALEX] == 1
+    assert model.priorities[ExternalAPI.SCOPUS] == 2
 
 
 @pytest.mark.parametrize(
@@ -64,26 +55,29 @@ def test_abstract_unpack_strategy_():
         "expected_url",
         "expected_query_params",
         "expected_unpack_source",
-        "expected_unpack_strategy",
+        "expected_unpack_pdf_link_strategy",
+        "expected_unpack_xml_strategy",
     ),
     [
         (
             "scopus_api_config_valid_batch",
             {"X-API-Key": ""},
-            ExternalAPI.SCOPUS_BATCH,
+            ExternalAPI.SCOPUS,
             "https://api.example.com/",
             {},
-            ExternalAPI.SCOPUS_BATCH,
-            ["search-results", "entry", "dc:description"],
+            ExternalAPI.SCOPUS,
+            ["search-results", "entry", "pdf_url"],
+            ["search-results", "entry", "xml"],
         ),
         (
-            "crossref_api_config_valid_batch",
+            "openalex_api_config_valid_batch",
             {"Accept": "application/json"},
-            ExternalAPI.CROSSREF_BATCH,
+            ExternalAPI.OPENALEX,
             "https://api.example.com/",
             {},
-            ExternalAPI.CROSSREF_BATCH,
-            ["message", "abstract"],
+            ExternalAPI.OPENALEX,
+            ["message", "pdf_url"],
+            ["message", "xml"],
         ),
     ],
 )
@@ -95,7 +89,8 @@ def test_api_config_validator_success(
     expected_url,
     expected_query_params,
     expected_unpack_source,
-    expected_unpack_strategy,
+    expected_unpack_pdf_link_strategy,
+    expected_unpack_xml_strategy,
 ):
     api_config = request.getfixturevalue(api_config_fixture)
     assert api_config.headers == expected_headers
@@ -103,14 +98,18 @@ def test_api_config_validator_success(
     assert str(api_config.url) == expected_url
     assert api_config.query_params == expected_query_params
     assert api_config.unpack_strategy.source == expected_unpack_source
-    assert api_config.unpack_strategy.strategy == expected_unpack_strategy
+    assert (
+        api_config.unpack_strategy.pdf_link_strategy
+        == expected_unpack_pdf_link_strategy
+    )
+    assert api_config.unpack_strategy.xml_strategy == expected_unpack_xml_strategy
 
 
 @pytest.mark.parametrize(
     ("api_config_fixture"),
     [
         ("scopus_api_config_valid_batch"),
-        ("crossref_api_config_valid_batch"),
+        ("openalex_api_config_valid_batch"),
     ],
 )
 def test_api_config_validator_failure(request, api_config_fixture, monkeypatch):
@@ -131,7 +130,7 @@ def test_api_config_validator_failure(request, api_config_fixture, monkeypatch):
     ("api_config_fixture", "expected_key", "expected_value"),
     [
         ("scopus_api_config_valid_batch", "X-API-Key", "dummy_scopus_key"),
-        ("crossref_api_config_valid_batch", None, None),
+        ("openalex_api_config_valid_batch", None, None),
     ],
 )
 def test_api_config_init_api_key_success(
@@ -156,27 +155,28 @@ def test_api_config_init_api_key_missing(invalid_api_config):
 @pytest.mark.parametrize(
     ("api_config_fixture", "query"),
     [
-        ("scopus_api_config_valid_batch", ["test_DOI_1", "test_doi_2", "test_doi_3"]),
+        ("scopus_api_config_valid_batch", "test_DOI_1"),
     ],
 )
-def test_api_config_populate_query_batch(request, api_config_fixture, query):
+def test_api_config_populate_query_scopus(request, api_config_fixture, query):
     api_config = request.getfixturevalue(api_config_fixture)
-    expected_query = " OR ".join([f"DOI({q})" for q in query])
+    expected_url = f"{api_config.url}{query}"
     request_params = api_config.populate_query(query)
-    # This assumes populate_query appends the query string to the base URL
-    assert request_params["query_params"]["query"] == expected_query
-    assert str(request_params["url"]) == f"{api_config.url}"
+    assert (
+        str(request_params["url"]) == expected_url
+    ), "URL should append DOI to base URL."
 
 
 @pytest.mark.parametrize(
     ("api_config_fixture", "query"),
     [
-        ("crossref_api_config_valid_batch", ["test_DOI"]),
+        ("openalex_api_config_valid_batch", ["test_DOI_1", "test_DOI_2"]),
     ],
 )
-def test_api_config_populate_query_batched_single(request, api_config_fixture, query):
+def test_api_config_populate_query_openalex(request, api_config_fixture, query):
     api_config = request.getfixturevalue(api_config_fixture)
-    expected_extracted_query = query[0]
+    expected_url = f"{api_config.url}?filter=doi:{'|'.join(query)}"
     url = api_config.populate_query(query)["url"]
-    # This assumes populate_query appends the query string to the base URL
-    assert url == f"{api_config.url}{expected_extracted_query}"
+    assert (
+        url == expected_url
+    ), "URL should include DOIs as filter parameters, separated by |."

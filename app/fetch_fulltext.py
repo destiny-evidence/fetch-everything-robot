@@ -1,5 +1,5 @@
 """
-Core module containing the `AbstractFetcher` class to get abstracts
+Core module containing the `FullTextFetcher` class to get abstracts
 from various APIs.
 """
 

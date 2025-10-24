@@ -123,6 +123,9 @@ class APIConfig(BaseModel):
         default={"Accept": "application/json"},
         description="Headers (or set of headers) to pass with the request.",
     )
+    unpack_strategy: FullTextUnpackStrategy = Field(
+        description="Unpack strategy to employ to get full texts."
+    )
 
     @model_validator(mode="before")
     @classmethod
