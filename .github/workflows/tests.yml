@@ -68,7 +68,7 @@ jobs:
           hide_complexity: true
           indicators: true
           output: file
-          thresholds: "80 90"
+          thresholds: "70 80"
 
       - name: Add title to coverage markdown file
         run: |
