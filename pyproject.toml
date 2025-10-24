@@ -25,11 +25,11 @@ dependencies = [
     "pydantic[email]>=2.0,<3.0",
     "toml>=0.10.2",
 ]
-description = "Robot for adding abstract enhancements to items in the destiny repo from alternate sources."
-name = "fetch-abstracts-robot"
+description = "Robot for adding full-text and other more fully featured enhancements to items in the destiny repo from alternate sources."
+name = "fetch-everything-robot"
 readme = "README.md"
 requires-python = ">=3.13"
-version = "0.3.0"
+version = "0.1.0"
 
 [project.optional-dependencies]
 dev = [
