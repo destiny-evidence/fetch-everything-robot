@@ -12,25 +12,25 @@ class APIKeyNotPresentError(Exception):
     """Raised when the required API key is not present in the settings."""
 
 
-class AbstractUnpackError(Exception):
-    """Raise when we fail to unpack an abstract."""
+class FullTextUnpackError(Exception):
+    """Raise when we fail to unpack a full text."""
 
 
-class AbstractNotFoundError(Exception):
-    """Raise when we fail to find an abstract."""
+class FullTextNotFoundError(Exception):
+    """Raise when we fail to find a full text."""
 
 
 class ExternalAPI(StrEnum):
     """
-    Exhaustive list of permitted external APIs which we can hit to retrieve abstracts.
+    Exhaustive list of permitted external APIs which we can hit to retrieve full texts.
 
-    new additions here will require definition of
+    New additions here will require definition of
     new pydantic models for parsing their output and new
     implementation of retrieving their output.
     """
 
-    CROSSREF_BATCH = "crossref_batch"
-    SCOPUS_BATCH = "scopus_batch"
+    OPENALEX = "openalex"
+    SCOPUS = "scopus"
 
 
 class QueryType(StrEnum):
@@ -45,7 +45,7 @@ class QueryType(StrEnum):
 
 
 class ExternalAPIPriority(BaseModel):
-    """Priority definition of APIs to call for any given abstract."""
+    """Priority definition of APIs to call for any given DOI."""
 
     name: str = Field(description="name of the api priority")
     priorities: dict[ExternalAPI, int] = Field(
@@ -56,45 +56,47 @@ class ExternalAPIPriority(BaseModel):
 external_api_priority_batch = ExternalAPIPriority(
     name="batch",
     priorities={
-        ExternalAPI.CROSSREF_BATCH: 1,
-        ExternalAPI.SCOPUS_BATCH: 2,
+        ExternalAPI.OPENALEX: 1,
+        ExternalAPI.SCOPUS: 2,
     },
 )
 
 
-class AbstractUnpackStrategy(BaseModel):
+class FullTextUnpackStrategy(BaseModel):
     """
-    Strategy for unpacking a retrieved abstract object.
-    When we retrieve an abstract, all we really want
-    is the actual abstract text.
+    Strategy for unpacking a retrieved full text object.
+    When we retrieve a full text, all we really want
+    is the actual full text content in XML, plain text or
+    direct link to a PDF.
 
     This will be hidden in different places for different
     APIs, so here we can stick all the sequential sub-keys we need
-    to reference to find our abstract.
+    to reference to find our full text.
     """
 
     source: ExternalAPI
-    clean_abstract_string: bool = Field(
-        default=False,
-        description="""A bool indicating whether
-        we want to run the `clean_abstract_string` method
-        on the string retrieved.
-        """,
-    )
+
     doi_strategy: list[str] | None = Field(
         default=None, description="Strategy for unpacking DOI from response. Optional."
     )
-    strategy: list[str] | list[list] = Field(
+    pdf_link_strategy: list[str] | list[list] | None = Field(
+        default=None,
         description="""A list of keys to sequentially
         pass to the json response object to retrieve
-        plain-text abstract."""
+        PDF link. Optional.""",
+    )
+    xml_strategy: list[str] | list[list] | None = Field(
+        default=None,
+        description="""A list of keys to sequentially
+        pass to the json response object to retrieve
+        XML representation. Optional.""",
     )
 
 
 class APIConfig(BaseModel):
     """
     Essential config required to use an external API to get
-    abstracts, clean them, and make them available to a destiny Work.
+    full texts and make them available to a destiny Work.
     """
 
     name: ExternalAPI = Field(
@@ -119,10 +121,10 @@ class APIConfig(BaseModel):
     )
     headers: dict = Field(
         default={"Accept": "application/json"},
-        description="Headers to pass with the request.",
+        description="Headers (or set of headers) to pass with the request.",
     )
-    unpack_strategy: AbstractUnpackStrategy = Field(
-        description="Unpack strategy to employ to get a plain-text abstract"
+    unpack_strategy: FullTextUnpackStrategy = Field(
+        description="Unpack strategy to employ to get full texts."
     )
 
     @model_validator(mode="before")
@@ -179,32 +181,37 @@ class APIConfig(BaseModel):
         return f"{url}{doi}"
 
     @staticmethod
-    def build_query_batch(payload: list[str], max_array_length: int = 15) -> str:
+    def build_query_batch(
+        url: AnyUrl | str, dois: list[str], max_array_length: int = 50
+    ) -> str:
         """
         Build a query string for QueryType.Batch.
 
+        Will be used for OpenAlex
+        See https://blog.openalex.org/fetch-multiple-dois-in-one-openalex-api-request/
+        for details, including the 50 DOI limit per request.
+
         Args:
-            payload (list): list of dois
+            dois (list): list of dois
             max_array_length (int, optional): n DOIs to concat into query string.
-                                              Defaults to 15.
+                                              Defaults to 50.
 
         Raises:
-            ValueError: If the number of items in the payload exceeds max_array_length.
+            ValueError: If number of items in the dois list exceeds max_array_length.
 
         Returns:
             str: query string
 
         """
-        # NOTE - below is a conservative limit to ensure URL length
-        # is the conventional limit of 2000 characters. we're assuming
-        # a mean DOI length of 120 chars.
-        if len(payload) > max_array_length:
+        # Set a hard limit on the max array length to fit within API constraints
+        if len(dois) > max_array_length:
             error_msg = (
                 "array of items to query for is too long. max"
                 f"n(items): {max_array_length}"
             )
             raise ValueError(error_msg)
-        return " OR ".join([f"DOI({x})" for x in payload])
+        pipe_separated_dois = "|".join(dois)
+        return f"{url!s}?filter=doi:{pipe_separated_dois}"
 
     def populate_query(
         self, query: str | list[str], max_array_length: int = 15
@@ -225,20 +232,22 @@ class APIConfig(BaseModel):
 
         Returns:
             dict: a dictionary containing the url, query_params, and headers.
-                   All passed to the http request for retrieving an
-                   abstract given target query and APIConfig.
+                   All passed to the http request for retrieving a full text
+                   given target query and APIConfig.
 
         """
         if self.query_type == QueryType.BATCH:
             if not isinstance(query, list):
                 error_msg = "query_type `batch` requires a `list` type query."
                 raise TypeError(error_msg)
-            query_field = self.build_query_batch(
-                payload=query, max_array_length=max_array_length
+            url = self.build_query_batch(
+                url=self.url, dois=query, max_array_length=max_array_length
             )
-            params = self.query_params.copy()
-            params["query"] = query_field
-            return {"url": self.url, "query_params": params, "headers": self.headers}
+            return {
+                "url": url,
+                "query_params": self.query_params,
+                "headers": self.headers,
+            }
 
         if self.query_type == QueryType.BATCHED_SINGLE:
             is_multi_item_list = isinstance(query, list) and len(query) > 1

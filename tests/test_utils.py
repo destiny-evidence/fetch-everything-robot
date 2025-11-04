@@ -127,7 +127,7 @@ def test_validate_doi_success():
 
 def test_get_version_number_success(mocker):
     mocker.patch("app.utils.version", return_value="1.2.3")
-    version = get_version_number("fetch-abstracts-robot")
+    version = get_version_number("fetch-everything-robot")
     assert version == "1.2.3"
 
 

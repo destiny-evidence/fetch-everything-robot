@@ -11,14 +11,14 @@ from pytest_httpx import HTTPXMock, IteratorStream
 
 from app.config import Settings
 from app.data_models.generic import (
-    AbstractUnpackStrategy,
     APIConfig,
     ExternalAPI,
+    FullTextUnpackStrategy,
     QueryType,
 )
 from app.data_models.scopus import ScopusAPIConfig
-from app.enhancement_processor import AbstractEnhancementProcessor
-from app.fetch_abstract import prepare_api_config
+from app.enhancement_processor import FullTextEnhancementProcessor
+from app.fetch_fulltext import prepare_api_config
 
 pytest_plugins = [
     "tests.fixtures.generic",
@@ -48,18 +48,19 @@ def set_test_environment_variables(
 @pytest.fixture
 def scopus_api_config_valid_batch():
     return ScopusAPIConfig(
-        name=ExternalAPI.SCOPUS_BATCH,
+        name=ExternalAPI.SCOPUS,
         url="https://api.example.com/",
         require_api_key=True,
         api_key_env_var_name="elsevier_scopus_key",  # pragma: allowlist secret
         api_key_placement="X-API-Key",  # pragma: allowlist secret
-        query_type=QueryType.BATCH,
+        query_type=QueryType.BATCHED_SINGLE,
         query_params={},
         headers={"X-API-Key": ""},
-        unpack_strategy=AbstractUnpackStrategy(
-            source="scopus_batch",
+        unpack_strategy=FullTextUnpackStrategy(
+            source="scopus",
             doi_strategy=["search-results", "entry", "prism:doi"],
-            strategy=["search-results", "entry", "dc:description"],
+            pdf_link_strategy=["search-results", "entry", "pdf_url"],
+            xml_strategy=["search-results", "entry", "xml"],
         ),
         api_inst_token_env_var_name="elsevier_scopus_inst_token",  # pragma: allowlist secret
         api_inst_token_placement="X-Inst-Token",  # pragma: allowlist secret
@@ -67,46 +68,46 @@ def scopus_api_config_valid_batch():
 
 
 @pytest.fixture
-def crossref_api_config_valid_batch():
+def openalex_api_config_valid_batch():
     return APIConfig(
-        name=ExternalAPI.CROSSREF_BATCH,
+        name=ExternalAPI.OPENALEX,
         url="https://api.example.com/",
         require_api_key=False,
         api_key_env_var_name=None,
         api_key_placement=None,
-        query_type=QueryType.BATCHED_SINGLE,
-        unpack_strategy=AbstractUnpackStrategy(
-            source=ExternalAPI.CROSSREF_BATCH,
-            clean_abstract_string=True,
-            strategy=["message", "abstract"],
+        query_type=QueryType.BATCH,
+        unpack_strategy=FullTextUnpackStrategy(
+            source=ExternalAPI.OPENALEX,
             doi_strategy=["message", "DOI"],
+            pdf_link_strategy=["message", "pdf_url"],
+            xml_strategy=["message", "xml"],
         ),
     )
 
 
 @pytest.fixture
 def test_global_api_config(
-    scopus_api_config_valid_batch, crossref_api_config_valid_batch, test_settings
+    scopus_api_config_valid_batch, openalex_api_config_valid_batch, test_settings
 ) -> dict[str, APIConfig]:
     return prepare_api_config(
-        api_configs=[scopus_api_config_valid_batch, crossref_api_config_valid_batch],
+        api_configs=[scopus_api_config_valid_batch, openalex_api_config_valid_batch],
         settings=test_settings,
     )
 
 
 @pytest.fixture
-def test_abstract_enhancement_processor(
+def test_fulltext_enhancement_processor(
     scopus_api_config_valid_batch,
-    crossref_api_config_valid_batch,
+    openalex_api_config_valid_batch,
     test_global_api_config,
-) -> AbstractEnhancementProcessor:
-    return AbstractEnhancementProcessor(
+) -> FullTextEnhancementProcessor:
+    return FullTextEnhancementProcessor(
         robot_version="9.9.9",
-        source_name="Test Fetch Abstracts Robot",
+        source_name="Test Fetch Everything Robot",
         global_api_config=test_global_api_config,
         available_api_configs=[
             scopus_api_config_valid_batch,
-            crossref_api_config_valid_batch,
+            openalex_api_config_valid_batch,
         ],
     )
 

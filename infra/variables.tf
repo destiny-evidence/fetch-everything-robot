@@ -25,10 +25,10 @@ variable "destiny_repository_url" {
   description = "Url to configure the robot to post callbacks to."
 }
 
-# Variables below this line are for deploying the fetch abstracts robot.
+# Variables below this line are for deploying the fetch everything robot.
 # These may not be necessary for your use case
 variable "container_registry_name" {
-  description = "Name of the container registry where fetch abstract robot images are pushed."
+  description = "Name of the container registry where fetch everything robot images are pushed."
 
 }
 
@@ -37,7 +37,7 @@ variable "container_registry_resource_group_name" {
 }
 
 variable "environment" {
-  description = "Environment for the Fetch Abstracts Robot, should be either development, staging or production."
+  description = "Environment for the Fetch Everything Robot, should be either development, staging or production."
   default     = "development"
 }
 
@@ -65,11 +65,11 @@ variable "region_friendly_name" {
 }
 
 variable "poll_interval_seconds" {
-  description = "Interval in seconds between polling the Scopus API for new abstracts."
+  description = "Interval in seconds between polling the destiny repository for new enhancement requests."
   default     = "3600"
 }
 
 variable "batch_size" {
-  description = "Number of abstracts to fetch in each batch."
+  description = "Number of enhancement requests to fetch in each batch."
   default     = "10"
 }

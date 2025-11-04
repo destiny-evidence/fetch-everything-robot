@@ -3,8 +3,8 @@ import pytest
 
 from app.config import Settings
 from app.data_models.generic import (
-    AbstractUnpackStrategy,
     APIKeyNotPresentError,
+    FullTextUnpackStrategy,
 )
 from app.data_models.scopus import ScopusAPIConfig
 
@@ -13,15 +13,15 @@ def test_scopus_api_config_creation_success_no_inst_token(
     test_settings: Settings, caplog
 ):
     config = ScopusAPIConfig(
-        name="scopus_batch",
+        name="scopus",
         url="https://a-test-url",
         require_api_key=True,
         api_key_env_var_name="elsevier_scopus_key",  # pragma: allowlist secret
         api_key_placement="X-API-Key",  # pragma: allowlist secret
         query_params={},
         headers={"X-API-Key": ""},
-        unpack_strategy=AbstractUnpackStrategy(
-            source="scopus_batch",
+        unpack_strategy=FullTextUnpackStrategy(
+            source="scopus",
             doi_strategy=["search-results", "entry", "prism:doi"],
             strategy=["search-results", "entry", "dc:description"],
         ),
@@ -47,15 +47,15 @@ def test_scopus_api_config_creation_success_no_inst_token(
 
 def test_scopus_api_config_no_api_key(test_settings: Settings):
     config = ScopusAPIConfig(
-        name="scopus_batch",
+        name="scopus",
         url="https://a-test-url",
         require_api_key=True,
         api_key_env_var_name="nonexistent_key",  # pragma: allowlist secret
         api_key_placement="X-API-Key",  # pragma: allowlist secret
         query_params={},
         headers={"X-API-Key": ""},
-        unpack_strategy=AbstractUnpackStrategy(
-            source="scopus_batch",
+        unpack_strategy=FullTextUnpackStrategy(
+            source="scopus",
             doi_strategy=["search-results", "entry", "prism:doi"],
             strategy=["search-results", "entry", "dc:description"],
         ),
@@ -71,15 +71,15 @@ def test_scopus_api_config_no_api_key(test_settings: Settings):
 
 def test_scopus_api_config_with_valid_keys(test_settings: Settings):
     config = ScopusAPIConfig(
-        name="scopus_batch",
+        name="scopus",
         url="https://a-test-url",
         require_api_key=True,
         api_key_env_var_name="elsevier_scopus_key",  # pragma: allowlist secret
         api_key_placement="X-API-Key",  # pragma: allowlist secret
         query_params={},
         headers={"X-API-Key": ""},
-        unpack_strategy=AbstractUnpackStrategy(
-            source="scopus_batch",
+        unpack_strategy=FullTextUnpackStrategy(
+            source="scopus",
             doi_strategy=["search-results", "entry", "prism:doi"],
             strategy=["search-results", "entry", "dc:description"],
         ),

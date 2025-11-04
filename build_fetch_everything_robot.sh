@@ -14,13 +14,13 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-echo "Building Docker image fetch-abstract-robot:$IMAGE_TAG"
+echo "Building Docker image fetch-everything-robot:$IMAGE_TAG"
 
-DOCKER_BUILD_STRING="buildx build -t "fetch-abstract-robot:${IMAGE_TAG}" ."
+DOCKER_BUILD_STRING="buildx build -t "fetch-everything-robot:${IMAGE_TAG}" ."
 if $IGNORE_CACHE; then
   echo "Ignoring cache for this build."
   DOCKER_BUILD_STRING+=" --no-cache"
 fi
 docker ${DOCKER_BUILD_STRING}
 
-echo "Build complete - fetch-abstract-robot:$IMAGE_TAG"
+echo "Build complete - fetch-everything-robot:$IMAGE_TAG"

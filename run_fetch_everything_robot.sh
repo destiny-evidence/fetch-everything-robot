@@ -27,4 +27,4 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-docker run -p "$PORT":8001 --env-file .env fetch-abstract-robot:"$TAG"
+docker run -p "$PORT":8001 --env-file .env fetch-everything-robot:"$TAG"

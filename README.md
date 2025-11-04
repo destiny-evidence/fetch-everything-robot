@@ -1,6 +1,6 @@
-# Fetch Abstracts Robot
+# Fetch Everything Robot
 
-A _DESTINY_ robot for retrieving abstracts from various third-party APIs, and adding them to `Work`s as an `Enhancement`.
+A _DESTINY_ robot for retrieving full texts from various third-party APIs, and adding them to `Reference`s as an `Enhancement`.
 
 This derived from the example robot producing toy enhancements against the destiny repository available at [destiny-evidence/toy-robot](https://github.com/destiny-evidence/toy-robot).
 
@@ -8,7 +8,7 @@ This derived from the example robot producing toy enhancements against the desti
 
 A **robot** is an extension/plugin to the _DESTINY_ repository, which, using _DESTINY_'s API (specifically POST) endpoints to create `Enhancement`s on the core unit of analysis, `Record`s (the bespoke data model for scientific publications, reports, papers, etc. which are stored in _DESTINY_-repository).
 
-The **Fetch Abstracts Robot (FAR)** contains functionality for retrieving abstracts for target works by [_DOI_](https://en.wikipedia.org/wiki/Digital_object_identifier). Abstracts are retrieved from third-party APIs and transformed into generic enhancements to a target work. Third-party APIs are configured via an `APIConfig` class, with functionality for handling authentication, abstract unpacking (`AbstractUnpackStrategy`) and abstract (string) cleaning. There is functionality for batch and single abstract retrieval. The hierarchy of which API to hit first is then declared in an `ExternalAPIPriority` class.
+The **Fetch Everything Robot (FER)** contains functionality for retrieving full texts (and more!) for target works by [_DOI_](https://en.wikipedia.org/wiki/Digital_object_identifier). Everything are retrieved from third-party APIs and transformed into generic enhancements to a target work. Third-party APIs are configured via an `APIConfig` class, with functionality for handling authentication, parsing and string cleaning. The hierarchy of which API to hit first is then declared in an `ExternalAPIPriority` class.
 
 If further third-party APIs are to be added, simply instantiate such an `APIConfig`, and import and add it to `available_api_configs` in `main.py`.
 
@@ -106,7 +106,7 @@ uv run run_robot.py
 
 ## Authentication Against Destiny Repository
 
-Authentication between the Fetch Abstracts Robot and Destiny Repository uses HMAC authentication, where a request signature is encrypted with the robot's secret key and set as a header. To simplify this process, the destiny_sdk provides a client for communicating with destiny repository that handles adding signatures. In Fetch Abstracts Robot the client is inititalised in app/main.py and used for sending requests.
+Authentication between the Fetch Everything Robot and Destiny Repository uses HMAC authentication, where a request signature is encrypted with the robot's secret key and set as a header. To simplify this process, the destiny_sdk provides a client for communicating with destiny repository that handles adding signatures. In Fetch Everything Robot the client is inititalised in app/main.py and used for sending requests.
 
 ### Configuring Authentication
 
@@ -119,7 +119,7 @@ Authentication between the Fetch Abstracts Robot and Destiny Repository uses HMA
 When building the docker image
 
 ```sh
-docker buildx build --tag fetch-abstracts-robot .
+docker buildx build --tag fetch-everything-robot .
 ```
 
 ### Manual push
@@ -128,19 +128,19 @@ If you want to deploy the robot into Azure using the provided terraform infrastr
 
 ```sh
 az login
-docker buildx build --no-cache --platform linux/amd64 --tag destinyevidenceregistry.azurecr.io/fetch-abstracts-robot .
+docker buildx build --no-cache --platform linux/amd64 --tag destinyevidenceregistry.azurecr.io/fetch-everything-robot .
 az acr login --name destinyevidenceregistry
-docker push destinyevidenceregistry.azurecr.io/fetch-abstracts-robot:YOUR_TAG
+docker push destinyevidenceregistry.azurecr.io/fetch-everything-robot:YOUR_TAG
 ```
 
 Then you can deploy your image to the container app
 
 ```sh
-az containerapp update az containerapp update -n fetch-abstracts-robot-stag-app -g rg-fetch-abstracts-robot-staging --image estinyevidenceregistry.azurecr.io/fetch-abstracts-robot:YOUR_TAG
+az containerapp update az containerapp update -n fetch-everything-robot-stag-app -g rg-fetch-everything-robot-staging --image estinyevidenceregistry.azurecr.io/fetch-everything-robot:YOUR_TAG
 ```
 
 Then you can restart the revision with the following command
 
 ```sh
-az containerapp revision restart --name fetch-abstracts-robot-stag-app --resource-group rg-fetch-abstracts-robot-staging --revision [REVISION_NAME]
+az containerapp revision restart --name fetch-everything-robot-stag-app --resource-group rg-fetch-everything-robot-staging --revision [REVISION_NAME]
 ```

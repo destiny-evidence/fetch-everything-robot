@@ -1,6 +1,13 @@
 terraform {
   required_version = ">= 1.0"
 
+  cloud {
+    organization = "destiny-evidence"
+    workspaces {
+      name = "toy-robot-staging"
+    }
+  }
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -16,7 +23,6 @@ terraform {
 
 provider "azurerm" {
   features {}
-  subscription_id = var.subscription_id
 }
 
 provider "azuread" {

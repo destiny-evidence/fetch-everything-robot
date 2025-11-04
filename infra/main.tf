@@ -18,14 +18,14 @@ resource "azurerm_resource_group" "robot_resource_group" {
 }
 
 # Create a user assigned identity for our robot. This is the identity used when authenticating.
-resource "azurerm_user_assigned_identity" "fetch_abstracts_robot" {
+resource "azurerm_user_assigned_identity" "fetch_everything_robot" {
   location            = azurerm_resource_group.robot_resource_group.location
   name                = var.robot_name
   resource_group_name = azurerm_resource_group.robot_resource_group.name
 }
 
-# This creates a container app to run the fetch abstracts robot in
-module "container_app_fetch_abstracts_robot" {
+# This creates a container app to run the fetch everything robot in
+module "container_app_fetch_everything_robot" {
   source                          = "app.terraform.io/destiny-evidence/container-app/azure"
   version                         = "1.6.2"
   app_name                        = var.robot_name
@@ -35,7 +35,7 @@ module "container_app_fetch_abstracts_robot" {
   resource_group_name             = azurerm_resource_group.robot_resource_group.name
   region                          = azurerm_resource_group.robot_resource_group.location
 
-  # We're the api url for the destiny repository here, which the fetch abstracts robot will use to authenticate against.
+  # We're the api url for the destiny repository here, which the fetch everything robot will use to authenticate against.
   # The necessaary `AZURE_CLIENT_ID` environment variable is set by the container app module.
   env_vars = [
     {
@@ -107,8 +107,8 @@ module "container_app_fetch_abstracts_robot" {
   # You can see here that we're passing the user assigned identity that we created above to the client application.
   # This identity has the robot role assignment and will allow the robot to authenticate with destiny repository.
   identity = {
-    id           = azurerm_user_assigned_identity.fetch_abstracts_robot.id
-    principal_id = azurerm_user_assigned_identity.fetch_abstracts_robot.principal_id
-    client_id    = azurerm_user_assigned_identity.fetch_abstracts_robot.client_id
+    id           = azurerm_user_assigned_identity.fetch_everything_robot.id
+    principal_id = azurerm_user_assigned_identity.fetch_everything_robot.principal_id
+    client_id    = azurerm_user_assigned_identity.fetch_everything_robot.client_id
   }
 }

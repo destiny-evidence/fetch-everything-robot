@@ -1,4 +1,4 @@
-name: Manual production deployment of fetch-abstract-robot to Azure Container Apps
+name: Manual production deployment of fetch-everything-robot to Azure Container Apps
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ jobs:
     environment: production
 
     env:
-      IMAGE_NAME: fetch-abstract-robot
+      IMAGE_NAME: fetch-everything-robot
 
     steps:
       - name: Checkout code

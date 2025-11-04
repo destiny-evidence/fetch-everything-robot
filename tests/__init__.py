@@ -1,1 +1,1 @@
-"""Tests for the Fetch Abstracts Robot."""
+"""Tests for the Fetch Everything Robot."""
