@@ -74,6 +74,10 @@ class Settings(BaseSettings):
         default=None, description="inst token for elsevier scopus api."
     )
 
+    openalex_key: SecretStr | None = Field(
+        default=None, description="api key for openalex api."
+    )
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
