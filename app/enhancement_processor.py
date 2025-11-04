@@ -1,4 +1,4 @@
-"""Generation functions for single and batch abstract enhancements."""
+"""Generation functions for single and batch fulltext enhancements."""
 
 import httpx
 from destiny_sdk.enhancements import (
@@ -77,7 +77,7 @@ class FullTextEnhancementProcessor:
         app_title: str,
     ) -> list[Enhancement | LinkedRobotError]:
         """
-        Generate a batch of abstract enhancements from a batch of references.
+        Generate a batch of full text enhancements from a batch of references.
 
         Args:
             references (list[Reference]): A list of reference objects.

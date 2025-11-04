@@ -28,7 +28,7 @@ variable "destiny_repository_url" {
 # Variables below this line are for deploying the fetch everything robot.
 # These may not be necessary for your use case
 variable "container_registry_name" {
-  description = "Name of the container registry where fetch abstract robot images are pushed."
+  description = "Name of the container registry where fetch everything robot images are pushed."
 
 }
 

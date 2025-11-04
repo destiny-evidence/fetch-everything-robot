@@ -145,7 +145,6 @@ async def main() -> None:
         secret_key=settings.robot_secret,
     )
 
-    # configurations for all APIs we can hit to get abstracts
     available_api_configs = [
         get_openalex_batch_api_config(settings),
         get_scopus_batch_api_config(),

@@ -1,5 +1,5 @@
 """
-Core module containing the `FullTextFetcher` class to get abstracts
+Core module containing the `FullTextFetcher` class to get fulltexts
 from various APIs.
 """
 
@@ -89,8 +89,8 @@ class FullTextFetcher:
     Single full texts are treated as a batch of one.
 
     Will _cycle_ through available API configurations
-    in order to retrieve abstracts by DOI.
-    Will unpack and, if required, clean abstract.
+    in order to retrieve full texts by DOI.
+    Will unpack and, if required, clean full text.
     """
 
     def __init__(self, master_api_config: dict, timeout: int = 60) -> None:
@@ -267,48 +267,48 @@ class FullTextFetcher:
         strategy: FullTextUnpackStrategy,
     ) -> str:
         """
-        Unpack the plain text of the abstract using an unpack strategy.
+        Unpack plain text of the full text using an unpack strategy.
 
-        If our `AbstractUnpackStrategy` has field `clean_abstract_string`
-        set to `True`, we will run the `clean_abstract_string` method.
+        If our `FullTextUnpackStrategy` has field `clean_full_text_string`
+        set to `True`, we will run the `clean_full_text_string` method.
 
         Args:
             response_obj (dict): JSON response object from the API.
-            strategy (AbstractUnpackStrategy): Unpack strategy to use.
+            strategy (FullTextUnpackStrategy): Unpack strategy to use.
 
         Returns:
-            str: The plain text abstract extracted from the response object.
+            str: The plain text extracted from the response object.
 
         Raises:
-            FullTextUnpackError: If unpacking the abstract fails.
+            FullTextUnpackError: If unpacking the full text fails.
 
         """
         raise NotImplementedError
 
     @staticmethod
-    def _traverse(nested_abstract_dict: dict, path: list[str]) -> list | str | None:
+    def _traverse(nested_full_text_dict: dict, path: list[str]) -> list | str | None:
         """
         Traverse a nested dictionary using a list of keys.
 
         TODO: Consider rewriting for the full text extraction.
 
         Args:
-            nested_abstract_dict (dict): The nested dictionary to traverse.
+            nested_full_text_dict (dict): The nested dictionary to traverse.
             path (list[str]): A list of keys representing the path to traverse.
 
         Returns:
             list | str | None: A list found in the response with corresponding key, or a
-            string if found in the case of individual DOIs and abstracts.
+            string if found in the case of individual DOIs and full texts.
             Returns None if not found.
 
         """
         logger.debug(f"traversing object with path: {path}")
         for i, key in enumerate(path):
             logger.debug(
-                f"level {i}: object type: {type(nested_abstract_dict)}, key: {key}"
+                f"level {i}: object type: {type(nested_full_text_dict)}, key: {key}"
             )
-            if isinstance(nested_abstract_dict, dict):
-                obj = nested_abstract_dict.get(key)
+            if isinstance(nested_full_text_dict, dict):
+                obj = nested_full_text_dict.get(key)
             else:
                 try:
                     warning_msg = (
@@ -317,7 +317,7 @@ class FullTextFetcher:
                 except NameError:
                     warning_msg = (
                         "level {i}: expected dict, got.",
-                        f"{type(nested_abstract_dict)}returning None.",
+                        f"{type(nested_full_text_dict)}returning None.",
                     )
                 logger.warning(warning_msg)
                 return None
@@ -327,7 +327,7 @@ class FullTextFetcher:
                 )
                 logger.warning(obj_is_none_warning_msg)
                 return None
-            nested_abstract_dict = obj
+            nested_full_text_dict = obj
         return obj
 
     def unpack_many_full_texts(

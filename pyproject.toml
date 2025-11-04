@@ -79,7 +79,7 @@ lint.ignore = [
     "FIX002", # implicit trust that TODOs are not trivial, or else they would be fixed
     "ISC001", # simplify implicit str concatenation (ruff-format recommended)
 ]
-lint.per-file-ignores = {"app/fetch_abstract.py" = [
+lint.per-file-ignores = {"app/fetch_fulltext.py" = [
     "PLR0915", # Too many statements
 ], "app/main.py" = [
     "S104", # Possible binding to all interfaces

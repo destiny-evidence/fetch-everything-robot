@@ -66,7 +66,7 @@ class Settings(BaseSettings):
         description=("The number of references to include per enhancement batch"),
     )
 
-    # API keys for abstract retrieval
+    # API keys for fulltext retrieval
     elsevier_scopus_key: SecretStr | None = Field(
         default=None, description="api key for elsevier scopus api."
     )

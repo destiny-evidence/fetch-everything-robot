@@ -1,4 +1,4 @@
-"""tests for the core fetch_abstract module in app/fetch_abstract.py."""
+"""tests for the core fetch_fulltext module in app/fetch_fulltext.py."""
 
 from unittest.mock import MagicMock, patch
 
@@ -56,7 +56,7 @@ def test_prepare_api_config_missing_key(
         },
     ],
 )
-def test_abstract_fetcher_init_logs(request, api_config_fixture, test_settings):
+def test_full_text_fetcher_init_logs(request, api_config_fixture, test_settings):
     api_config_batch = request.getfixturevalue(api_config_fixture["batch"])
     with patch("app.fetch_fulltext.logger") as mock_logger:
         master_api_config = prepare_api_config([api_config_batch], test_settings)
@@ -136,12 +136,12 @@ def test_traverse_missing_key_returns_none():
 
 
 def test_clean_full_text_string_removes_all_tags():
-    raw = "<jats:p>This is a <b>test</b> abstract.</jats:p>"
+    raw = "<jats:p>This is a <b>test</b> fulltext.</jats:p>"
     cleaned = FullTextFetcher.clean_full_text_string(raw)
-    assert cleaned == "This is a test abstract."
+    assert cleaned == "This is a test fulltext."
 
 
-def test_clean_abstract_string_fallback_regex():
+def test_clean_full_text_string_fallback_regex():
     # invalid XML, should trigger the regex fallback
     raw = "<notclosed>This is broken"
     cleaned = FullTextFetcher.clean_full_text_string(raw)

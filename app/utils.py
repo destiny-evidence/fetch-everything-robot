@@ -1,4 +1,4 @@
-"""Misc/Utility functions for our abstract fetcher robot."""
+"""Misc/Utility functions for our fetch everything robot."""
 
 from importlib.metadata import PackageNotFoundError, version
 
@@ -64,7 +64,7 @@ def get_doi_from_reference(reference: Reference) -> str:
     raise MissingDOIError(error_message)
 
 
-def get_version_number(package_name: str = "fetch-abstracts-robot") -> str:
+def get_version_number(package_name: str = "fetch-everything-robot") -> str:
     """
     Retrieve the version number of an installed package.
 

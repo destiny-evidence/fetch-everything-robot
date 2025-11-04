@@ -25,8 +25,9 @@ def get_openalex_batch_api_config(settings: Settings) -> APIConfig:
     }
     openalex_unpack_strategy = FullTextUnpackStrategy(
         source="openalex",
-        clean_abstract_string=True,
-        strategy=["message", "abstract"],
+        doi_strategy="metadata_field",
+        pdf_link_strategy=["primary_location", "url"],
+        xml_strategy=None,
     )
     return APIConfig(
         name="openalex",

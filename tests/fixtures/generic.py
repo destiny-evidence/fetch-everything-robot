@@ -50,6 +50,6 @@ def invalid_api_config() -> APIConfig:
         headers={"Authorization": "Bearer fake_token", "api_key_placement": ""},
         unpack_strategy=FullTextUnpackStrategy(
             source=ExternalAPI.SCOPUS,
-            strategy=["data", "abstract"],
+            strategy=["data", "fulltext_xml"],
         ),
     )
