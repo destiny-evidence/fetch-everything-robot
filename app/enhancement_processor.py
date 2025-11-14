@@ -30,7 +30,7 @@ class FullTextEnhancementProcessor:
         available_api_configs: list[APIConfig],
     ) -> None:
         """
-        Initialize the processor with configuration.
+        Initialise the processor with configuration.
 
         Args:
             robot_version (str): The version of the robot.

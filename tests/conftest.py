@@ -22,7 +22,16 @@ from app.fetch_fulltext import prepare_api_config
 
 pytest_plugins = [
     "tests.fixtures.generic",
+    "tests.fixtures.studies",
 ]
+
+
+@pytest.fixture
+def temporary_test_file(tmp_path):
+    file_path = tmp_path / "temporary_test_file.txt"
+    yield file_path
+    if file_path.exists():
+        file_path.unlink()
 
 
 @pytest.fixture(autouse=True)

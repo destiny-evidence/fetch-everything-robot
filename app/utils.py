@@ -1,5 +1,6 @@
 """Misc/Utility functions for our fetch everything robot."""
 
+import re
 from importlib.metadata import PackageNotFoundError, version
 
 from destiny_sdk.identifiers import DOIIdentifier, ExternalIdentifierType
@@ -18,6 +19,35 @@ class InvalidDOIError(Exception):
 
 class MissingDOIError(Exception):
     """Exception for when a reference doesn't contain a DOI."""
+
+
+def format_doi(doi_candidate: str) -> str:
+    """
+    Format a DOI candidate string by removing common prefixes and URL encodings.
+
+    This is additional DOI formatting taken from the previous work by Kaitlyn.
+
+    Args:
+        doi_candidate (str): The DOI candidate string to format.
+
+    Returns:
+        str: The formatted DOI string.
+
+    """
+    doi_candidate = doi_candidate.lower()
+    replacements = [
+        (r"%28", "("),
+        (r"%29", ")"),
+        (r"http://dx.doi.org/", ""),
+        (r"https://doi.org/", ""),
+        (r"https://dx.doi.org/", ""),
+        (r"http://doi.org/", ""),
+        (r"doi:\s*", ""),
+        (r"^doi", ""),
+    ]
+    for pattern, replacement in replacements:
+        doi_candidate = re.sub(pattern, replacement, doi_candidate)
+    return doi_candidate
 
 
 def validate_doi(doi_string: str) -> str:
