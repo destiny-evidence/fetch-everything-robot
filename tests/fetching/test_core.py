@@ -20,7 +20,7 @@ def test_study_collection_iterable():
     study1 = Study(doi=test_dois[0], uid="study1")
     study2 = Study(doi=test_dois[1], uid="study2")
     collection = StudyCollection(studies=[study1, study2])
-    assert list(collection.iterate_studies()) == [study1, study2]
+    assert list(collection.studies) == [study1, study2]
 
 
 @pytest.mark.asyncio

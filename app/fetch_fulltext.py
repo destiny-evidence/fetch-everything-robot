@@ -1,91 +1,37 @@
 """
-Core module containing the `FullTextFetcher` class to get fulltexts
+Core module containing the `FullTextBatchFetcher` class to get fulltexts
 from various APIs.
 """
 
 import re
-from collections.abc import Generator
+from typing import TYPE_CHECKING
 from xml.etree.ElementTree import Element
 
-import httpx
 from defusedxml.ElementTree import ParseError, fromstring
 from destiny_sdk.identifiers import DOIIdentifier
 from loguru import logger
-from pydantic import AnyUrl
 
 from app.config import Settings
 from app.data_models.generic import (
     APIConfig,
-    APIKeyNotPresentError,
-    ExternalAPIPriority,
     FullTextUnpackStrategy,
-    external_api_priority_batch,
 )
+from app.fetching.core import StudyCollection
+from app.fetching.fetchers import FullTextFetcher
 from app.utils import InvalidDOIError, validate_doi
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
-class FetchFullTextError(Exception):
+
+class FullTextBatchFetcherError(Exception):
     """Custom exception for errors occurring during full text fetching."""
 
 
-def prepare_api_config(
-    api_configs: list[APIConfig],
-    settings: Settings,
-    external_api_priority_batch: ExternalAPIPriority = external_api_priority_batch,
-) -> dict[str, APIConfig]:
+class FullTextBatchFetcher:
     """
-    Prepare a dict of APIConfig objects, populated with API keys.
-
-    If API keys are not present for a given API,
-    this will be omitted from the overall API config.
-
-    NOTE: Right now, we can pass a list of APIConfigs.
-    An API config will only be allowed if it's in
-    the list of permitted APIs in generic.ExternalAPI.
-
-    Args:
-        api_configs (list[APIConfig]): list of APIConfig objects to prepare.
-        settings (Settings): application settings containing API keys.
-        external_api_priority_batch (ExternalAPIPriority): priority for batch queries.
-
-    Returns:
-        dict[str, APIConfig]: a dictionary mapping API names to their configurations.
-
-    """
-    master_api_config = {}  # type: dict
-    api_config_map = {config.name.value: config for config in api_configs}
-    logger.debug(
-        f"external_api_priority_batch: {external_api_priority_batch.priorities}"
-    )
-    logger.debug(f"supplied api candidates: {', '.join(api_config_map.keys())}")
-
-    for external_api_priority in [
-        external_api_priority_batch,
-    ]:
-        logger.debug(f"building api config for {external_api_priority}")
-        master_api_config[external_api_priority.name] = {}
-        for api in external_api_priority.priorities:
-            logger.debug(f"checking if {api.name} in list of available apis...")
-            if api not in api_config_map:
-                continue
-            target_config = api_config_map[api]
-            try:
-                logger.debug(f"trying to find & init api key for {api.name}")
-                target_config.init_api_key(settings=settings)
-                master_api_config[external_api_priority.name][api.name] = target_config
-                logger.info(f"successfully initialised API key for {api.name}.")
-            except APIKeyNotPresentError as missing_api_key_error:
-                logger.info(f"no API key for {api.name}. not populating config.")
-                logger.info(f"original error message: {missing_api_key_error}.")
-                continue
-
-    return master_api_config
-
-
-class FullTextFetcher:
-    """
-    Handles the fetching of full texts from target APIs. Can fetch either a `single`
-    full text, or a `batch` of full texts.
+    Handles the fetching of full texts from target APIs.
+    Can fetch either a `single` full text, or a `batch` of full texts.
     Single full texts are treated as a batch of one.
 
     Will _cycle_ through available API configurations
@@ -93,21 +39,26 @@ class FullTextFetcher:
     Will unpack and, if required, clean full text.
     """
 
-    def __init__(self, master_api_config: dict, timeout: int = 60) -> None:
+    def __init__(
+        self, settings: Settings, all_api_configs: dict, timeout: int = 60
+    ) -> None:
         """
-        Init our FullTextFetcher instance.
+        Init our FullTextBatchFetcher instance.
 
         Args:
-            master_api_config (dict): retrieved from `prepare_api_config`
+            settings (Settings): application settings.
+            all_api_configs (dict): retrieved from `prepare_api_config`
                 using all provided API configs.
             timeout (int, optional): Network timeout. Defaults to 60.
 
         """
-        self.master_api_config = master_api_config  # type: dict
+        self.settings = settings
+        self.all_api_configs = all_api_configs  # type: dict
         self.timeout = timeout
+        self.full_text_fetcher = FullTextFetcher(settings=settings, timeout=timeout)
 
         logger.info("Available external APIs in descending order of priority:")
-        logger.info(", ".join(master_api_config["batch"].keys()))
+        logger.info(", ".join(all_api_configs["fulltext"].keys()))
 
     @staticmethod
     def process_doi(doi: DOIIdentifier | str) -> str:
@@ -133,95 +84,96 @@ class FullTextFetcher:
             )
             raise
 
-    def get_many_fulltexts_cycling_apis(
-        self, input_dois: list[str], *, verbose: bool = False
+    async def get_many_fulltext_pdfs_cycling_apis(
+        self, input_study_collection: StudyCollection
     ) -> list[dict]:
         """
         Get many full texts from a list of DOIs, cycling APIs in order of priority.
 
         Args:
-            input_dois (list[str]): Input list of DOIs, as strings.
-            verbose (bool, optional): whether to provide very verbose logging for debug.
-                                      Defaults to False.
+            input_study_collection (StudyCollection): Input collection of studies.
 
         Returns:
             list[dict]: a list of dicts of full texts and DOIs.
 
         """
-        raise NotImplementedError
-
-    def fetch(
-        self, url: AnyUrl, params: dict, headers: dict, *, verbose: bool = False
-    ) -> dict:
-        """
-        Fetch a response from one of the APIs (generic).
-
-        Args:
-            url (AnyUrl): The URL to fetch from.
-            params (dict): Query parameters to include in the request.
-            headers (dict): Headers to include in the request.
-            verbose (bool, optional): Whether to provide very verbose logging for debug.
-                                      Defaults to False.
-
-        Returns:
-            dict: The JSON response from the API.
-
-        Raises:
-            httpx.HTTPStatusError: If an HTTP error occurs during the request.
-
-        """
-        client = httpx.Client(follow_redirects=True)
-        response = client.get(
-            url=str(url), params=params, headers=headers, timeout=self.timeout
+        input_dois = [study.doi for study in input_study_collection.studies]
+        valid_dois = []
+        for doi in input_dois:
+            try:
+                doi_string = self.process_doi(doi)
+                valid_dois.append(doi_string)
+            except InvalidDOIError as invalid_doi_error:
+                logger.error(f"Invalid DOI found: {invalid_doi_error}")
+                continue
+        invalid_dois = [doi.lower() for doi in input_dois if doi not in valid_dois]
+        invalid_doi_response = [
+            {"doi": doi, "fulltext": None, "source": None} for doi in invalid_dois
+        ]
+        valid_references_provided = len(valid_dois)
+        logger.info(
+            f"Valid references provided: {valid_references_provided} "
+            f"of {len(input_study_collection.studies)} studies."
         )
-        if verbose:
-            request_actual_headers = f"request headers: {response.request.headers}"
-            request_url = f"request url: {response.request.url}"
-            request_body = f"request body: {response.request.body!s}"
-            response_status_code = f"status code: {response.status_code}"
-            response_headers = f"headers: {response.headers}"
-            response_cookies = f"cookies: {response.cookies}"
+        retrieved_fulltexts = []
 
-            logger.debug(request_actual_headers)
-            logger.debug(request_url)
-            logger.debug(request_body)
+        for api_name in self.all_api_configs["fulltext"]:
+            if len(valid_dois) == 0:
+                logger.info("All full texts retrieved, breaking API cycle.")
+                break
+            logger.info(f"Fetching full texts from API: {api_name}")
+            api_count = 0
+            api_config: APIConfig = self.all_api_configs["fulltext"][api_name]
 
-            logger.debug(response_status_code)
-            logger.debug(response_headers)
-            logger.debug(response_cookies)
+            retrieved_responses: dict[
+                str, Path | None
+            ] = await self.full_text_fetcher.fetch(
+                publisher_name=api_name,
+                study_collection=input_study_collection,
+            )
 
-        response.raise_for_status()
+            found_responses = False
+            for doi, pdf_path in retrieved_responses.items():
+                found_responses = True
+                doi_to_remove = doi
 
-        logger.debug(f"response json: {response.json()}")
-        return response.json()
+                logger.info(f"Full text found for {doi} from {api_name}.")
+                valid_dois.remove(self.process_doi(doi_to_remove))
+                logger.info(
+                    f"Retrieved full text for doi {doi_to_remove} from {api_name}. "
+                    "Removing from master list."
+                )
+                api_count += 1
+                retrieved_fulltexts.append(
+                    {"doi": doi, "fulltext": str(pdf_path), "source": api_name}
+                )
+            if not found_responses:
+                error_message = (
+                    f"No full texts found in {api_name} with"
+                    f" query type {api_config.query_type.value}."
+                )
+                logger.error(error_message)
 
-    def fetch_many_fulltexts(
-        self,
-        dois: list[str],
-        api_config: APIConfig,
-        doi_batch_size: int = 15,
-        *,
-        chunk: bool = False,
-        verbose: bool = False,
-        **kwargs: dict,
-    ) -> Generator[list]:
-        """
-        Fetch many full texts from a target API given a list of DOIs.
+            logger.debug(f"Found {api_count} full texts for api {api_name}.")
+            logger.info(f"Found {len(retrieved_fulltexts)} total from valid DOIs.")
+            logger.info(
+                f"Remaining valid DOIs to collect full texts: {len(valid_dois)}"
+            )
 
-        Args:
-            dois (list[str]): List of DOIs to fetch full texts for.
-            api_config (APIConfig): API configuration object containing
-                                    the API details and unpack strategy.
-            doi_batch_size (int, optional): Number of DOIs to batch together
-                                        in a single request. Defaults to 15.
-            chunk (bool, optional): Whether to chunk the DOIs into batches.
-                                    Defaults to False.
-            verbose (bool, optional): Whether to provide very verbose logging for debug.
-                                      Defaults to False.
-            **kwargs: Additional keyword arguments to pass to the `fetch` method.
+        logger.info(
+            f"{len(retrieved_fulltexts)} full texts"
+            f" retrieved of {valid_references_provided} valid DOIs requested."
+        )
+        logger.info(f"{len(invalid_dois)} invalid DOIs provided.")
+        if len(valid_dois) > 0:
+            logger.info(f"Full texts not retrieved for {len(valid_dois)} valid DOIs.")
+        fulltexts_not_found = [
+            {"doi": doi, "fulltext": None, "source": None} for doi in valid_dois
+        ]
+        retrieved_fulltexts.extend(invalid_doi_response)
+        retrieved_fulltexts.extend(fulltexts_not_found)
 
-        """
-        raise NotImplementedError
+        return retrieved_fulltexts
 
     @staticmethod
     def clean_full_text_string(full_text_xml: str) -> str:

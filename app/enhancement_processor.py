@@ -6,13 +6,14 @@ from destiny_sdk.enhancements import (
 )
 from destiny_sdk.references import Reference
 from destiny_sdk.robots import (
-    LinkedRobotError,
     RobotEnhancementBatch,
 )
 from loguru import logger
 
+from app.config import Settings
 from app.data_models.generic import APIConfig
-from app.fetch_fulltext import FullTextFetcher
+from app.fetch_fulltext import FullTextBatchFetcher
+from app.fetching.core import Study, StudyCollection
 
 
 class BatchEnhancementGenerationError(Exception):
@@ -24,6 +25,7 @@ class FullTextEnhancementProcessor:
 
     def __init__(
         self,
+        settings: Settings,
         robot_version: str,
         source_name: str,
         global_api_config: dict[str, APIConfig],
@@ -40,13 +42,33 @@ class FullTextEnhancementProcessor:
             available_api_configs (list[APIConfig]): List of API configurations.
 
         """
+        self.settings = settings
         self.robot_version = robot_version
         self.source_name = source_name
 
-        self.fulltext_fetcher = FullTextFetcher(global_api_config)
+        self.fulltext_fetcher = FullTextBatchFetcher(self.settings, global_api_config)
         self.available_api_configs = available_api_configs
 
-    def create_fulltext_enhancement(
+    @staticmethod
+    def get_study_collection_from_references(
+        references: list[Reference],
+    ) -> StudyCollection:
+        """
+        Convert a list of Reference objects to a StudyCollection.
+
+        Args:
+            references (list[Reference]): A list of Reference objects.
+
+        Returns:
+            StudyCollection: The corresponding StudyCollection.
+
+        """
+        studies = [
+            Study(doi=reference.doi, uid=reference.id) for reference in references
+        ]
+        return StudyCollection(studies=studies)
+
+    async def create_fulltext_enhancement(
         self,
         references: list[Reference],
     ) -> list[Enhancement]:
@@ -56,7 +78,7 @@ class FullTextEnhancementProcessor:
         This operates on a batch of references as a default,
         but that could be a batch of one.
 
-        This leverages the `get_many_fulltexts_cycling_apis` method,
+        This leverages the `get_many_fulltext_pdfs_cycling_apis` method,
         rather than strictly looping over individual requests (although
         this may be done in the background, depending on API config).
 
@@ -67,32 +89,10 @@ class FullTextEnhancementProcessor:
             list[Enhancement]: The generated batch of enhancements.
 
         """
-        raise NotImplementedError
-
-    def generate_fulltext_enhancement_batch_request(
-        self,
-        references: list[Reference],
-        enhancements_references_map: list[dict],
-        available_api_configs: list[APIConfig],
-        app_title: str,
-    ) -> list[Enhancement | LinkedRobotError]:
-        """
-        Generate a batch of full text enhancements from a batch of references.
-
-        Args:
-            references (list[Reference]): A list of reference objects.
-            enhancements_references_map (list[dict]): A list of enhancement dictionaries
-                that map reference IDs to their enhancements.
-
-        Returns:
-            list[Enhancement]: The generated batch of enhancements.
-
-        Raises:
-            BatchEnhancementGenerationError: If there is an error generating the batch.
-                Represents a complete failing of the enhancement process.
-
-        """
-        raise NotImplementedError
+        study_collection = self.get_study_collection_from_references(references)
+        return await self.fulltext_fetcher.get_many_fulltext_pdfs_cycling_apis(
+            input_study_collection=study_collection,
+        )
 
     async def download_references(self, reference_storage_url: str) -> list[Reference]:
         """
@@ -160,7 +160,7 @@ class FullTextEnhancementProcessor:
         references = await self.download_references(str(batch.reference_storage_url))
         logger.debug(f"References: {references}")
         try:
-            generated_enhancements = self.create_fulltext_enhancement(
+            generated_enhancements = await self.create_fulltext_enhancement(
                 references=references,
             )
             await self.upload_enhancements(

@@ -32,11 +32,8 @@ async def test_elsevier_fetcher_fetch_full_text_success(
 async def test_elsevier_fetcher_fetch_full_text_non_http_200(
     mocker, test_settings, test_study_collection, tmp_path, caplog
 ):
-    uids = [study.uid.lower() for study in test_study_collection.iterate_studies()]
-    dois = [
-        study.doi.identifier.lower()
-        for study in test_study_collection.iterate_studies()
-    ]
+    uids = [study.uid for study in test_study_collection.studies]
+    dois = [study.doi.identifier.lower() for study in test_study_collection.studies]
     fetcher = ElsevierFetcher(settings=test_settings)
     mocker.patch("app.fetching.elsevier.stream_file")
     test_status_code = httpx.codes.ACCEPTED
@@ -64,10 +61,7 @@ async def test_elsevier_fetcher_fetch_full_text_non_http_200(
 async def test_elsevier_fetcher_fetch_full_text_http_error(
     mocker, test_settings, test_study_collection, tmp_path, caplog
 ):
-    dois = [
-        study.doi.identifier.lower()
-        for study in test_study_collection.iterate_studies()
-    ]
+    dois = [study.doi.identifier.lower() for study in test_study_collection.studies]
     fetcher = ElsevierFetcher(settings=test_settings)
     mocker.patch("app.fetching.elsevier.stream_file")
 
@@ -93,10 +87,7 @@ async def test_elsevier_fetcher_fetch_full_text_http_error(
 async def test_elsevier_fetcher_fetch_full_text_stream_error(
     mocker, test_settings, test_study_collection, tmp_path, caplog
 ):
-    dois = [
-        study.doi.identifier.lower()
-        for study in test_study_collection.iterate_studies()
-    ]
+    dois = [study.doi.identifier.lower() for study in test_study_collection.studies]
     fetcher = ElsevierFetcher(settings=test_settings)
     mocker.patch(
         "app.fetching.elsevier.stream_file",

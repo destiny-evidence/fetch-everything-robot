@@ -34,7 +34,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
         self,
         study_collection: StudyCollection,
         output_directory: Path,
-    ) -> None:
+    ) -> dict[str, Path | None]:
         """
         Fetch the full text of an Unpaywall article.
 
@@ -42,13 +42,18 @@ class UnpaywallFetcher(BasePublisherFetcher):
             study_collection (StudyCollection): The collection of studies to fetch.
             output_directory (Path): The output directory path.
 
+        Returns:
+            dict[str, Path | None]: A dictionary mapping DOIs to the paths of the
+                saved PDF files
+
         """
         output_directory.mkdir(parents=True, exist_ok=True)
 
         found_pdfs = []
-        for study in study_collection.iterate_studies():
+        output_doi_paths: dict[str, Path | None] = {}
+        for study in study_collection.studies:
             doi = study.doi.identifier.lower()
-            uid = study.uid.lower()
+            uid = study.uid
             url = f"{self.base_url}{doi}?email={self.settings.mailto}"
 
             try:
@@ -77,7 +82,9 @@ class UnpaywallFetcher(BasePublisherFetcher):
                     )
                     if pdf_found and pdf_url is not None:
                         pdf_path = output_directory / f"{uid}.pdf"
-                        stream_file(AnyUrl(pdf_url), pdf_path)
+                        output_file_path = stream_file(AnyUrl(pdf_url), pdf_path)
+                        if output_file_path:
+                            output_doi_paths[doi] = output_file_path
                         found_pdfs.append(uid)
                         logger.info(
                             f"Unpaywall download success for {uid=}, {doi=}: {pdf_url}"
@@ -89,6 +96,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
                             f" {publisher_in_excluded_list=},"
                             f" {taylor_and_francis_in_url=}"
                         )
+                        output_doi_paths[doi] = None
 
             except httpx.HTTPError as http_error:
                 logger.error(
@@ -101,3 +109,4 @@ class UnpaywallFetcher(BasePublisherFetcher):
                 )
                 logger.error(error_message)
         logger.info(f"{len(found_pdfs)} full texts found via Unpaywall")
+        return output_doi_paths

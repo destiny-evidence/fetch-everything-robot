@@ -3,8 +3,52 @@
 from enum import StrEnum
 from functools import lru_cache
 
-from pydantic import UUID4, EmailStr, Field, HttpUrl, SecretStr
+from pydantic import UUID4, BaseModel, EmailStr, Field, HttpUrl, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class ExternalAPI(StrEnum):
+    """
+    Exhaustive list of permitted external APIs which we can hit to retrieve full texts.
+
+    New additions here will require definition of
+    new pydantic models for parsing their output and new
+    implementation of retrieving their output.
+    """
+
+    CROSSREF = "crossref"
+    SCOPUS = "scopus"
+    UNPAYWALL = "unpaywall"
+
+
+class QueryType(StrEnum):
+    """
+    Exhaustive list of permitted query types,
+    e.g. `batched_single` or `batch`.
+
+    """
+
+    BATCH = "batch"
+    BATCHED_SINGLE = "batched_single"
+
+
+class ExternalAPIPriority(BaseModel):
+    """Priority definition of APIs to call for any given DOI."""
+
+    name: str = Field(description="name of the api priority")
+    priorities: dict[ExternalAPI, int] = Field(
+        ..., description="mapping of `ExternalAPIs` to their priority rank."
+    )
+
+
+external_api_priority = ExternalAPIPriority(
+    name="fulltext",
+    priorities={
+        ExternalAPI.CROSSREF: 1,
+        ExternalAPI.UNPAYWALL: 2,
+        ExternalAPI.SCOPUS: 3,
+    },
+)
 
 
 class Environment(StrEnum):

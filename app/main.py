@@ -16,10 +16,10 @@ from destiny_sdk.robots import (
 from enhancement_processor import FullTextEnhancementProcessor
 
 from app.config import Settings, get_settings
+from app.data_models.generic import prepare_api_config
 from app.data_models.openalex import get_openalex_batch_api_config
 from app.data_models.scopus import get_scopus_batch_api_config
 from app.enhancement_processor import BatchEnhancementGenerationError
-from app.fetch_fulltext import prepare_api_config
 from app.logger import logger, set_up_logger
 from app.server import start_health_check_server
 from app.utils import get_version_number

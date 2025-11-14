@@ -1,11 +1,15 @@
 """Generic data models and validators for working with external APIs."""
 
-from enum import StrEnum
-
 from loguru import logger
 from pydantic import AnyUrl, BaseModel, Field, model_validator
 
-from app.config import Settings
+from app.config import (
+    ExternalAPI,
+    ExternalAPIPriority,
+    QueryType,
+    Settings,
+    external_api_priority,
+)
 
 
 class APIKeyNotPresentError(Exception):
@@ -18,48 +22,6 @@ class FullTextUnpackError(Exception):
 
 class FullTextNotFoundError(Exception):
     """Raise when we fail to find a full text."""
-
-
-class ExternalAPI(StrEnum):
-    """
-    Exhaustive list of permitted external APIs which we can hit to retrieve full texts.
-
-    New additions here will require definition of
-    new pydantic models for parsing their output and new
-    implementation of retrieving their output.
-    """
-
-    OPENALEX = "openalex"
-    SCOPUS = "scopus"
-
-
-class QueryType(StrEnum):
-    """
-    Exhaustive list of permitted query types,
-    e.g. `batched_single` or `batch`.
-
-    """
-
-    BATCH = "batch"
-    BATCHED_SINGLE = "batched_single"
-
-
-class ExternalAPIPriority(BaseModel):
-    """Priority definition of APIs to call for any given DOI."""
-
-    name: str = Field(description="name of the api priority")
-    priorities: dict[ExternalAPI, int] = Field(
-        ..., description="mapping of `ExternalAPIs` to their priority rank."
-    )
-
-
-external_api_priority_batch = ExternalAPIPriority(
-    name="batch",
-    priorities={
-        ExternalAPI.OPENALEX: 1,
-        ExternalAPI.SCOPUS: 2,
-    },
-)
 
 
 class FullTextUnpackStrategy(BaseModel):
@@ -275,3 +237,51 @@ class APIConfig(BaseModel):
             "of query and query type.",
         )
         raise ValueError(error_msg)
+
+
+def prepare_api_config(
+    api_configs: list[APIConfig],
+    settings: Settings,
+    external_api_priority: ExternalAPIPriority = external_api_priority,
+) -> dict[str, APIConfig]:
+    """
+    Prepare a dict of APIConfig objects, populated with API keys.
+
+    If API keys are not present for a given API,
+    this will be omitted from the overall API config.
+
+    Args:
+        api_configs (list[APIConfig]): list of APIConfig objects to prepare.
+        settings (Settings): application settings containing API keys.
+        external_api_priority (ExternalAPIPriority): External API order of priority.
+
+    Returns:
+        dict[str, APIConfig]: a dictionary mapping API names to their configurations.
+
+    """
+    all_api_configs = {}  # type: dict
+    api_config_map = {config.name.value: config for config in api_configs}
+    logger.debug(f"external_api_priority: {external_api_priority.priorities}")
+    logger.debug(f"supplied api candidates: {', '.join(api_config_map.keys())}")
+
+    for external_api in [
+        external_api_priority,
+    ]:
+        logger.debug(f"building api config for {external_api}")
+        all_api_configs[external_api.name] = {}
+        for api in external_api.priorities:
+            logger.debug(f"checking if {api.name} in list of available apis...")
+            if api not in api_config_map:
+                continue
+            target_config = api_config_map[api]
+            try:
+                logger.debug(f"trying to find & init api key for {api.name}")
+                target_config.init_api_key(settings=settings)
+                all_api_configs[external_api_priority.name][api.name] = target_config
+                logger.info(f"successfully initialised API key for {api.name}.")
+            except APIKeyNotPresentError as missing_api_key_error:
+                logger.info(f"no API key for {api.name}. not populating config.")
+                logger.info(f"original error message: {missing_api_key_error}.")
+                continue
+
+    return all_api_configs

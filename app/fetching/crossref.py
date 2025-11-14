@@ -82,22 +82,27 @@ class CrossrefFetcher(BasePublisherFetcher):
         )
 
     async def fetch_full_text(
-        self, studies: StudyCollection, output_directory: Path
-    ) -> None:
+        self, study_collection: StudyCollection, output_directory: Path
+    ) -> dict[str, Path | None]:
         """
         Fetch full texts using the CrossRef API.
 
         Args:
-            studies (StudyCollection): The collection of studies to fetch.
+            study_collection (StudyCollection): The collection of studies to fetch.
             output_directory (Path): The directory to save the fetched full texts.
+
+        Returns:
+            dict[str, Path]: A dictionary mapping study UIDs to the paths of
+                the saved full text files.
 
         """
         output_directory.mkdir(parents=True, exist_ok=True)
         crossref = Crossref()
         found_pdfs = set()
-        for study in studies.iterate_studies():
+        output_doi_paths: dict[str, Path | None] = {}
+        for study in study_collection.studies:
             doi = study.doi.identifier.lower()
-            uid = study.uid.lower()
+            uid = study.uid
             try:
                 data = crossref.works(ids=doi)
                 content_info = self.get_url_from_pdf_content_type(data)
@@ -105,7 +110,9 @@ class CrossrefFetcher(BasePublisherFetcher):
                     url = str(content_info.get("url"))
                     pdf_path = output_directory / f"{uid}.pdf"
                     if uid not in found_pdfs:  # Avoid duplicate downloads
-                        stream_file(AnyUrl(url), pdf_path)
+                        output_file_path = stream_file(AnyUrl(url), pdf_path)
+                        if output_file_path:
+                            output_doi_paths[doi] = output_file_path
                         found_pdfs.add(uid)
                         logger.info(f"Crossref download success for {uid}: {url}")
                         await asyncio.sleep(self.wait_time_seconds)
@@ -113,6 +120,7 @@ class CrossrefFetcher(BasePublisherFetcher):
                     logger.warning(
                         f"No valid PDF found via CrossRef for {doi=}, {uid=}"
                     )
+                    output_doi_paths[doi] = None
             except RequestError as request_error:
                 error_message = (
                     f"CrossRef request error for {uid}:{doi}" f" - {request_error}"
@@ -124,4 +132,6 @@ class CrossrefFetcher(BasePublisherFetcher):
                     f" - {fulltext_download_error}"
                 )
                 logger.error(error_message)
+
         logger.info(f"{len(found_pdfs)} full texts found via CrossRef!")
+        return output_doi_paths

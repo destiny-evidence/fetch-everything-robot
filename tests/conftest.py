@@ -15,10 +15,10 @@ from app.data_models.generic import (
     ExternalAPI,
     FullTextUnpackStrategy,
     QueryType,
+    prepare_api_config,
 )
 from app.data_models.scopus import ScopusAPIConfig
 from app.enhancement_processor import FullTextEnhancementProcessor
-from app.fetch_fulltext import prepare_api_config
 
 pytest_plugins = [
     "tests.fixtures.generic",
@@ -109,8 +109,10 @@ def test_fulltext_enhancement_processor(
     scopus_api_config_valid_batch,
     openalex_api_config_valid_batch,
     test_global_api_config,
+    test_settings,
 ) -> FullTextEnhancementProcessor:
     return FullTextEnhancementProcessor(
+        settings=test_settings,
         robot_version="9.9.9",
         source_name="Test Fetch Everything Robot",
         global_api_config=test_global_api_config,

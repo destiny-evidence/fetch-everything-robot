@@ -1,5 +1,6 @@
 """Define fetchers to retrieve full-text articles from various sources."""
 
+import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -39,38 +40,30 @@ class FullTextFetcher:
             for name, fetcher_class in PUBLISHER_FETCHERS.items()
         }
 
-    @staticmethod
-    def format_identifiers_for_uri(url_entity: str) -> str:
-        """
-        Format identifiers for use in URLs and file paths.
-
-        Args:
-            url_entity (str): The entity to format.
-
-        Returns:
-            str: The formatted entity.
-
-        """
-        return url_entity.replace("/", "%2F")
-
     async def fetch(
         self,
         publisher_name: str,
         study_collection: StudyCollection,
-        output_directory: Path,
-    ) -> None:
+        output_directory: Path | None = None,
+    ) -> dict[str, Path | None]:
         """
         Fetch full-text articles from the specified publisher.
 
         Args:
             publisher_name (str): The name of the publisher.
             study_collection (StudyCollection): A collection of studies.
-            output_directory (Path): The directory to save the fetched articles.
+            output_directory (Path | None, optional): The directory to save the
+                fetched articles. Defaults to None.
+
+        Returns:
+            dict[str, Path | None]: A dictionary mapping study DOIs to the paths of the
+                saved full text files.
 
         """
         fetcher = self.fetchers.get(publisher_name)
         if not fetcher:
             error_message = f"Unknown publisher: {publisher_name}"
             raise FullTextFetcherError(error_message)
-
-        await fetcher.fetch_full_text(study_collection, output_directory)
+        if output_directory is None:
+            output_directory = Path(tempfile.TemporaryDirectory(delete=False).name)
+        return await fetcher.fetch_full_text(study_collection, output_directory)

@@ -6,7 +6,8 @@ import httpx
 import pytest
 from pydantic import AnyUrl
 
-from app.fetch_fulltext import FullTextFetcher, prepare_api_config
+from app.data_models.generic import prepare_api_config
+from app.fetch_fulltext import FullTextFetcher
 
 
 def test_prepare_api_config_success(
@@ -59,12 +60,12 @@ def test_prepare_api_config_missing_key(
 def test_full_text_fetcher_init_logs(request, api_config_fixture, test_settings):
     api_config_batch = request.getfixturevalue(api_config_fixture["batch"])
     with patch("app.fetch_fulltext.logger") as mock_logger:
-        master_api_config = prepare_api_config([api_config_batch], test_settings)
-        fetcher = FullTextFetcher(master_api_config)
+        all_api_configs = prepare_api_config([api_config_batch], test_settings)
+        fetcher = FullTextFetcher(all_api_configs)
         mock_logger.info.assert_any_call(
             "Available external APIs in descending order of priority:"
         )
-        for external_api_name in master_api_config["batch"]:
+        for external_api_name in all_api_configs["fulltext"]:
             assert external_api_name == api_config_batch.name.value.upper()
         assert fetcher.timeout == 60
 
@@ -83,7 +84,7 @@ def test_full_text_fetcher_init_logs(request, api_config_fixture, test_settings)
 def test_fetch_success(request, api_config_fixture, test_settings):
     api_config_batch = request.getfixturevalue(api_config_fixture["batch"])
     fetcher = FullTextFetcher(
-        master_api_config=prepare_api_config([api_config_batch], test_settings)
+        all_api_configs=prepare_api_config([api_config_batch], test_settings)
     )
     mock_response = MagicMock()
     mock_response.raise_for_status.return_value = None
@@ -110,7 +111,7 @@ def test_fetch_success(request, api_config_fixture, test_settings):
 def test_fetch_http_error(request, api_config_fixture, test_settings):
     api_config_batch = request.getfixturevalue(api_config_fixture["batch"])
     fetcher = FullTextFetcher(
-        master_api_config=prepare_api_config([api_config_batch], test_settings)
+        all_api_configs=prepare_api_config([api_config_batch], test_settings)
     )
     mock_response = MagicMock()
     mock_response.raise_for_status.side_effect = httpx.HTTPError("fail")

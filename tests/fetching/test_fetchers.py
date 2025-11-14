@@ -17,15 +17,6 @@ def test_full_text_fetcher_init(mocker):
     ), "All fetchers should be instances of BasePublisherFetcher"
 
 
-def test_format_identifiers_for_uri():
-    input_identifier = "10.1000/xyz123"
-    expected_output = "10.1000%2Fxyz123"
-    formatted_identifier = FullTextFetcher.format_identifiers_for_uri(input_identifier)
-    assert (
-        formatted_identifier == expected_output
-    ), "Identifier should be formatted correctly"
-
-
 @pytest.mark.asyncio
 async def test_fetch_calls_correct_fetcher(mocker):
     settings = mocker.MagicMock()

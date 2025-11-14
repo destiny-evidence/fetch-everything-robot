@@ -27,10 +27,13 @@ def test_custom_exceptions():
 
 
 def test_external_api_enum():
+    assert ExternalAPI.CROSSREF == "crossref"
+    assert ExternalAPI.UNPAYWALL == "unpaywall"
     assert ExternalAPI.SCOPUS == "scopus"
-    assert ExternalAPI.OPENALEX == "openalex"
+
     assert set(ExternalAPI) == {
-        ExternalAPI.OPENALEX,
+        ExternalAPI.CROSSREF,
+        ExternalAPI.UNPAYWALL,
         ExternalAPI.SCOPUS,
     }
 
@@ -39,12 +42,14 @@ def test_external_api_priority_model():
     model = ExternalAPIPriority(
         name="test_priority",
         priorities={
-            ExternalAPI.OPENALEX: 1,
-            ExternalAPI.SCOPUS: 2,
+            ExternalAPI.CROSSREF: 1,
+            ExternalAPI.UNPAYWALL: 2,
+            ExternalAPI.SCOPUS: 3,
         },
     )
-    assert model.priorities[ExternalAPI.OPENALEX] == 1
-    assert model.priorities[ExternalAPI.SCOPUS] == 2
+    assert model.priorities[ExternalAPI.CROSSREF] == 1
+    assert model.priorities[ExternalAPI.UNPAYWALL] == 2
+    assert model.priorities[ExternalAPI.SCOPUS] == 3
 
 
 @pytest.mark.parametrize(
@@ -72,10 +77,10 @@ def test_external_api_priority_model():
         (
             "openalex_api_config_valid_batch",
             {"Accept": "application/json"},
-            ExternalAPI.OPENALEX,
+            ExternalAPI.CROSSREF,
             "https://api.example.com/",
             {},
-            ExternalAPI.OPENALEX,
+            ExternalAPI.CROSSREF,
             ["message", "pdf_url"],
             ["message", "xml"],
         ),

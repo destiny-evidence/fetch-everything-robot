@@ -14,7 +14,7 @@ class BasePublisherFetcher(ABC):
         self,
         study_collection: StudyCollection,
         output_directory: Path,
-    ) -> None:
+    ) -> dict[str, Path | None]:
         """
         Fetch the full text for a given study and save it to output_directory.
 
@@ -22,5 +22,9 @@ class BasePublisherFetcher(ABC):
             study_collection (StudyCollection): The study collection for which to fetch
                 the full text.
             output_directory (Path): The directory where the full text should be saved.
+
+        Returns:
+            dict[str, Path | None]: A dictionary mapping DOIs to the paths
+                of the saved full text files.
 
         """
