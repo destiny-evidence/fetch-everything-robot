@@ -30,7 +30,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
         self.settings = settings
         self.base_url = "https://api.unpaywall.org/v2/"
 
-    async def fetch_full_text(
+    async def fetch_many_full_texts(
         self,
         study_collection: StudyCollection,
         output_directory: Path,

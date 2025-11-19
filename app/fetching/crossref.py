@@ -9,11 +9,7 @@ from pydantic import AnyUrl
 
 from app.config import Settings
 from app.fetching import BasePublisherFetcher
-from app.fetching.core import (
-    FullTextStreamError,
-    StudyCollection,
-    stream_file,
-)
+from app.fetching.core import FullTextStreamError, StudyCollection, stream_file
 
 
 class CrossrefFetcher(BasePublisherFetcher):
@@ -25,8 +21,7 @@ class CrossrefFetcher(BasePublisherFetcher):
 
         Args:
             settings (Settings): The settings to use for the fetcher.
-            wait_time_seconds (int, optional): The wait time between requests.
-                Defaults to 2.
+            wait_time_seconds (int, optional): The settings to use for the fetcher.
 
         """
         self.settings = settings
@@ -81,7 +76,7 @@ class CrossrefFetcher(BasePublisherFetcher):
             for keyword in ["elsevier", "wiley", "tandfonline"]
         )
 
-    async def fetch_full_text(
+    async def fetch_many_full_texts(
         self, study_collection: StudyCollection, output_directory: Path
     ) -> dict[str, Path | None]:
         """
@@ -123,7 +118,7 @@ class CrossrefFetcher(BasePublisherFetcher):
                     output_doi_paths[doi] = None
             except RequestError as request_error:
                 error_message = (
-                    f"CrossRef request error for {uid}:{doi}" f" - {request_error}"
+                    f"CrossRef request error for {uid}:{doi} - {request_error}"
                 )
                 logger.error(error_message)
             except FullTextStreamError as fulltext_download_error:

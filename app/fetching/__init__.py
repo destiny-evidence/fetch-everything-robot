@@ -3,6 +3,8 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+from pydantic import AnyUrl
+
 from app.fetching.core import StudyCollection
 
 
@@ -10,13 +12,19 @@ class BasePublisherFetcher(ABC):
     """Abstract base class for publisher fetchers."""
 
     @abstractmethod
-    async def fetch_full_text(
+    async def download_one_pdf(
+        self, pdf_url: AnyUrl, filepath: Path
+    ) -> dict[str, Path | None]:
+        """Download a pdf for a pdf_url associated with a single `Study`."""
+
+    @abstractmethod
+    async def fetch_many_full_texts(
         self,
         study_collection: StudyCollection,
         output_directory: Path,
     ) -> dict[str, Path | None]:
         """
-        Fetch the full text for a given study and save it to output_directory.
+        Fetch full text for a given StudyCollection and save them to output_directory.
 
         Args:
             study_collection (StudyCollection): The study collection for which to fetch
