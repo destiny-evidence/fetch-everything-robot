@@ -114,8 +114,11 @@ def delete_temporary_file(temp_file_path: Path) -> None:
         )
 
 
-def stream_file(
-    url: AnyUrl, destination: Path, headers: dict | None = None
+async def stream_file(
+    url: AnyUrl,
+    destination: Path,
+    headers: dict | None = None,
+    chunk_size: int | None = None,
 ) -> Path | None:
     """
     Stream bytes from a file from a URL and save it to the specified destination.
@@ -133,26 +136,27 @@ def stream_file(
         logger.info(f"File already exists: {destination}, skipping download.")
         return destination
 
-    try:
-        with httpx.stream("GET", str(url), headers=headers) as response:
-            response.raise_for_status()
-            with destination.open("wb") as destination_file:
-                for chunk in response.iter_bytes():
-                    destination_file.write(chunk)
-        logger.info(f"File downloaded successfully: {destination}")
-    except httpx.HTTPError as http_error:
-        logger.error(f"Error downloading {url}: {http_error}")
-        error_message = f"Error downloading {url}: {http_error}"
-        raise FullTextStreamError(error_message) from http_error
-    except httpx.StreamError as stream_error:
-        logger.error(f"Streaming error for {url}: {stream_error}")
-        error_message = f"Streaming error for {url}: {stream_error}"
-        raise FullTextStreamError(error_message) from stream_error
-    if destination.exists() and destination.stat().st_size == 0:
-        destination.unlink()
-        logger.error(f"File empty - removing empty file: {destination}")
-        return None
-    if not destination.exists():
-        logger.error("Streamed file empty - skipping save to disk.")
-        return None
+    async with AsyncHTTPXRetryClient() as client:
+        try:
+            async with client.stream("GET", str(url), headers=headers) as response:
+                response.raise_for_status()
+                with destination.open("wb") as destination_file:
+                    for chunk in response.iter_bytes(chunk_size=chunk_size):
+                        destination_file.write(chunk)
+                logger.info(f"File downloaded successfully: {destination}")
+        except httpx.HTTPError as http_error:
+            logger.error(f"Error downloading {url}: {http_error}")
+            error_message = f"Error downloading {url}: {http_error}"
+            raise FullTextStreamError(error_message) from http_error
+        except httpx.StreamError as stream_error:
+            logger.error(f"Streaming error for {url}: {stream_error}")
+            error_message = f"Streaming error for {url}: {stream_error}"
+            raise FullTextStreamError(error_message) from stream_error
+        if destination.exists() and destination.stat().st_size == 0:
+            destination.unlink()
+            logger.error(f"File empty - removing empty file: {destination}")
+            return None
+        if not destination.exists():
+            logger.error("Streamed file empty - skipping save to disk.")
+            return None
     return destination

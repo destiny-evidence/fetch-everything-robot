@@ -12,9 +12,7 @@ class BasePublisherFetcher(ABC):
     """Abstract base class for publisher fetchers."""
 
     @abstractmethod
-    async def download_one_pdf(
-        self, pdf_url: AnyUrl, filepath: Path
-    ) -> dict[str, Path | None]:
+    async def download_one_pdf(self, pdf_url: AnyUrl, filepath: Path) -> Path | None:
         """Download a pdf for a pdf_url associated with a single `Study`."""
 
     @abstractmethod
