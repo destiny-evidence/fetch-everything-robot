@@ -23,8 +23,12 @@ class BasePublisherFetcher(ABC):
                 the full text.
             output_directory (Path): The directory where the full text should be saved.
 
+        <<<<<<< HEAD
         Returns:
             dict[str, Path | None]: A dictionary mapping DOIs to the paths
                 of the saved full text files.
+
+        =======
+        >>>>>>> main
 
         """

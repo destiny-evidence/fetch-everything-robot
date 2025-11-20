@@ -32,36 +32,40 @@ class CrossrefFetcher(BasePublisherFetcher):
         self.settings = settings
         self.wait_time_seconds = wait_time_seconds
 
-    def get_url_from_pdf_content_type(
-        self, data: dict, content_type: str = "application/pdf"
-    ) -> dict:
+    def get_url_from_pdf_content_type(self, crossref_response: dict) -> dict:
         """
         Get the URL from the content type of CrossRef data.
         Here we specify content type as 'application/pdf'.
 
         Args:
-            data (dict): The CrossRef data.
-            content_type (str, optional): The content type to look for.
-                Defaults to "application/pdf".
+            crossref_response (dict): The CrossRef response data.
 
         Returns:
             dict: The content type and corresponding URL.
 
         """
-        if "message" in data and "link" in data["message"]:
+        content_type = "application/pdf"
+        if "message" in crossref_response and "link" in crossref_response["message"]:
             unique_content_url_pairs = []
             observed_urls = set()
-            for link in data["message"]["link"]:
+            for link in crossref_response["message"]["link"]:
                 url = link["URL"]
                 if url not in observed_urls:
                     found_content_type = link.get("content-type", "")
                     unique_content_url_pairs.append((found_content_type, url))
                     observed_urls.add(url)
                     if found_content_type == content_type:
+                        logger.debug(f"Found PDF URL in CrossRef response: {url}")
                         return {"content_type": found_content_type, "url": url}
         if unique_content_url_pairs:
             first_content_type, first_url = unique_content_url_pairs[0]
+            logger.debug(
+                f"No PDF URL found; returning first available URL from"
+                f" CrossRef response: {first_url} with content type"
+                f" {first_content_type}"
+            )
             return {"content_type": first_content_type, "url": first_url}
+        logger.debug("No valid content URLs found in CrossRef response.")
         return {"content_type": None, "url": None}
 
     def pdf_url_is_valid(self, content_info: dict) -> bool:
@@ -104,13 +108,13 @@ class CrossrefFetcher(BasePublisherFetcher):
             doi = study.doi.identifier.lower()
             uid = study.uid
             try:
-                data = crossref.works(ids=doi)
-                content_info = self.get_url_from_pdf_content_type(data)
+                crossref_response = crossref.works(ids=doi)
+                content_info = self.get_url_from_pdf_content_type(crossref_response)
                 if self.pdf_url_is_valid(content_info):
                     url = str(content_info.get("url"))
                     pdf_path = output_directory / f"{uid}.pdf"
                     if uid not in found_pdfs:  # Avoid duplicate downloads
-                        output_file_path = stream_file(AnyUrl(url), pdf_path)
+                        output_file_path = await stream_file(AnyUrl(url), pdf_path)
                         if output_file_path:
                             output_doi_paths[doi] = output_file_path
                         found_pdfs.add(uid)

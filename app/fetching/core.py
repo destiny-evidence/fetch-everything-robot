@@ -16,10 +16,15 @@ class FullTextStreamError(Exception):
 
 
 class Study(BaseModel):
-    """Model representing a single study with DOI and unique identifier."""
+    """
+    Model representing a single study with DOI and unique identifier.
+
+    This is functionally different to a Destiny `Reference`
+    as it lacks any other metadata.
+    """
 
     doi: DOIIdentifier = Field(..., description="The DOI identifier of the study.")
-    uid: str | UUID = Field(..., description="A unique identifier for the study.")
+    uid: UUID = Field(..., description="A unique identifier for the study.")
 
 
 class StudyCollection(BaseModel):
@@ -78,7 +83,7 @@ class AsyncHTTPXRetryClient(httpx.AsyncClient):
         return self
 
 
-def download_temporary_file(url: AnyUrl) -> Path | None:
+async def download_temporary_file(url: AnyUrl) -> Path | None:
     """
     Stream bytes from a file from a URL and save it to a temporary file.
     By some definition of "temporary", since the file will persist until deleted.
@@ -91,7 +96,7 @@ def download_temporary_file(url: AnyUrl) -> Path | None:
 
     """
     with tempfile.NamedTemporaryFile(delete_on_close=False, delete=False) as temp_file:
-        output_temporary_file = stream_file(AnyUrl(url), Path(temp_file.name))
+        output_temporary_file = await stream_file(AnyUrl(url), Path(temp_file.name))
         if output_temporary_file:
             return Path(temp_file.name)
     return None
@@ -114,7 +119,7 @@ def delete_temporary_file(temp_file_path: Path) -> None:
         )
 
 
-def stream_file(
+async def stream_file(
     url: AnyUrl, destination: Path, headers: dict | None = None
 ) -> Path | None:
     """
@@ -134,11 +139,13 @@ def stream_file(
         return destination
 
     try:
-        with httpx.stream("GET", str(url), headers=headers) as response:
+        client = httpx.AsyncClient()
+        async with client.stream("GET", str(url), headers=headers) as response:
             response.raise_for_status()
             with destination.open("wb") as destination_file:
-                for chunk in response.iter_bytes():
+                async for chunk in response.aiter_bytes():
                     destination_file.write(chunk)
+
         logger.info(f"File downloaded successfully: {destination}")
     except httpx.HTTPError as http_error:
         logger.error(f"Error downloading {url}: {http_error}")
