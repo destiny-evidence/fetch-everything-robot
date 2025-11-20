@@ -3,6 +3,7 @@ from uuid import uuid4
 import httpx
 import pytest
 from destiny_sdk.identifiers import DOIIdentifier, ExternalIdentifierType
+from pytest_httpx import IteratorStream
 
 from app.fetching.core import (
     AsyncHTTPXRetryClient,
@@ -33,13 +34,14 @@ async def test_async_httpx_retry_client_context_manager():
         assert client.max_retries == test_max_retries
 
 
-def test_download_temporary_file(mocker, tmp_path):
+@pytest.mark.asyncio
+async def test_download_temporary_file(mocker, tmp_path):
     temp_file = tmp_path / "mocked_temp_file"
     temp_file.write_bytes(b"test content")
     mocker.patch("app.fetching.core.stream_file", return_value=temp_file)
 
     test_url = "http://example.com/testfile"
-    temp_file_path = download_temporary_file(test_url)
+    temp_file_path = await download_temporary_file(test_url)
 
     assert temp_file_path.exists(), "Temporary file should exist"
 
@@ -58,24 +60,25 @@ def test_delete_temporary_file(temporary_test_file):
     assert not temporary_test_file.exists(), "Temporary file should be deleted"
 
 
-def test_stream_file_success(httpx_mock, temporary_test_file):
+@pytest.mark.asyncio
+async def test_stream_file_success(httpx_mock, temporary_test_file):
     test_url = "http://example.com/streamfile"
     test_content = b"streamed content"
-
     httpx_mock.add_response(method="GET", url=test_url, content=test_content)
-    streamed_file_path = stream_file(test_url, temporary_test_file)
+    streamed_file_path = await stream_file(test_url, temporary_test_file)
     assert streamed_file_path.exists(), "Streamed file should exist"
     content = streamed_file_path.read_bytes()
     assert content == test_content, "Streamed content should match expected content"
 
 
-def test_stream_file_destination_exists(mocker, caplog, temporary_test_file):
+@pytest.mark.asyncio
+async def test_stream_file_destination_exists(mocker, caplog, temporary_test_file):
     mocked_httpx_stream = mocker.patch("httpx.stream")
     test_url = "http://example.com/streamfile"
     temporary_test_file.write_text("Existing content")
 
     with caplog.at_level("INFO"):
-        streamed_file_path = stream_file(test_url, temporary_test_file)
+        streamed_file_path = await stream_file(test_url, temporary_test_file)
 
     assert (
         streamed_file_path == temporary_test_file
@@ -89,19 +92,21 @@ def test_stream_file_destination_exists(mocker, caplog, temporary_test_file):
     ), "Expect that httpx.stream should not be called"
 
 
-def test_stream_file_http_error(httpx_mock, temporary_test_file):
+@pytest.mark.asyncio
+async def test_stream_file_http_error(httpx_mock, temporary_test_file):
     test_url = "http://example.com/streamfile"
 
     httpx_mock.add_response(method="GET", url=test_url, status_code=404)
 
     with pytest.raises(FullTextStreamError) as error_info:
-        stream_file(test_url, temporary_test_file)
+        await stream_file(test_url, temporary_test_file)
     assert "Error downloading" in str(
         error_info.value
     ), "Expect an error message about downloading"
 
 
-def test_stream_file_stream_error(httpx_mock, temporary_test_file):
+@pytest.mark.asyncio
+async def test_stream_file_stream_error(httpx_mock, temporary_test_file):
     test_url = "http://example.com/streamfile"
 
     httpx_mock.add_exception(
@@ -109,19 +114,22 @@ def test_stream_file_stream_error(httpx_mock, temporary_test_file):
     )
 
     with pytest.raises(FullTextStreamError) as error_info:
-        stream_file(test_url, temporary_test_file)
+        await stream_file(test_url, temporary_test_file)
     assert "Streaming error" in str(
         error_info.value
     ), "Expect an error message about streaming"
 
 
-def test_stream_file_empty_downloaded_file(httpx_mock, temporary_test_file, caplog):
+@pytest.mark.asyncio
+async def test_stream_file_empty_downloaded_file(
+    httpx_mock, temporary_test_file, caplog
+):
     test_url = "http://example.com/streamfile"
 
     httpx_mock.add_response(method="GET", url=test_url, content=b"")
 
     with caplog.at_level("ERROR"):
-        streamed_file_path = stream_file(test_url, temporary_test_file)
+        streamed_file_path = await stream_file(test_url, temporary_test_file)
 
     assert (
         "File empty - removing empty file" in caplog.text
@@ -130,19 +138,20 @@ def test_stream_file_empty_downloaded_file(httpx_mock, temporary_test_file, capl
     assert streamed_file_path is None, "Function should return None for empty file"
 
 
-def test_stream_file_appends_all_chunks(mocker, temporary_test_file):
+@pytest.mark.asyncio
+async def test_stream_file_appends_all_chunks(mocker, temporary_test_file):
     test_url = "http://example.com/streamfile"
     chunks = [b"first ", b"second ", b"third"]
 
     mock_response = mocker.MagicMock()
-    mock_response.__enter__.return_value = mock_response
-    mock_response.__exit__.return_value = None
-    mock_response.iter_bytes.return_value = iter(chunks)
+    mock_response.__aenter__.return_value = mock_response
+    mock_response.__aexit__.return_value = None
+    mock_response.aiter_bytes.return_value = IteratorStream(chunks)
     mock_response.raise_for_status.return_value = None
 
-    mocker.patch("httpx.stream", return_value=mock_response)
+    mocker.patch("httpx.AsyncClient.stream", return_value=mock_response)
 
-    streamed_file_path = stream_file(test_url, temporary_test_file)
+    streamed_file_path = await stream_file(test_url, temporary_test_file)
     assert streamed_file_path.exists(), "Streamed file should exist"
     content = streamed_file_path.read_bytes()
     assert content == b"".join(

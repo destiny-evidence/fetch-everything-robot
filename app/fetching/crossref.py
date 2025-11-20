@@ -105,7 +105,7 @@ class CrossrefFetcher(BasePublisherFetcher):
                     url = str(content_info.get("url"))
                     pdf_path = output_directory / f"{uid}.pdf"
                     if uid not in found_pdfs:  # Avoid duplicate downloads
-                        stream_file(AnyUrl(url), pdf_path)
+                        await stream_file(AnyUrl(url), pdf_path)
                         found_pdfs.add(uid)
                         logger.info(f"Crossref download success for {uid}: {url}")
                         await asyncio.sleep(self.wait_time_seconds)

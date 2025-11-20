@@ -69,7 +69,7 @@ class ElsevierFetcher(BasePublisherFetcher):
                     response.raise_for_status()
                     if response.status_code == httpx.codes.OK:
                         file_path = output_directory / f"{uid}.xml"
-                        stream_file(AnyUrl(url), file_path, headers=headers)
+                        await stream_file(AnyUrl(url), file_path, headers=headers)
                         logger.info(f"Elsevier XML content saved {uid}: {file_path}")
                     else:
                         warning_message = (

@@ -77,7 +77,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
                     )
                     if pdf_found and pdf_url is not None:
                         pdf_path = output_directory / f"{uid}.pdf"
-                        stream_file(AnyUrl(pdf_url), pdf_path)
+                        await stream_file(AnyUrl(pdf_url), pdf_path)
                         found_pdfs.append(uid)
                         logger.info(
                             f"Unpaywall download success for {uid=}, {doi=}: {pdf_url}"
