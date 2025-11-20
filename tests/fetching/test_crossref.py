@@ -123,7 +123,7 @@ async def test_fetch_full_text_no_valid_pdfs(
         "app.fetching.crossref.stream_file", return_value=None
     )
     await fetcher.fetch_full_text(
-        studies=test_study_collection, output_directory=tmp_path
+        study_collection=test_study_collection, output_directory=tmp_path
     )
 
     assert patched_crossref_works.call_count == len(test_study_collection.studies)
@@ -154,7 +154,7 @@ async def test_fetch_full_text_with_valid_pdf(
         "app.fetching.crossref.stream_file", return_value=tmp_path / "dummy.pdf"
     )
     await fetcher.fetch_full_text(
-        studies=test_study_collection, output_directory=tmp_path
+        study_collection=test_study_collection, output_directory=tmp_path
     )
 
     assert patched_crossref_works.call_count == len(test_study_collection.studies)
@@ -185,7 +185,7 @@ async def test_fetch_full_text_fails_request_error(
     )
     with caplog.at_level("ERROR"):
         await fetcher.fetch_full_text(
-            studies=test_study_collection, output_directory=tmp_path
+            study_collection=test_study_collection, output_directory=tmp_path
         )
     assert "CrossRef request error" in caplog.text
     assert all(uid in caplog.text for uid in uids)

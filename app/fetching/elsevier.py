@@ -58,7 +58,7 @@ class ElsevierFetcher(BasePublisherFetcher):
         if inst_token is not None:
             headers["X-ELS-Insttoken"] = inst_token
 
-        for study in study_collection.iterate_studies():
+        for study in study_collection.studies:
             doi = study.doi.identifier.lower()
             uid = str(study.uid).lower()
             url = f"{self.base_url}{doi}/"

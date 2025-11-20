@@ -82,20 +82,20 @@ class CrossrefFetcher(BasePublisherFetcher):
         )
 
     async def fetch_full_text(
-        self, studies: StudyCollection, output_directory: Path
+        self, study_collection: StudyCollection, output_directory: Path
     ) -> None:
         """
         Fetch full texts using the CrossRef API.
 
         Args:
-            studies (StudyCollection): The collection of studies to fetch.
+            study_collection (StudyCollection): The collection of studies to fetch.
             output_directory (Path): The directory to save the fetched full texts.
 
         """
         output_directory.mkdir(parents=True, exist_ok=True)
         crossref = Crossref()
         found_pdfs = set()
-        for study in studies.iterate_studies():
+        for study in study_collection.studies:
             doi = study.doi.identifier.lower()
             uid = str(study.uid).lower()
             try:
