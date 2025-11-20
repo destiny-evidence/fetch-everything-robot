@@ -1,7 +1,6 @@
 """Core fetching utilities and models."""
 
 import tempfile
-from collections.abc import Iterator
 from pathlib import Path
 from uuid import UUID
 
@@ -33,10 +32,6 @@ class StudyCollection(BaseModel):
     studies: list[Study] = Field(
         default_factory=list, description="A collection of studies."
     )
-
-    def iterate_studies(self) -> Iterator[Study]:
-        """Iterate over the studies in the collection."""
-        return iter(self.studies)
 
     def remove_study_by_doi(self, doi: str) -> None:
         """
