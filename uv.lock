@@ -563,6 +563,7 @@ dependencies = [
     { name = "aiohttp" },
     { name = "defusedxml" },
     { name = "destiny-sdk" },
+    { name = "habanero" },
     { name = "httpx" },
     { name = "loguru" },
     { name = "pydantic", extra = ["email"] },
@@ -599,6 +600,7 @@ dev = [
 ]
 test = [
     { name = "fastapi", extra = ["standard"] },
+    { name = "pytest-httpx" },
 ]
 
 [package.metadata]
@@ -607,6 +609,7 @@ requires-dist = [
     { name = "defusedxml", specifier = ">=0.7.1" },
     { name = "destiny-sdk", specifier = ">=0.4.0,<0.5.0" },
     { name = "detect-secrets", marker = "extra == 'dev'", specifier = ">=1.5.0" },
+    { name = "habanero", specifier = ">=2.3.0" },
     { name = "httpx", specifier = ">=0.28.0,<0.29.0" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "mkdocs", marker = "extra == 'docs'" },
@@ -631,7 +634,10 @@ provides-extras = ["dev", "docs", "test"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "msal", specifier = ">=1.34.0" }]
-test = [{ name = "fastapi", extras = ["standard"], specifier = ">=0.115.14" }]
+test = [
+    { name = "fastapi", extras = ["standard"], specifier = ">=0.115.14" },
+    { name = "pytest-httpx", specifier = ">=0.35.0" },
+]
 
 [[package]]
 name = "filelock"
@@ -746,6 +752,22 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/01/ee/02a2c011bdab74c6fb3c75474d40b3052059d95df7e73351460c8588d963/h11-0.16.0.tar.gz", hash = "sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1", size = 101250, upload-time = "2025-04-24T03:35:25.427Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/04/4b/29cac41a4d98d144bf5f6d33995617b185d14b22401f75ca86f384e87ff1/h11-0.16.0-py3-none-any.whl", hash = "sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86", size = 37515, upload-time = "2025-04-24T03:35:24.344Z" },
+]
+
+[[package]]
+name = "habanero"
+version = "2.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+    { name = "packaging" },
+    { name = "pyyaml" },
+    { name = "tqdm" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7e/79/e1463d0829f1b9d9a140ea78dda9461c13a8d9589797ab1ff5b7fffd133f/habanero-2.3.0.tar.gz", hash = "sha256:871e5d088ef641b05514d44b004af512852b309bcd0d81f10545e58d54a654ab", size = 1756677, upload-time = "2025-06-06T16:30:24.524Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a9/76/3e7d4c17024e70b1be20623937bde945842480b84d6f7dd49bd0ef372d84/habanero-2.3.0-py3-none-any.whl", hash = "sha256:ba44dd33d562ff33bd778fd7f94bfac3bf805b0b0963976f379e0a1d6894329e", size = 28453, upload-time = "2025-06-06T16:30:22.535Z" },
 ]
 
 [[package]]
@@ -1823,6 +1845,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a5/b7/19c01717747076f63c54d871ada081cd711a7c9a7572f2225675c3858b94/tox-4.27.0.tar.gz", hash = "sha256:b97d5ecc0c0d5755bcc5348387fef793e1bfa68eb33746412f4c60881d7f5f57", size = 198351, upload-time = "2025-06-17T15:17:50.585Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c1/3a/30889167f41ecaffb957ec4409e1cbc1d5d558a5bbbdfb734a5b9911930f/tox-4.27.0-py3-none-any.whl", hash = "sha256:2b8a7fb986b82aa2c830c0615082a490d134e0626dbc9189986da46a313c4f20", size = 173441, upload-time = "2025-06-17T15:17:48.689Z" },
+]
+
+[[package]]
+name = "tqdm"
+version = "4.67.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a8/4b/29b4ef32e036bb34e4ab51796dd745cdba7ed47ad142a9f4a1eb8e0c744d/tqdm-4.67.1.tar.gz", hash = "sha256:f8aef9c52c08c13a65f30ea34f4e5aac3fd1a34959879d7e59e63027286627f2", size = 169737, upload-time = "2024-11-24T20:12:22.481Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d0/30/dc54f88dd4a2b5dc8a0279bdd7270e735851848b762aeb1c1184ed1f6b14/tqdm-4.67.1-py3-none-any.whl", hash = "sha256:26445eca388f82e72884e0d580d5464cd801a3ea01e63e5601bdff9ba6a48de2", size = 78540, upload-time = "2024-11-24T20:12:19.698Z" },
 ]
 
 [[package]]

@@ -10,6 +10,7 @@ from app.utils import (
     InvalidDOIError,
     MissingDOIError,
     VersionInfoNotFoundError,
+    format_doi,
     get_doi_from_reference,
     get_version_number,
     validate_doi,
@@ -134,3 +135,17 @@ def test_get_version_number_success(mocker):
 def test_get_version_number_version_not_found():
     with pytest.raises(VersionInfoNotFoundError):
         get_version_number("nonexistent-package")
+
+
+@pytest.mark.parametrize(
+    ("candidate_doi_string", "expected_output"),
+    [
+        ("https://doi.org/10.1000/xyz123", "10.1000/xyz123"),
+        ("http://doi.org/10.1000/xyz123", "10.1000/xyz123"),
+        ("doi:10.1000/xyz123", "10.1000/xyz123"),
+        ("10.1000/xyz123", "10.1000/xyz123"),
+        ("10.1000/xyz123doiformat", "10.1000/xyz123doiformat"),
+    ],
+)
+def test_format_doi_success(candidate_doi_string, expected_output):
+    assert format_doi(candidate_doi_string) == expected_output
