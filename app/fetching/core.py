@@ -16,7 +16,12 @@ class FullTextStreamError(Exception):
 
 
 class Study(BaseModel):
-    """Model representing a single study with DOI and unique identifier."""
+    """
+    Model representing a single study with DOI and unique identifier.
+
+    This is functionally different to a Destiny `Reference`
+    as it lacks any other metadata.
+    """
 
     doi: DOIIdentifier = Field(..., description="The DOI identifier of the study.")
     uid: UUID = Field(..., description="A unique identifier for the study.")
