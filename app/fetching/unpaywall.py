@@ -48,7 +48,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
         found_pdfs = []
         for study in study_collection.iterate_studies():
             doi = study.doi.identifier.lower()
-            uid = study.uid.lower()
+            uid = str(study.uid).lower()
             url = f"{self.base_url}{doi}?email={self.settings.mailto}"
 
             try:

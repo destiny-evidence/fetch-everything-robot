@@ -32,7 +32,7 @@ async def test_elsevier_fetcher_fetch_full_text_success(
 async def test_elsevier_fetcher_fetch_full_text_non_http_200(
     mocker, test_settings, test_study_collection, tmp_path, caplog
 ):
-    uids = [study.uid.lower() for study in test_study_collection.iterate_studies()]
+    uids = [str(study.uid).lower() for study in test_study_collection.iterate_studies()]
     dois = [
         study.doi.identifier.lower()
         for study in test_study_collection.iterate_studies()

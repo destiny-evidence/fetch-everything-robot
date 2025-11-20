@@ -167,6 +167,8 @@ async def test_fetch_full_text_with_valid_pdf(
 async def test_fetch_full_text_fails_request_error(
     mocker, test_settings, test_study_collection, tmp_path, caplog
 ):
+    uids = [str(study.uid) for study in test_study_collection.studies]
+    dois = [study.doi.identifier for study in test_study_collection.studies]
     fetcher = CrossrefFetcher(settings=test_settings)
     mocker.patch("asyncio.sleep")
     patched_crossref_works = mocker.patch(
@@ -186,10 +188,8 @@ async def test_fetch_full_text_fails_request_error(
             studies=test_study_collection, output_directory=tmp_path
         )
     assert "CrossRef request error" in caplog.text
-    assert all(study.uid in caplog.text for study in test_study_collection.studies)
-    assert all(
-        study.doi.identifier in caplog.text for study in test_study_collection.studies
-    )
+    assert all(uid in caplog.text for uid in uids)
+    assert all(doi in caplog.text for doi in dois)
     assert patched_crossref_works.call_count == len(test_study_collection.studies)
     patched_url_get_call.assert_not_called()
     patched_pdf_url_is_valid.assert_not_called()

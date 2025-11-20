@@ -97,7 +97,7 @@ class CrossrefFetcher(BasePublisherFetcher):
         found_pdfs = set()
         for study in studies.iterate_studies():
             doi = study.doi.identifier.lower()
-            uid = study.uid.lower()
+            uid = str(study.uid).lower()
             try:
                 data = crossref.works(ids=doi)
                 content_info = self.get_url_from_pdf_content_type(data)

@@ -3,6 +3,7 @@
 import tempfile
 from collections.abc import Iterator
 from pathlib import Path
+from uuid import UUID
 
 import httpx
 from destiny_sdk.identifiers import DOIIdentifier
@@ -18,7 +19,7 @@ class Study(BaseModel):
     """Model representing a single study with DOI and unique identifier."""
 
     doi: DOIIdentifier = Field(..., description="The DOI identifier of the study.")
-    uid: str = Field(..., description="A unique identifier for the study.")
+    uid: UUID = Field(..., description="A unique identifier for the study.")
 
 
 class StudyCollection(BaseModel):

@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import httpx
 import pytest
 from destiny_sdk.identifiers import DOIIdentifier, ExternalIdentifierType
@@ -17,8 +19,8 @@ def test_study_collection_iterable():
         DOIIdentifier(identifier=doi_string, identifier_type=ExternalIdentifierType.DOI)
         for doi_string in ["10.1000/xyz123", "10.1000/xyz456"]
     ]
-    study1 = Study(doi=test_dois[0], uid="study1")
-    study2 = Study(doi=test_dois[1], uid="study2")
+    study1 = Study(doi=test_dois[0], uid=uuid4())
+    study2 = Study(doi=test_dois[1], uid=uuid4())
     collection = StudyCollection(studies=[study1, study2])
     assert list(collection.iterate_studies()) == [study1, study2]
 
