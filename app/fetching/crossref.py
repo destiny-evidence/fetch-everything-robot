@@ -55,10 +55,17 @@ class CrossrefFetcher(BasePublisherFetcher):
                     unique_content_url_pairs.append((found_content_type, url))
                     observed_urls.add(url)
                     if found_content_type == content_type:
+                        logger.debug(f"Found PDF URL in CrossRef response: {url}")
                         return {"content_type": found_content_type, "url": url}
         if unique_content_url_pairs:
             first_content_type, first_url = unique_content_url_pairs[0]
+            logger.debug(
+                f"No PDF URL found; returning first available URL from"
+                f" CrossRef response: {first_url} with content type"
+                f" {first_content_type}"
+            )
             return {"content_type": first_content_type, "url": first_url}
+        logger.debug("No valid content URLs found in CrossRef response.")
         return {"content_type": None, "url": None}
 
     def pdf_url_is_valid(self, content_info: dict) -> bool:
