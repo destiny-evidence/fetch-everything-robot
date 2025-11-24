@@ -27,7 +27,7 @@ class PDFUnavailableError(Exception):
 
 
 class OpenalexFetcher(BasePublisherFetcher):
-    """Openalex fetcher impelmentation."""
+    """Openalex fetcher implementation."""
 
     def __init__(self, settings: Settings, wait_time_seconds: float = 2.0) -> None:
         """
