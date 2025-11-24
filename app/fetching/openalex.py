@@ -81,12 +81,11 @@ class OpenalexFetcher(BasePublisherFetcher):
         self,
         pdf_url: AnyUrl,
         filepath: Path,
-        **kwargs,  # noqa: ANN003
     ) -> Path | None:
         """Download one PDF from Openalex."""
         return await stream_file(
-            url=pdf_url, destination=filepath, **kwargs
-        )  # adding kwargs for chunk_size customisation
+            url=pdf_url, destination=filepath
+        )
 
     async def fetch_many_full_texts(
         self, study_collection: StudyCollection, output_directory: Path
