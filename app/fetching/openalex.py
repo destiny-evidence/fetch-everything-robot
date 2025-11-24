@@ -62,11 +62,6 @@ class OpenalexFetcher(BasePublisherFetcher):
                 params=self.query_params,
             )
             response.raise_for_status()
-            if response.status_code not in range(200, 207):
-                oa_api_error = (
-                    f"OpenAlex API error, status code: {response.status_code}"
-                )
-                raise OpenAlexAPIError(oa_api_error)
 
         return response.json()
 
