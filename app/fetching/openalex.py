@@ -83,9 +83,7 @@ class OpenalexFetcher(BasePublisherFetcher):
         filepath: Path,
     ) -> Path | None:
         """Download one PDF from Openalex."""
-        return await stream_file(
-            url=pdf_url, destination=filepath
-        )
+        return await stream_file(url=pdf_url, destination=filepath)
 
     async def fetch_many_full_texts(
         self, study_collection: StudyCollection, output_directory: Path
@@ -99,6 +97,7 @@ class OpenalexFetcher(BasePublisherFetcher):
                 uid = study.uid
                 work = await self._get_work(doi)
                 pdf_url = self._get_pdf_url(work)
+                pdf_path: Path | None = None
                 if pdf_url is not None:
                     pdf_path = await self.download_one_pdf(
                         pdf_url=pdf_url, filepath=output_directory / f"{uid}.pdf"

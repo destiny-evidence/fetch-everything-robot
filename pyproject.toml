@@ -107,6 +107,7 @@ lint.per-file-ignores = {"app/fetch_fulltext.py" = [
     "PLR0913", # Too many arguments in function definition
     "PLR2004", # Magic value used in comparison
     "S101", # Use of `assert` detected,
+    "SLF001", # calling private methods directly
 ]}
 lint.select = ["ALL"]
 lint.mccabe.max-complexity = 18
