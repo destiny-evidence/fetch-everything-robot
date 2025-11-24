@@ -35,7 +35,7 @@ class OpenalexFetcher(BasePublisherFetcher):
 
         Args:
             settings (Settings): The settings to use for the fetcher.
-            wait_time_seconds (int | None, optional): Wait time b/w requests.
+            wait_time_seconds (float, optional): Wait time b/w requests.
 
         """
         self.settings = settings
