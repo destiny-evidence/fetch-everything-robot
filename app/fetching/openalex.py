@@ -31,7 +31,7 @@ class OpenalexFetcher(BasePublisherFetcher):
 
     def __init__(self, settings: Settings, wait_time_seconds: float = 2.0) -> None:
         """
-        Init an OpenAlex ftcher instance.
+        Init an OpenAlex fetcher instance.
 
         Args:
             settings (Settings): The settings to use for the fetcher.
