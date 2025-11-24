@@ -118,7 +118,7 @@ class CrossrefFetcher(BasePublisherFetcher):
                     output_doi_paths[doi] = None
             except RequestError as request_error:
                 error_message = (
-                    f"CrossRef request error for {uid}:{doi} - {request_error}"
+                    f"CrossRef request error for {uid=}, {doi=} - {request_error}"
                 )
                 logger.error(error_message)
             except FullTextStreamError as fulltext_download_error:
