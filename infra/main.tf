@@ -112,7 +112,3 @@ module "container_app_fetch_everything_robot" {
     client_id    = azurerm_user_assigned_identity.fetch_everything_robot.client_id
   }
 }
-
-locals {
-  debug_resource_group_name = var.container_registry_resource_group_name
-}
