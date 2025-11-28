@@ -1,4 +1,3 @@
-import time
 from enum import StrEnum
 from pathlib import Path
 from uuid import UUID
@@ -68,7 +67,6 @@ def get_device_flow(settings: Settings, deployment: Deployment) -> str:
 
     flow = app.initiate_device_flow(scopes=[f"api://{repo_app_id!s}/.default"])
     logger.info(flow["message"])
-    time.sleep(30)
     token = app.acquire_token_by_device_flow(flow)
     logger.info(token.get("access_token"))
 
