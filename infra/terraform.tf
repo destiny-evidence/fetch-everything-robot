@@ -4,7 +4,8 @@ terraform {
   cloud {
     organization = "destiny-evidence"
     workspaces {
-      name = "toy-robot-staging"
+      project = "DESTINY"
+      tags = ["fetch-everything-robot"]
     }
   }
 
