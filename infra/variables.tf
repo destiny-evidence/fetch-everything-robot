@@ -1,5 +1,5 @@
 variable "app_name" {
-  description = "Name of the app being deployed"
+  description = "Name of the app being deployed."
   default = "fetch-everything-robot"
   type = string
 }
