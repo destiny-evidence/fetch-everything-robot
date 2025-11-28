@@ -1,5 +1,7 @@
-variable "robot_name" {
-  description = "Name of the robot."
+variable "app_name" {
+  description = "Name of the app being deployed"
+  default = "fetch-everything-robot"
+  type = string
 }
 
 variable "robot_id" {
@@ -39,11 +41,6 @@ variable "container_registry_resource_group_name" {
 variable "environment" {
   description = "Environment for the Fetch Everything Robot, should be either development, staging or production."
   default     = "development"
-}
-
-variable "subscription_id" {
-  description = "The Azure subscription ID to use for the deployment."
-  type        = string
 }
 
 variable "owner_name" {

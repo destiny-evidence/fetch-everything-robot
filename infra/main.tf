@@ -6,7 +6,7 @@ data "azurerm_container_registry" "destiny_shared_infra" {
 # This might exist for you if your robot has already been deployed.
 # In this case, you can use a data resource instead https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/resource_group
 resource "azurerm_resource_group" "robot_resource_group" {
-  name     = "rg-${var.robot_name}-${var.environment}"
+  name     = "rg-${var.app_name}-${var.environment}"
   location = "swedencentral"
   tags = {
     "Budget Code" = "destiny-evidence"
@@ -20,7 +20,7 @@ resource "azurerm_resource_group" "robot_resource_group" {
 # Create a user assigned identity for our robot. This is the identity used when authenticating.
 resource "azurerm_user_assigned_identity" "fetch_everything_robot" {
   location            = azurerm_resource_group.robot_resource_group.location
-  name                = var.robot_name
+  name                = var.app_name
   resource_group_name = azurerm_resource_group.robot_resource_group.name
 }
 
@@ -28,7 +28,7 @@ resource "azurerm_user_assigned_identity" "fetch_everything_robot" {
 module "container_app_fetch_everything_robot" {
   source                          = "app.terraform.io/destiny-evidence/container-app/azure"
   version                         = "1.6.2"
-  app_name                        = var.robot_name
+  app_name                        = var.app_name
   environment                     = var.environment
   container_registry_id           = data.azurerm_container_registry.destiny_shared_infra.id
   container_registry_login_server = data.azurerm_container_registry.destiny_shared_infra.login_server
@@ -111,4 +111,8 @@ module "container_app_fetch_everything_robot" {
     principal_id = azurerm_user_assigned_identity.fetch_everything_robot.principal_id
     client_id    = azurerm_user_assigned_identity.fetch_everything_robot.client_id
   }
+}
+
+locals {
+  debug_resource_group_name = var.container_registry_resource_group_name
 }
