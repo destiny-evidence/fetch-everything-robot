@@ -2,14 +2,10 @@
 
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from app.config import Settings
+from app.fetching import BasePublisherFetcher
 from app.fetching.core import StudyCollection
-from app.fetching.registry import PUBLISHER_FETCHERS
-
-if TYPE_CHECKING:
-    from app.fetching import BasePublisherFetcher
 
 
 class FullTextFetcherError(Exception):
@@ -24,7 +20,12 @@ class FullTextFetcher:
     to publisher-specific fetchers.
     """
 
-    def __init__(self, settings: Settings, timeout: int = 300) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        publisher_dict: dict[str, BasePublisherFetcher],
+        timeout: int = 300,
+    ) -> None:
         """
         Initialise the FullTextFetcher.
 
@@ -35,10 +36,7 @@ class FullTextFetcher:
         """
         self.settings = settings
         self.timeout = timeout
-        self.fetchers: dict[str, BasePublisherFetcher] = {
-            name: fetcher_class(settings)
-            for name, fetcher_class in PUBLISHER_FETCHERS.items()
-        }
+        self.fetchers = publisher_dict
 
     async def fetch(
         self,

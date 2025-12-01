@@ -1,5 +1,7 @@
 """Generation functions for single and batch fulltext enhancements."""
 
+from pathlib import Path
+
 import httpx
 from destiny_sdk.enhancements import (
     Enhancement,
@@ -9,11 +11,12 @@ from destiny_sdk.references import Reference
 from destiny_sdk.robots import (
     RobotEnhancementBatch,
 )
+from fetching import BasePublisherFetcher
 from loguru import logger
 
 from app.config import Settings
 from app.data_models.generic import APIConfig
-from app.fetch_fulltext import FullTextBatchFetcher
+from app.fetch_fulltext import FullTextBatchFetcher, ZeroFullTextsGeneratedError
 from app.fetching.core import Study, StudyCollection
 
 
@@ -31,6 +34,7 @@ class FullTextEnhancementProcessor:
         source_name: str,
         global_api_config: dict[str, APIConfig],
         available_api_configs: list[APIConfig],
+        publisher_dict: dict[str, BasePublisherFetcher],
     ) -> None:
         """
         Initialise the processor with configuration.
@@ -41,13 +45,17 @@ class FullTextEnhancementProcessor:
                 In practical terms, this is the app name _of this app_.
             global_api_config (dict[str, APIConfig]): Global API configuration.
             available_api_configs (list[APIConfig]): List of API configurations.
+            publisher_dict (dict[str, BasePublisherFetcher]): Dictionary of
+                publisher fetchers.
 
         """
         self.settings = settings
         self.robot_version = robot_version
         self.source_name = source_name
 
-        self.fulltext_fetcher = FullTextBatchFetcher(self.settings, global_api_config)
+        self.fulltext_fetcher = FullTextBatchFetcher(
+            self.settings, global_api_config, publisher_dict
+        )
         self.available_api_configs = available_api_configs
 
     @staticmethod
@@ -80,6 +88,31 @@ class FullTextEnhancementProcessor:
         ]
         return StudyCollection(studies=studies)
 
+    async def generate_fulltext(
+        self,
+        references: list[Reference],
+    ) -> list[dict[str, Path | None]]:
+        """
+        Generate a dictionary mapping DOIs to fulltext file paths.
+
+        Args:
+            references (list[Reference]): A list of Reference objects.
+
+        Returns:
+            dict[str, Path | None]: A dictionary mapping DOIs to file paths or None.
+
+        """
+        study_collection = self.get_study_collection_from_references(references)
+        try:
+            return await self.fulltext_fetcher.get_many_fulltext_pdfs_cycling_apis(
+                input_study_collection=study_collection,
+            )
+        except ZeroFullTextsGeneratedError as zero_full_texts_error:
+            error_message = "No full texts were retrieved from any API."
+            raise BatchEnhancementGenerationError(
+                error_message
+            ) from zero_full_texts_error
+
     async def create_fulltext_enhancement(
         self,
         references: list[Reference],
@@ -101,10 +134,7 @@ class FullTextEnhancementProcessor:
             list[Enhancement]: The generated batch of enhancements.
 
         """
-        study_collection = self.get_study_collection_from_references(references)
-        return await self.fulltext_fetcher.get_many_fulltext_pdfs_cycling_apis(
-            input_study_collection=study_collection,
-        )
+        raise NotImplementedError
 
     async def download_references(self, reference_storage_url: str) -> list[Reference]:
         """

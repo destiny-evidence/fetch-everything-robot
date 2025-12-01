@@ -60,7 +60,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
                 async with AsyncHTTPXRetryClient() as client:
                     response = await client.get(url)
                     response.raise_for_status()
-                    data = response.json()
+                    data = await response.json()
                     pdf_url: str | None = None
                     if data.get("best_oa_location"):
                         pdf_url = data["best_oa_location"].get("url_for_pdf")

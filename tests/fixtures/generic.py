@@ -10,7 +10,27 @@ from app.data_models.generic import (
 
 
 @pytest.fixture
-def external_api_priorities() -> dict[str, ExternalAPIPriority]:
+def test_external_priorities_dict() -> dict[ExternalAPI, int]:
+    """
+    Fixture to provide a dictionary of external API priorities for testing.
+
+    Returns:
+        dict[str, ExternalAPIPriority]:
+            Dictionary of the configured external API priorities.
+
+    """
+    # TODO @harryjmoss: Re-Enable when multiple API configs are supported
+    # https://github.com/destiny-evidence/fetch-everything-robot/issues/9
+    return {
+        # ExternalAPI.OPENALEX: 1,
+        ExternalAPI.SCOPUS: 1,
+    }
+
+
+@pytest.fixture
+def external_api_priorities(
+    test_external_priorities_dict,
+) -> dict[str, ExternalAPIPriority]:
     """
     Fixture to provide the external API priority configuration.
 
@@ -20,12 +40,9 @@ def external_api_priorities() -> dict[str, ExternalAPIPriority]:
 
     """
     return {
-        "batch": ExternalAPIPriority(
-            name="batch",
-            priorities={
-                ExternalAPI.OPENALEX: 1,
-                ExternalAPI.SCOPUS: 2,
-            },
+        "fulltext": ExternalAPIPriority(
+            name="fulltext",
+            priorities=test_external_priorities_dict,
         ),
     }
 

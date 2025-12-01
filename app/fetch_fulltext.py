@@ -4,11 +4,12 @@ from various APIs.
 """
 
 import re
-from typing import TYPE_CHECKING
+from pathlib import Path
 from xml.etree.ElementTree import Element
 
 from defusedxml.ElementTree import ParseError, fromstring
 from destiny_sdk.identifiers import DOIIdentifier
+from fetching import BasePublisherFetcher
 from loguru import logger
 
 from app.config import Settings
@@ -20,8 +21,9 @@ from app.fetching.core import StudyCollection
 from app.fetching.fetchers import FullTextFetcher
 from app.utils import InvalidDOIError, validate_doi
 
-if TYPE_CHECKING:
-    from pathlib import Path
+
+class ZeroFullTextsGeneratedError(Exception):
+    """Custom exception for no full texts being generated."""
 
 
 class FullTextBatchFetcherError(Exception):
@@ -40,7 +42,11 @@ class FullTextBatchFetcher:
     """
 
     def __init__(
-        self, settings: Settings, all_api_configs: dict, timeout: int = 60
+        self,
+        settings: Settings,
+        all_api_configs: dict,
+        publisher_dict: dict[str, BasePublisherFetcher],
+        timeout: int = 60,
     ) -> None:
         """
         Init our FullTextBatchFetcher instance.
@@ -49,13 +55,17 @@ class FullTextBatchFetcher:
             settings (Settings): application settings.
             all_api_configs (dict): retrieved from `prepare_api_config`
                 using all provided API configs.
+            publisher_dict (dict[str, BasePublisherFetcher]):
+                Dictionary of publisher fetchers.
             timeout (int, optional): Network timeout. Defaults to 60.
 
         """
         self.settings = settings
         self.all_api_configs = all_api_configs  # type: dict
         self.timeout = timeout
-        self.full_text_fetcher = FullTextFetcher(settings=settings, timeout=timeout)
+        self.full_text_fetcher = FullTextFetcher(
+            settings=settings, publisher_dict=publisher_dict, timeout=timeout
+        )
 
         logger.info("Available external APIs in descending order of priority:")
         logger.info(", ".join(all_api_configs["fulltext"].keys()))
@@ -84,9 +94,40 @@ class FullTextBatchFetcher:
             )
             raise
 
+    @staticmethod
+    def process_doi_list(
+        input_dois: list[DOIIdentifier | str],
+    ) -> tuple[list[str], list[str]]:
+        """
+        Process a list of DOIs, validating each one.
+
+        Args:
+            input_dois (list[DOIIdentifier | str]): List of DOIs to process.
+
+        Returns:
+            tuple[list[str], list[str]]: A tuple containing two lists:
+                - A list of valid DOI strings.
+                - A list of invalid DOI strings.
+
+        """
+        valid_dois = []
+        invalid_dois = []
+        for doi in input_dois:
+            try:
+                doi_string = FullTextBatchFetcher.process_doi(doi)
+                valid_dois.append(doi_string)
+            except InvalidDOIError as invalid_doi_error:
+                logger.error(f"Invalid DOI found: {invalid_doi_error}")
+                if isinstance(doi, DOIIdentifier):
+                    invalid_dois.append(doi.identifier.lower())
+                else:
+                    invalid_dois.append(str(doi).lower())
+                continue
+        return valid_dois, invalid_dois
+
     async def get_many_fulltext_pdfs_cycling_apis(
         self, input_study_collection: StudyCollection
-    ) -> list[dict]:
+    ) -> list[dict[str, Path | None]]:
         """
         Get many full texts from a list of DOIs, cycling APIs in order of priority.
 
@@ -98,15 +139,8 @@ class FullTextBatchFetcher:
 
         """
         input_dois = [study.doi for study in input_study_collection.studies]
-        valid_dois = []
-        for doi in input_dois:
-            try:
-                doi_string = self.process_doi(doi)
-                valid_dois.append(doi_string)
-            except InvalidDOIError as invalid_doi_error:
-                logger.error(f"Invalid DOI found: {invalid_doi_error}")
-                continue
-        invalid_dois = [doi.lower() for doi in input_dois if doi not in valid_dois]
+        valid_dois, invalid_dois = self.process_doi_list(input_dois)
+
         invalid_doi_response = [
             {"doi": doi, "fulltext": None, "source": None} for doi in invalid_dois
         ]
@@ -133,20 +167,21 @@ class FullTextBatchFetcher:
             )
 
             found_responses = False
-            for doi, pdf_path in retrieved_responses.items():
-                found_responses = True
-                doi_to_remove = doi
+            if retrieved_responses:
+                for doi, pdf_path in retrieved_responses.items():
+                    found_responses = True
+                    doi_to_remove = doi
 
-                logger.info(f"Full text found for {doi} from {api_name}.")
-                valid_dois.remove(self.process_doi(doi_to_remove))
-                logger.info(
-                    f"Retrieved full text for doi {doi_to_remove} from {api_name}. "
-                    "Removing from master list."
-                )
-                api_count += 1
-                retrieved_fulltexts.append(
-                    {"doi": doi, "fulltext": str(pdf_path), "source": api_name}
-                )
+                    logger.info(f"Full text found for {doi} from {api_name}.")
+                    valid_dois.remove(self.process_doi(doi_to_remove))
+                    logger.info(
+                        f"Retrieved full text for doi {doi_to_remove} from {api_name}. "
+                        "Removing from master list."
+                    )
+                    api_count += 1
+                    retrieved_fulltexts.append(
+                        {"doi": doi, "fulltext": str(pdf_path), "source": api_name}
+                    )
             if not found_responses:
                 error_message = (
                     f"No full texts found in {api_name} with"
@@ -164,6 +199,11 @@ class FullTextBatchFetcher:
             f"{len(retrieved_fulltexts)} full texts"
             f" retrieved of {valid_references_provided} valid DOIs requested."
         )
+        if len(retrieved_fulltexts) == 0:
+            error_message = "No full texts were retrieved from any API."
+            logger.error(error_message)
+            raise ZeroFullTextsGeneratedError(error_message)
+
         logger.info(f"{len(invalid_dois)} invalid DOIs provided.")
         if len(valid_dois) > 0:
             logger.info(f"Full texts not retrieved for {len(valid_dois)} valid DOIs.")
@@ -242,7 +282,8 @@ class FullTextBatchFetcher:
         """
         Traverse a nested dictionary using a list of keys.
 
-        TODO: Consider rewriting for the full text extraction.
+        TODO @harryjmoss: Re-write for full text cases.
+        https://github.com/destiny-evidence/fetch-everything-robot/issues/9
 
         Args:
             nested_full_text_dict (dict): The nested dictionary to traverse.
@@ -254,33 +295,7 @@ class FullTextBatchFetcher:
             Returns None if not found.
 
         """
-        logger.debug(f"traversing object with path: {path}")
-        for i, key in enumerate(path):
-            logger.debug(
-                f"level {i}: object type: {type(nested_full_text_dict)}, key: {key}"
-            )
-            if isinstance(nested_full_text_dict, dict):
-                obj = nested_full_text_dict.get(key)
-            else:
-                try:
-                    warning_msg = (
-                        f"level {i}: expected dict, got {type(obj)}. returning None."
-                    )
-                except NameError:
-                    warning_msg = (
-                        "level {i}: expected dict, got.",
-                        f"{type(nested_full_text_dict)}returning None.",
-                    )
-                logger.warning(warning_msg)
-                return None
-            if obj is None:
-                obj_is_none_warning_msg = (
-                    f"level {i}: key '{key}' not found. returning None."
-                )
-                logger.warning(obj_is_none_warning_msg)
-                return None
-            nested_full_text_dict = obj
-        return obj
+        raise NotImplementedError
 
     def unpack_many_full_texts(
         self, response_obj: dict | list, strategy: FullTextUnpackStrategy

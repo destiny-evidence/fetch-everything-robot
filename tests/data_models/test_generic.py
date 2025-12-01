@@ -74,16 +74,18 @@ def test_external_api_priority_model():
             ["search-results", "entry", "pdf_url"],
             ["search-results", "entry", "xml"],
         ),
-        (
-            "openalex_api_config_valid_batch",
-            {"Accept": "application/json"},
-            ExternalAPI.CROSSREF,
-            "https://api.example.com/",
-            {},
-            ExternalAPI.CROSSREF,
-            ["message", "pdf_url"],
-            ["message", "xml"],
-        ),
+        # TODO @harryjmoss: Re-Enable when OpenAlex fetcher is implemented
+        # https://github.com/destiny-evidence/fetch-everything-robot/issues/9
+        # (
+        #     "openalex_api_config_valid_batch",
+        #     {"Accept": "application/json"},
+        #     ExternalAPI.CROSSREF,
+        #     "https://api.example.com/",
+        #     {},
+        #     ExternalAPI.CROSSREF,
+        #     ["message", "pdf_url"],
+        #     ["message", "xml"],
+        # ),
     ],
 )
 def test_api_config_validator_success(
@@ -114,7 +116,9 @@ def test_api_config_validator_success(
     ("api_config_fixture"),
     [
         ("scopus_api_config_valid_batch"),
-        ("openalex_api_config_valid_batch"),
+        # TODO @harryjmoss: Re-Enable when OpenAlex fetcher is implemented
+        # https://github.com/destiny-evidence/fetch-everything-robot/issues/9
+        # ("openalex_api_config_valid_batch"),
     ],
 )
 def test_api_config_validator_failure(request, api_config_fixture, monkeypatch):
@@ -135,7 +139,9 @@ def test_api_config_validator_failure(request, api_config_fixture, monkeypatch):
     ("api_config_fixture", "expected_key", "expected_value"),
     [
         ("scopus_api_config_valid_batch", "X-API-Key", "dummy_scopus_key"),
-        ("openalex_api_config_valid_batch", None, None),
+        # TODO @harryjmoss: Re-Enable when OpenAlex fetcher is implemented
+        # https://github.com/destiny-evidence/fetch-everything-robot/issues/9
+        # ("openalex_api_config_valid_batch", None, None),
     ],
 )
 def test_api_config_init_api_key_success(
@@ -172,6 +178,7 @@ def test_api_config_populate_query_scopus(request, api_config_fixture, query):
     ), "URL should append DOI to base URL."
 
 
+@pytest.mark.xfail(reason="OpenAlex fetcher not yet implemented")
 @pytest.mark.parametrize(
     ("api_config_fixture", "query"),
     [

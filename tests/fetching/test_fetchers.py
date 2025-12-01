@@ -4,23 +4,25 @@ from app.fetching import BasePublisherFetcher
 from app.fetching.fetchers import FullTextFetcher, FullTextFetcherError
 
 
-def test_full_text_fetcher_init(mocker):
+def test_full_text_fetcher_init(mocker, test_publisher_dict):
     settings = mocker.MagicMock()
     test_timeout = 200
-    fetcher = FullTextFetcher(settings, timeout=test_timeout)
+    fetcher = FullTextFetcher(
+        settings, publisher_dict=test_publisher_dict, timeout=test_timeout
+    )
 
     assert fetcher.settings == settings
     assert fetcher.timeout == test_timeout
     assert isinstance(fetcher.fetchers, dict)
     assert all(
-        issubclass(type(f), BasePublisherFetcher) for f in fetcher.fetchers.values()
+        issubclass(f, BasePublisherFetcher) for f in fetcher.fetchers.values()
     ), "All fetchers should be instances of BasePublisherFetcher"
 
 
 @pytest.mark.asyncio
-async def test_fetch_calls_correct_fetcher(mocker):
+async def test_fetch_calls_correct_fetcher(mocker, test_publisher_dict):
     settings = mocker.MagicMock()
-    fetcher_instance = FullTextFetcher(settings)
+    fetcher_instance = FullTextFetcher(settings, publisher_dict=test_publisher_dict)
 
     mock_study_collection = mocker.MagicMock()
     mock_output_directory = mocker.MagicMock()
@@ -42,9 +44,9 @@ async def test_fetch_calls_correct_fetcher(mocker):
 
 
 @pytest.mark.asyncio
-async def test_fetch_raises_error_for_unknown_publisher(mocker):
+async def test_fetch_raises_error_for_unknown_publisher(mocker, test_publisher_dict):
     settings = mocker.MagicMock()
-    fetcher_instance = FullTextFetcher(settings)
+    fetcher_instance = FullTextFetcher(settings, publisher_dict=test_publisher_dict)
 
     mock_study_collection = mocker.MagicMock()
     mock_output_directory = mocker.MagicMock()
