@@ -60,7 +60,7 @@ class FullTextFetcher:
                 saved full text files.
 
         """
-        fetcher = self.fetchers.get(publisher_name)
+        fetcher = self.fetchers.get(publisher_name.lower())
         if not fetcher:
             error_message = f"Unknown publisher: {publisher_name}"
             raise FullTextFetcherError(error_message)

@@ -4,6 +4,7 @@ import httpx
 from destiny_sdk.enhancements import (
     Enhancement,
 )
+from destiny_sdk.identifiers import DOIIdentifier
 from destiny_sdk.references import Reference
 from destiny_sdk.robots import (
     RobotEnhancementBatch,
@@ -64,7 +65,18 @@ class FullTextEnhancementProcessor:
 
         """
         studies = [
-            Study(doi=reference.doi, uid=reference.id) for reference in references
+            Study(
+                doi=next(
+                    (
+                        id_obj
+                        for id_obj in reference.identifiers
+                        if isinstance(id_obj, DOIIdentifier)
+                    ),
+                    None,
+                ),
+                uid=reference.id,
+            )
+            for reference in references
         ]
         return StudyCollection(studies=studies)
 

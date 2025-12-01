@@ -16,8 +16,7 @@ from destiny_sdk.robots import (
 from enhancement_processor import FullTextEnhancementProcessor
 
 from app.config import Settings, get_settings
-from app.data_models.generic import prepare_api_config
-from app.data_models.openalex import get_openalex_batch_api_config
+from app.data_models.generic import APIConfig, prepare_api_config
 from app.data_models.scopus import get_scopus_batch_api_config
 from app.enhancement_processor import BatchEnhancementGenerationError
 from app.logger import logger, set_up_logger
@@ -145,8 +144,7 @@ async def main() -> None:
         secret_key=settings.robot_secret,
     )
 
-    available_api_configs = [
-        get_openalex_batch_api_config(settings),
+    available_api_configs: list[APIConfig] = [
         get_scopus_batch_api_config(),
     ]
     global_api_config = prepare_api_config(
@@ -154,6 +152,7 @@ async def main() -> None:
     )
 
     processor = FullTextEnhancementProcessor(
+        settings=settings,
         robot_version=get_version_number(),
         source_name=title,
         global_api_config=global_api_config,

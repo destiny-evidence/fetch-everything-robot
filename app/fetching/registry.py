@@ -6,6 +6,7 @@ from app.fetching.unpaywall import UnpaywallFetcher
 
 PUBLISHER_FETCHERS = {
     "elsevier": ElsevierFetcher,
+    "scopus": ElsevierFetcher,
     "unpaywall": UnpaywallFetcher,
     "crossref": CrossrefFetcher,
 }
