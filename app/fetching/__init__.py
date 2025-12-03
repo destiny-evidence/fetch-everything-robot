@@ -12,8 +12,22 @@ class BasePublisherFetcher(ABC):
     """Abstract base class for publisher fetchers."""
 
     @abstractmethod
-    async def download_one_pdf(self, pdf_url: AnyUrl, filepath: Path) -> Path | None:
-        """Download a pdf for a pdf_url associated with a single `Study`."""
+    async def download_one_pdf(
+        self, pdf_url: AnyUrl, filepath: Path, headers: dict | None = None
+    ) -> Path | None:
+        """
+        Download a pdf for a pdf_url associated with a single `Study`.
+
+        Args:
+            pdf_url (AnyUrl): The URL of the PDF to download.
+            filepath (Path): Output file path.
+            headers (dict | None, optional):
+                Optional headers to include in the request. Defaults to None.
+
+        Returns:
+            Path | None: The path to the downloaded PDF or None if download failed.
+
+        """
 
     @abstractmethod
     async def fetch_many_full_texts(

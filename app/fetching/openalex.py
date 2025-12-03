@@ -81,17 +81,41 @@ class OpenalexFetcher(BasePublisherFetcher):
         self,
         pdf_url: AnyUrl,
         filepath: Path,
+        headers: dict | None = None,
     ) -> Path | None:
-        """Download one PDF from Openalex."""
-        return await stream_file(url=pdf_url, destination=filepath)
+        """
+        Download one PDF from Openalex.
+
+        Args:
+            pdf_url (AnyUrl): The URL of the PDF to download.
+            filepath (Path): Output file path.
+            headers (dict | None, optional): Optional headers for the request.
+                Defaults to None.
+
+        Returns:
+            Path | None: The path to the downloaded PDF or None if download failed.
+
+        """
+        return await stream_file(url=pdf_url, destination=filepath, headers=headers)
 
     async def fetch_many_full_texts(
         self, study_collection: StudyCollection, output_directory: Path
     ) -> dict[str, Path | None]:
-        """Fetch full text for a given StudyCollection and save them to output_directory."""
+        """
+        Fetch full text for a given StudyCollection and save them to output_directory.
+
+        Args:
+            study_collection (StudyCollection): The study collection for which to fetch
+                the full text.
+            output_directory (Path): The directory where the full text should be saved.
+
+        Returns:
+            dict[str, Path | None]: A dictionary mapping DOIs to the paths
+
+        """
         output_directory.mkdir(parents=True, exist_ok=True)
         output_doi_paths: dict[str, Path | None] = {}
-        for study in study_collection.iterate_studies():
+        for study in study_collection.studies:
             try:
                 doi = study.doi.identifier.lower()
                 uid = study.uid

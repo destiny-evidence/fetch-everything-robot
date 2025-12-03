@@ -6,7 +6,7 @@ from app.fetching.unpaywall import UnpaywallFetcher
 
 
 @pytest.mark.asyncio
-async def test_unpaywall_fetcher_fetch_full_text_success_pdf_found(
+async def test_unpaywall_fetcher_fetch_many_full_texts_success_pdf_found(
     mocker, test_settings, test_study_collection, tmp_path, caplog
 ):
     test_dois = [study.doi.identifier for study in test_study_collection.studies]
@@ -28,7 +28,7 @@ async def test_unpaywall_fetcher_fetch_full_text_success_pdf_found(
     )
 
     with caplog.at_level("INFO"):
-        await fetcher.fetch_full_text(
+        await fetcher.fetch_many_full_texts(
             study_collection=test_study_collection,
             output_directory=tmp_path,
         )
@@ -48,7 +48,7 @@ async def test_unpaywall_fetcher_fetch_full_text_success_pdf_found(
         "SAGE Publications",
     ],
 )
-async def test_unpaywall_fetcher_fetch_full_text_no_pdf_found_publisher(
+async def test_unpaywall_fetcher_fetch_many_full_texts_no_pdf_found_publisher(
     mocker, test_settings, test_study_collection, tmp_path, caplog, publisher
 ):
     test_dois = [study.doi.identifier for study in test_study_collection.studies]
@@ -70,7 +70,7 @@ async def test_unpaywall_fetcher_fetch_full_text_no_pdf_found_publisher(
     )
 
     with caplog.at_level("WARNING"):
-        await fetcher.fetch_full_text(
+        await fetcher.fetch_many_full_texts(
             study_collection=test_study_collection,
             output_directory=tmp_path,
         )
@@ -83,7 +83,7 @@ async def test_unpaywall_fetcher_fetch_full_text_no_pdf_found_publisher(
 
 
 @pytest.mark.asyncio
-async def test_unpaywall_fetcher_fetch_full_text_no_pdf_found_taylor_and_francis_in_url(
+async def test_unpaywall_fetcher_fetch_many_full_texts_no_pdf_found_taylor_and_francis_in_url(
     mocker,
     test_settings,
     test_study_collection,
@@ -111,7 +111,7 @@ async def test_unpaywall_fetcher_fetch_full_text_no_pdf_found_taylor_and_francis
     )
 
     with caplog.at_level("WARNING"):
-        await fetcher.fetch_full_text(
+        await fetcher.fetch_many_full_texts(
             study_collection=test_study_collection,
             output_directory=tmp_path,
         )
@@ -124,7 +124,7 @@ async def test_unpaywall_fetcher_fetch_full_text_no_pdf_found_taylor_and_francis
 
 
 @pytest.mark.asyncio
-async def test_unpaywall_fetcher_fetch_full_text_http_error(
+async def test_unpaywall_fetcher_fetch_many_full_texts_http_error(
     mocker, test_settings, test_study_collection, tmp_path, caplog
 ):
     test_dois = [study.doi.identifier for study in test_study_collection.studies]
@@ -139,7 +139,7 @@ async def test_unpaywall_fetcher_fetch_full_text_http_error(
     )
 
     with caplog.at_level("ERROR"):
-        await fetcher.fetch_full_text(
+        await fetcher.fetch_many_full_texts(
             study_collection=test_study_collection,
             output_directory=tmp_path,
         )
@@ -150,7 +150,7 @@ async def test_unpaywall_fetcher_fetch_full_text_http_error(
 
 
 @pytest.mark.asyncio
-async def test_unpaywall_fetcher_fetch_full_text_fulltextstreamerror(
+async def test_unpaywall_fetcher_fetch_many_full_texts_fulltextstreamerror(
     mocker, test_settings, test_study_collection, tmp_path, caplog
 ):
     test_dois = [study.doi.identifier for study in test_study_collection.studies]
@@ -175,7 +175,7 @@ async def test_unpaywall_fetcher_fetch_full_text_fulltextstreamerror(
     )
 
     with caplog.at_level("ERROR"):
-        await fetcher.fetch_full_text(
+        await fetcher.fetch_many_full_texts(
             study_collection=test_study_collection,
             output_directory=tmp_path,
         )
@@ -188,7 +188,7 @@ async def test_unpaywall_fetcher_fetch_full_text_fulltextstreamerror(
 
 
 @pytest.mark.asyncio
-async def test_unpaywall_fetcher_fetch_full_text_no_best_oa_location(
+async def test_unpaywall_fetcher_fetch_many_full_texts_no_best_oa_location(
     mocker, test_settings, test_study_collection, tmp_path, caplog
 ):
     test_dois = [study.doi.identifier for study in test_study_collection.studies]
@@ -210,7 +210,7 @@ async def test_unpaywall_fetcher_fetch_full_text_no_best_oa_location(
     )
 
     with caplog.at_level("WARNING"):
-        await fetcher.fetch_full_text(
+        await fetcher.fetch_many_full_texts(
             study_collection=test_study_collection,
             output_directory=tmp_path,
         )

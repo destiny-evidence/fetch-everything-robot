@@ -64,4 +64,4 @@ class FullTextFetcher:
             raise FullTextFetcherError(error_message)
         if output_directory is None:
             output_directory = Path(tempfile.TemporaryDirectory(delete=False).name)
-        return await fetcher.fetch_full_text(study_collection, output_directory)
+        return await fetcher.fetch_many_full_texts(study_collection, output_directory)

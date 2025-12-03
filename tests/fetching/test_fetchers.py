@@ -37,7 +37,7 @@ async def test_fetch_calls_correct_fetcher(mocker, test_publisher_dict):
         mock_output_directory,
     )
 
-    mock_publisher_fetcher.fetch_full_text.assert_awaited_once_with(
+    mock_publisher_fetcher.fetch_many_full_texts.assert_awaited_once_with(
         mock_study_collection,
         mock_output_directory,
     )

@@ -6,7 +6,7 @@ from app.fetching.elsevier import ElsevierFetcher
 
 
 @pytest.mark.asyncio
-async def test_elsevier_fetcher_fetch_full_text_success(
+async def test_elsevier_fetcher_fetch_many_full_texts_success(
     mocker, test_settings, test_study_collection, tmp_path
 ):
     fetcher = ElsevierFetcher(settings=test_settings)
@@ -20,7 +20,7 @@ async def test_elsevier_fetcher_fetch_full_text_success(
         new=mocker.AsyncMock(return_value=mock_response),
     )
 
-    await fetcher.fetch_full_text(
+    await fetcher.fetch_many_full_texts(
         study_collection=test_study_collection,
         output_directory=tmp_path,
     )
@@ -29,7 +29,7 @@ async def test_elsevier_fetcher_fetch_full_text_success(
 
 
 @pytest.mark.asyncio
-async def test_elsevier_fetcher_fetch_full_text_non_http_200(
+async def test_elsevier_fetcher_fetch_many_full_texts_non_http_200(
     mocker, test_settings, test_study_collection, tmp_path, caplog
 ):
     uids = [str(study.uid).lower() for study in test_study_collection.studies]
@@ -47,7 +47,7 @@ async def test_elsevier_fetcher_fetch_full_text_non_http_200(
     )
 
     with caplog.at_level("WARNING"):
-        await fetcher.fetch_full_text(
+        await fetcher.fetch_many_full_texts(
             study_collection=test_study_collection,
             output_directory=tmp_path,
         )
@@ -58,7 +58,7 @@ async def test_elsevier_fetcher_fetch_full_text_non_http_200(
 
 
 @pytest.mark.asyncio
-async def test_elsevier_fetcher_fetch_full_text_http_error(
+async def test_elsevier_fetcher_fetch_many_full_texts_http_error(
     mocker, test_settings, test_study_collection, tmp_path, caplog
 ):
     dois = [study.doi.identifier.lower() for study in test_study_collection.studies]
@@ -74,7 +74,7 @@ async def test_elsevier_fetcher_fetch_full_text_http_error(
     )
 
     with caplog.at_level("ERROR"):
-        await fetcher.fetch_full_text(
+        await fetcher.fetch_many_full_texts(
             study_collection=test_study_collection,
             output_directory=tmp_path,
         )
@@ -84,7 +84,7 @@ async def test_elsevier_fetcher_fetch_full_text_http_error(
 
 
 @pytest.mark.asyncio
-async def test_elsevier_fetcher_fetch_full_text_stream_error(
+async def test_elsevier_fetcher_fetch_many_full_texts_stream_error(
     mocker, test_settings, test_study_collection, tmp_path, caplog
 ):
     dois = [study.doi.identifier.lower() for study in test_study_collection.studies]
@@ -104,7 +104,7 @@ async def test_elsevier_fetcher_fetch_full_text_stream_error(
     )
 
     with caplog.at_level("ERROR"):
-        await fetcher.fetch_full_text(
+        await fetcher.fetch_many_full_texts(
             study_collection=test_study_collection,
             output_directory=tmp_path,
         )

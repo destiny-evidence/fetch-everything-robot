@@ -81,6 +81,27 @@ class CrossrefFetcher(BasePublisherFetcher):
             for keyword in ["elsevier", "wiley", "tandfonline"]
         )
 
+    async def download_one_pdf(
+        self,
+        pdf_url: AnyUrl,
+        filepath: Path,
+        headers: dict | None = None,
+    ) -> Path | None:
+        """
+        Download one PDF from CrossRef.
+
+        Args:
+            pdf_url (AnyUrl): The URL of the PDF to download.
+            filepath (Path): Output file path.
+            headers (dict | None, optional): Optional headers for the request.
+                Defaults to None.
+
+        Returns:
+            Path | None: The path to the downloaded PDF or None if download failed.
+
+        """
+        return await stream_file(url=pdf_url, destination=filepath, headers=headers)
+
     async def fetch_many_full_texts(
         self, study_collection: StudyCollection, output_directory: Path
     ) -> dict[str, Path | None]:
@@ -109,8 +130,10 @@ class CrossrefFetcher(BasePublisherFetcher):
                 if self.pdf_url_is_valid(content_info):
                     url = str(content_info.get("url"))
                     pdf_path = output_directory / f"{uid}.pdf"
-                    if uid not in found_pdfs:  # Avoid duplicate downloads
-                        output_file_path = await stream_file(AnyUrl(url), pdf_path)
+                    if uid not in found_pdfs:
+                        output_file_path = await self.download_one_pdf(
+                            AnyUrl(url), pdf_path
+                        )
                         if output_file_path:
                             output_doi_paths[doi] = output_file_path
                         found_pdfs.add(uid)
