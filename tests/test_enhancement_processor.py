@@ -159,14 +159,14 @@ async def test_generate_fulltext_partial_success_empty_fulltexts_found_for_some_
     expected_results = [
         {
             "doi": test_two_references[0].identifiers[0].identifier,
-            "fulltext": str(temporary_test_file),
+            "fulltext_path": str(temporary_test_file),
             "source": test_fulltext_enhancement_processor.available_api_configs[
                 0
             ].name.value.upper(),
         },
         {
             "doi": test_two_references[1].identifiers[0].identifier,
-            "fulltext": None,
+            "fulltext_path": None,
             "source": None,
         },
     ]

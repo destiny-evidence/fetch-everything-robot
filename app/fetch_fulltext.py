@@ -142,7 +142,7 @@ class FullTextBatchFetcher:
         valid_dois, invalid_dois = self.process_doi_list(input_dois)
 
         invalid_doi_response = [
-            {"doi": doi, "fulltext": None, "source": None} for doi in invalid_dois
+            {"doi": doi, "fulltext_path": None, "source": None} for doi in invalid_dois
         ]
         valid_references_provided = len(valid_dois)
         logger.info(
@@ -181,7 +181,11 @@ class FullTextBatchFetcher:
                         )
                         api_count += 1
                         retrieved_fulltexts.append(
-                            {"doi": doi, "fulltext": str(pdf_path), "source": api_name}
+                            {
+                                "doi": doi,
+                                "fulltext_path": str(pdf_path),
+                                "source": api_name,
+                            }
                         )
             if not found_responses:
                 error_message = (
@@ -209,7 +213,7 @@ class FullTextBatchFetcher:
         if len(valid_dois) > 0:
             logger.info(f"Full texts not retrieved for {len(valid_dois)} valid DOIs.")
         fulltexts_not_found = [
-            {"doi": doi, "fulltext": None, "source": None} for doi in valid_dois
+            {"doi": doi, "fulltext_path": None, "source": None} for doi in valid_dois
         ]
         retrieved_fulltexts.extend(invalid_doi_response)
         retrieved_fulltexts.extend(fulltexts_not_found)

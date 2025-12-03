@@ -185,21 +185,26 @@ async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_non_none_pdf_paths(
 
     mock_fetch.assert_called_once()
 
-    found_fulltext = [result for result in results if result["fulltext"] is not None]
-    not_found_fulltext = [result for result in results if result["fulltext"] is None]
+    found_fulltext = [
+        result for result in results if result["fulltext_path"] is not None
+    ]
+    not_found_fulltext = [
+        result for result in results if result["fulltext_path"] is None
+    ]
 
     assert len(found_fulltext) == len(expected_fulltext_found_result.keys())
     assert len(not_found_fulltext) == len(expected_fulltext_not_found_result.keys())
 
     assert all(
-        found_result["fulltext"] == str(temporary_test_file)
+        found_result["fulltext_path"] == str(temporary_test_file)
         for found_result in found_fulltext
     )
     assert all(
         found_result["source"] == test_publisher_name for found_result in found_fulltext
     )
     assert all(
-        not_found_result["fulltext"] is None for not_found_result in not_found_fulltext
+        not_found_result["fulltext_path"] is None
+        for not_found_result in not_found_fulltext
     )
     assert all(
         not_found_result["source"] is None for not_found_result in not_found_fulltext
