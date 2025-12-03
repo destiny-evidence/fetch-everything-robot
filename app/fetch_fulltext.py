@@ -135,7 +135,10 @@ class FullTextBatchFetcher:
             input_study_collection (StudyCollection): Input collection of studies.
 
         Returns:
-            list[dict]: a list of dicts of full texts and DOIs.
+            list[dict[str, Path | None]]: A list of dictionaries containing:
+                - 'doi': The DOI string.
+                - 'fulltext_path': Path to the downloaded full text PDF or None.
+                - 'source': The API source name or None.
 
         """
         input_dois = [study.doi for study in input_study_collection.studies]
