@@ -118,7 +118,7 @@ async def test_fetch_http_error(
 @pytest.mark.xfail(reason="Not implemented yet - need to adapt for full text fetcher")
 def test_traverse_non_dict_returns_none():
     # Should return None if input is not a dict
-    result = FullTextFetcher._traverse("notadict", ["foo"])  # noqa: SLF001
+    result = FullTextFetcher._traverse("notadict", ["foo"])
     assert result is None
 
 
@@ -126,7 +126,7 @@ def test_traverse_non_dict_returns_none():
 def test_traverse_missing_key_returns_none():
     # Should return None if key is missing
     d = {"foo": {"bar": 1}}
-    result = FullTextFetcher._traverse(d, ["foo", "baz"])  # noqa: SLF001
+    result = FullTextFetcher._traverse(d, ["foo", "baz"])
     assert result is None
 
 
