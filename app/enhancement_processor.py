@@ -20,6 +20,10 @@ from app.fetching import BasePublisherFetcher
 from app.fetching.core import Study, StudyCollection
 
 
+class MissingDOIError(Exception):
+    """Custom exception for missing DOI in reference."""
+
+
 class BatchEnhancementGenerationError(Exception):
     """Custom exception for errors during batch enhancement generation."""
 
@@ -59,6 +63,39 @@ class FullTextEnhancementProcessor:
         self.available_api_configs = available_api_configs
 
     @staticmethod
+    def get_study_or_raise_error(reference: Reference) -> Study:
+        """
+        Convert a Reference object to a Study, raising an error if DOI is missing.
+
+        Args:
+            reference (Reference): A Reference object.
+
+        Returns:
+            Study: The corresponding Study object.
+
+        Raises:
+            MissingDOIError: If the Reference does not have a DOI identifier.
+
+        """
+        doi_id = next(
+            (
+                id_object
+                for id_object in reference.identifiers
+                if isinstance(id_object, DOIIdentifier)
+            ),
+            None,
+        )
+
+        if doi_id is None:
+            error_message = f"Reference {reference.id} is missing a DOI identifier."
+            raise MissingDOIError(error_message)
+
+        return Study(
+            doi=doi_id,
+            uid=reference.id,
+        )
+
+    @staticmethod
     def get_study_collection_from_references(
         references: list[Reference],
     ) -> StudyCollection:
@@ -73,17 +110,7 @@ class FullTextEnhancementProcessor:
 
         """
         studies = [
-            Study(
-                doi=next(
-                    (
-                        id_obj
-                        for id_obj in reference.identifiers
-                        if isinstance(id_obj, DOIIdentifier)
-                    ),
-                    None,
-                ),
-                uid=reference.id,
-            )
+            FullTextEnhancementProcessor.get_study_or_raise_error(reference)
             for reference in references
         ]
         return StudyCollection(studies=studies)

@@ -9,6 +9,7 @@ from pytest_mock import MockerFixture
 from app.enhancement_processor import (
     BatchEnhancementGenerationError,
     FullTextEnhancementProcessor,
+    MissingDOIError,
 )
 
 
@@ -228,3 +229,25 @@ def test_generate_fulltext_request_appropriate_visibility(
             available_api_configs=available_api_configs,
             app_title=test_app_title,
         )
+
+
+def test_get_study_collection_from_references_raises_error_missing_doi():
+    test_good_reference_id = uuid.uuid4()
+    test_bad_reference_id = uuid.uuid4()
+    reference_with_doi = Reference(
+        id=test_good_reference_id,
+        identifiers=[{"identifier": "10.1000/xyz123", "identifier_type": "doi"}],
+        enhancements=[],
+    )
+
+    reference_without_doi = Reference(
+        id=test_bad_reference_id,
+        identifiers=[{"identifier": "W123456789", "identifier_type": "open_alex"}],
+        enhancements=[],
+    )
+
+    with pytest.raises(MissingDOIError) as error_info:
+        FullTextEnhancementProcessor.get_study_collection_from_references(
+            references=[reference_with_doi, reference_without_doi]
+        )
+    assert str(test_bad_reference_id) in str(error_info.value)
