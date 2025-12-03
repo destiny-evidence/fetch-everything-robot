@@ -9,7 +9,6 @@ from xml.etree.ElementTree import Element
 
 from defusedxml.ElementTree import ParseError, fromstring
 from destiny_sdk.identifiers import DOIIdentifier
-from fetching import BasePublisherFetcher
 from loguru import logger
 
 from app.config import Settings
@@ -17,6 +16,7 @@ from app.data_models.generic import (
     APIConfig,
     FullTextUnpackStrategy,
 )
+from app.fetching import BasePublisherFetcher
 from app.fetching.core import StudyCollection
 from app.fetching.fetchers import FullTextFetcher
 from app.utils import InvalidDOIError, validate_doi
