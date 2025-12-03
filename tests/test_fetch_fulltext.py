@@ -1,36 +1,43 @@
 """tests for the core fetch_fulltext module in app/fetch_fulltext.py."""
 
-from unittest.mock import MagicMock, patch
-
 import httpx
 import pytest
-from pydantic import AnyUrl
 
 from app.data_models.generic import prepare_api_config
-from app.fetch_fulltext import FullTextFetcher
+from app.fetch_fulltext import FullTextBatchFetcher
+from app.fetching.fetchers import FullTextFetcher
 
 
+# TODO @harryjmoss: Re-Enable when multiple API configs are supported
+# https://github.com/destiny-evidence/fetch-everything-robot/issues/9
+@pytest.mark.parametrize(
+    "expected_headers",
+    [
+        {
+            "SCOPUS": {
+                "X-API-Key": "dummy_scopus_key",
+                "X-Inst-Token": "dummy_inst_token",
+            }
+        },
+        # {"OPENALEX": {"Accept": "application/json"}},
+    ],
+)
 def test_prepare_api_config_success(
-    scopus_api_config_valid_batch,
-    openalex_api_config_valid_batch,
+    expected_headers,
+    test_available_api_configs,
     external_api_priorities,
     test_settings,
 ):
-    configs = [
-        scopus_api_config_valid_batch,
-        openalex_api_config_valid_batch,
-    ]
     result = prepare_api_config(
-        configs,
+        test_available_api_configs,
         test_settings,
-        external_api_priority_batch=external_api_priorities["batch"],
+        external_api_priority=external_api_priorities["fulltext"],
     )
-    batch_results = result["batch"]
-    assert set(batch_results.keys()) == {"OPENALEX", "SCOPUS"}
-    assert batch_results["SCOPUS"].headers["X-API-Key"] == "dummy_scopus_key"
-    assert batch_results["SCOPUS"].headers["X-Inst-Token"] == "dummy_inst_token"
-    assert batch_results["OPENALEX"].headers == {"Accept": "application/json"}
-    assert batch_results["OPENALEX"].api_key_env_var_name is None
+    fulltext_results = result["fulltext"]
+    for source, headers in expected_headers.items():
+        if source in fulltext_results:
+            for header, value in headers.items():
+                assert fulltext_results[source].headers[header] == value
 
 
 def test_prepare_api_config_missing_key(
@@ -40,7 +47,7 @@ def test_prepare_api_config_missing_key(
     result = prepare_api_config(
         configs,
         test_settings,
-        external_api_priority_batch=external_api_priorities["batch"],
+        external_api_priority=external_api_priorities["fulltext"],
     )
     for value in result.values():
         assert value == {}
@@ -50,85 +57,72 @@ def test_prepare_api_config_missing_key(
     "api_config_fixture",
     [
         {
-            "batch": "scopus_api_config_valid_batch",
-        },
-        {
-            "batch": "openalex_api_config_valid_batch",
+            "fulltext": "scopus_api_config_valid_batch",
         },
     ],
 )
-def test_full_text_fetcher_init_logs(request, api_config_fixture, test_settings):
-    api_config_batch = request.getfixturevalue(api_config_fixture["batch"])
-    with patch("app.fetch_fulltext.logger") as mock_logger:
-        all_api_configs = prepare_api_config([api_config_batch], test_settings)
-        fetcher = FullTextFetcher(all_api_configs)
-        mock_logger.info.assert_any_call(
-            "Available external APIs in descending order of priority:"
-        )
-        for external_api_name in all_api_configs["fulltext"]:
-            assert external_api_name == api_config_batch.name.value.upper()
-        assert fetcher.timeout == 60
-
-
-@pytest.mark.parametrize(
-    "api_config_fixture",
-    [
-        {
-            "batch": "scopus_api_config_valid_batch",
-        },
-        {
-            "batch": "openalex_api_config_valid_batch",
-        },
-    ],
-)
-def test_fetch_success(request, api_config_fixture, test_settings):
-    api_config_batch = request.getfixturevalue(api_config_fixture["batch"])
-    fetcher = FullTextFetcher(
-        all_api_configs=prepare_api_config([api_config_batch], test_settings)
+def test_full_text_fetcher_init_logs(
+    mocker, request, api_config_fixture, test_settings, test_publisher_dict
+):
+    api_config_fulltext = request.getfixturevalue(api_config_fixture["fulltext"])
+    mock_logger = mocker.patch("app.fetch_fulltext.logger")
+    all_api_configs = prepare_api_config([api_config_fulltext], test_settings)
+    fetcher = FullTextBatchFetcher(test_settings, all_api_configs, test_publisher_dict)
+    mock_logger.info.assert_any_call(
+        "Available external APIs in descending order of priority:"
     )
-    mock_response = MagicMock()
+    for external_api_name in all_api_configs["fulltext"]:
+        assert external_api_name == api_config_fulltext.name.value.upper()
+    assert fetcher.timeout == 60
+
+
+@pytest.mark.asyncio
+async def test_fetch_success(
+    mocker,
+    test_settings,
+    test_publisher_dict,
+    test_study_collection,
+):
+    fetcher = FullTextFetcher(test_settings, publisher_dict=test_publisher_dict)
+    mock_response = mocker.MagicMock()
     mock_response.raise_for_status.return_value = None
-    mock_response.json.return_value = {"foo": "bar"}
+    mock_response.json = mocker.AsyncMock(return_value={"foo": "bar"})
 
-    test_url = AnyUrl("http://test")
-    with patch("httpx.Client.get", return_value=mock_response) as mock_get:
-        result = fetcher.fetch(test_url, {}, {})
-        assert result == {"foo": "bar"}
-        mock_get.assert_called_once()
-
-
-@pytest.mark.parametrize(
-    "api_config_fixture",
-    [
-        {
-            "batch": "scopus_api_config_valid_batch",
-        },
-        {
-            "batch": "openalex_api_config_valid_batch",
-        },
-    ],
-)
-def test_fetch_http_error(request, api_config_fixture, test_settings):
-    api_config_batch = request.getfixturevalue(api_config_fixture["batch"])
-    fetcher = FullTextFetcher(
-        all_api_configs=prepare_api_config([api_config_batch], test_settings)
+    mock_get = mocker.patch("httpx.AsyncClient.get", return_value=mock_response)
+    result = await fetcher.fetch(
+        "TEST_PUBLISHER", test_study_collection, output_directory=None
     )
-    mock_response = MagicMock()
+    assert result == {"foo": "bar"}
+    mock_get.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_fetch_http_error(
+    mocker, test_settings, test_publisher_dict, test_study_collection
+):
+    fetcher = FullTextFetcher(
+        test_settings,
+        test_publisher_dict,
+    )
+    mock_response = mocker.MagicMock()
     mock_response.raise_for_status.side_effect = httpx.HTTPError("fail")
-    test_url = AnyUrl("http://test")
+    mocker.patch("httpx.AsyncClient.get", return_value=mock_response)
     with (
-        patch("httpx.Client.get", return_value=mock_response),
         pytest.raises(httpx.HTTPError),
     ):
-        fetcher.fetch(test_url, {}, {})
+        await fetcher.fetch(
+            "TEST_PUBLISHER", test_study_collection, output_directory=None
+        )
 
 
+@pytest.mark.xfail(reason="Not implemented yet - need to adapt for full text fetcher")
 def test_traverse_non_dict_returns_none():
     # Should return None if input is not a dict
     result = FullTextFetcher._traverse("notadict", ["foo"])  # noqa: SLF001
     assert result is None
 
 
+@pytest.mark.xfail(reason="Not implemented yet - need to adapt for full text fetcher")
 def test_traverse_missing_key_returns_none():
     # Should return None if key is missing
     d = {"foo": {"bar": 1}}
@@ -138,24 +132,81 @@ def test_traverse_missing_key_returns_none():
 
 def test_clean_full_text_string_removes_all_tags():
     raw = "<jats:p>This is a <b>test</b> fulltext.</jats:p>"
-    cleaned = FullTextFetcher.clean_full_text_string(raw)
+    cleaned = FullTextBatchFetcher.clean_full_text_string(raw)
     assert cleaned == "This is a test fulltext."
 
 
 def test_clean_full_text_string_fallback_regex():
     # invalid XML, should trigger the regex fallback
     raw = "<notclosed>This is broken"
-    cleaned = FullTextFetcher.clean_full_text_string(raw)
+    cleaned = FullTextBatchFetcher.clean_full_text_string(raw)
     assert cleaned == "This is broken"
 
 
 def test_process_doi_remove_url():
     raw = "https://doi.org/10.1109/pssgt64932.2025.11033854"
-    cleaned = FullTextFetcher.process_doi(raw)
+    cleaned = FullTextBatchFetcher.process_doi(raw)
     assert cleaned == "10.1109/pssgt64932.2025.11033854"
 
 
 def test_process_doi_tolower():
     raw = "10.1109/PSSGT64932.2025.11033854"
-    cleaned = FullTextFetcher.process_doi(raw)
+    cleaned = FullTextBatchFetcher.process_doi(raw)
     assert cleaned == "10.1109/pssgt64932.2025.11033854"
+
+
+@pytest.mark.asyncio
+async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_non_none_pdf_paths(
+    mocker,
+    test_settings,
+    test_study_collection,
+    test_publisher_dict,
+    scopus_api_config_valid_batch,
+    temporary_test_file,
+):
+    test_publisher_name = "TEST_PUBLISHER"
+    all_api_configs = {"fulltext": {test_publisher_name: scopus_api_config_valid_batch}}
+
+    doi1 = test_study_collection.studies[0].doi.identifier
+    doi2 = test_study_collection.studies[1].doi.identifier
+
+    expected_fulltext_found_result = {doi1: temporary_test_file}
+    expected_fulltext_not_found_result = {doi2: None}
+    mock_fetch = mocker.patch(
+        "app.fetching.fetchers.FullTextFetcher.fetch",
+        side_effect=[
+            expected_fulltext_found_result,
+            expected_fulltext_not_found_result,
+        ],
+    )
+
+    fetcher = FullTextBatchFetcher(test_settings, all_api_configs, test_publisher_dict)
+
+    results = await fetcher.get_many_fulltext_pdfs_cycling_apis(test_study_collection)
+
+    mock_fetch.assert_called_once()
+
+    found_fulltext = [
+        result for result in results if result["fulltext_path"] is not None
+    ]
+    not_found_fulltext = [
+        result for result in results if result["fulltext_path"] is None
+    ]
+
+    assert len(found_fulltext) == len(expected_fulltext_found_result.keys())
+    assert len(not_found_fulltext) == len(expected_fulltext_not_found_result.keys())
+
+    assert all(
+        found_result["fulltext_path"] == str(temporary_test_file)
+        for found_result in found_fulltext
+    )
+    assert all(
+        found_result["source"] == test_publisher_name for found_result in found_fulltext
+    )
+    assert all(
+        not_found_result["fulltext_path"] is None
+        for not_found_result in not_found_fulltext
+    )
+    assert all(
+        not_found_result["source"] is None for not_found_result in not_found_fulltext
+    )

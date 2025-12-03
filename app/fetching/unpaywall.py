@@ -60,7 +60,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
                 async with AsyncHTTPXRetryClient() as client:
                     response = await client.get(url)
                     response.raise_for_status()
-                    data = response.json()
+                    data = await response.json()
                     pdf_url: str | None = None
                     if data.get("best_oa_location"):
                         pdf_url = data["best_oa_location"].get("url_for_pdf")
@@ -82,7 +82,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
                     )
                     if pdf_found and pdf_url is not None:
                         pdf_path = output_directory / f"{uid}.pdf"
-                        output_file_path = stream_file(AnyUrl(pdf_url), pdf_path)
+                        output_file_path = await stream_file(AnyUrl(pdf_url), pdf_path)
                         if output_file_path:
                             output_doi_paths[doi] = output_file_path
                         found_pdfs.append(uid)

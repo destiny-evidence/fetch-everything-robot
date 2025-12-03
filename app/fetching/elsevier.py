@@ -74,7 +74,7 @@ class ElsevierFetcher(BasePublisherFetcher):
                     response.raise_for_status()
                     if response.status_code == httpx.codes.OK:
                         file_path = output_directory / f"{uid}.xml"
-                        output_file_path = stream_file(
+                        output_file_path = await stream_file(
                             AnyUrl(url), file_path, headers=headers
                         )
                         if output_file_path:

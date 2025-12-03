@@ -78,10 +78,13 @@ lint.ignore = [
     "D403", # forcing upper-case - feel free to change @harry
     "D407", # removed dashes lines under sections
     "D417", # argument description in docstring (unreliable)
+    "ERA001", # commented-out code - REMOVE THIS OVERRIDE ASAP
     "FIX002", # implicit trust that TODOs are not trivial, or else they would be fixed
     "ISC001", # simplify implicit str concatenation (ruff-format recommended)
 ]
-lint.per-file-ignores = {"app/fetch_fulltext.py" = [
+lint.per-file-ignores = {"app/enhancement_processor.py" = [
+    "PLR0913", # Too many arguments in function definition
+], "app/fetch_fulltext.py" = [
     "PLR0915", # Too many statements
 ], "app/main.py" = [
     "S104", # Possible binding to all interfaces
