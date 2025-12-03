@@ -149,8 +149,8 @@ class DummyPublisherFetcher(BasePublisherFetcher):
 
 
 @pytest.fixture
-def test_publisher_dict() -> dict[str, type[BasePublisherFetcher]]:
-    return {"test_publisher": DummyPublisherFetcher}
+def test_publisher_dict() -> dict[str, BasePublisherFetcher]:
+    return {"test_publisher": DummyPublisherFetcher()}
 
 
 @pytest.fixture

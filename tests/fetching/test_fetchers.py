@@ -15,7 +15,7 @@ def test_full_text_fetcher_init(mocker, test_publisher_dict):
     assert fetcher.timeout == test_timeout
     assert isinstance(fetcher.fetchers, dict)
     assert all(
-        issubclass(f, BasePublisherFetcher) for f in fetcher.fetchers.values()
+        isinstance(f, BasePublisherFetcher) for f in fetcher.fetchers.values()
     ), "All fetchers should be subclasses of BasePublisherFetcher"
 
 
