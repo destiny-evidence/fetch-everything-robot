@@ -11,12 +11,12 @@ from destiny_sdk.references import Reference
 from destiny_sdk.robots import (
     RobotEnhancementBatch,
 )
-from fetching import BasePublisherFetcher
 from loguru import logger
 
 from app.config import Settings
 from app.data_models.generic import APIConfig
 from app.fetch_fulltext import FullTextBatchFetcher, ZeroFullTextsGeneratedError
+from app.fetching import BasePublisherFetcher
 from app.fetching.core import Study, StudyCollection
 
 
