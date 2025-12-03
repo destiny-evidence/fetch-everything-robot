@@ -129,7 +129,14 @@ class FullTextEnhancementProcessor:
             dict[str, Path | None]: A dictionary mapping DOIs to file paths or None.
 
         """
-        study_collection = self.get_study_collection_from_references(references)
+        try:
+            study_collection = self.get_study_collection_from_references(references)
+        except MissingDOIError as missing_doi_error:
+            error_message = (
+                "One or more references are missing DOI identifiers: "
+                f"{missing_doi_error}"
+            )
+            raise BatchEnhancementGenerationError(error_message) from missing_doi_error
         try:
             return await self.fulltext_fetcher.get_many_fulltext_pdfs_cycling_apis(
                 input_study_collection=study_collection,

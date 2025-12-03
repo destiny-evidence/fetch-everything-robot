@@ -131,6 +131,34 @@ async def test_generate_fulltext_total_failure_no_fulltexts_found(
 
 
 @pytest.mark.asyncio
+async def test_generate_fulltext_total_failure_single_missing_doi(
+    mocker,
+    test_fulltext_enhancement_processor,
+):
+    test_good_reference_id = uuid.uuid4()
+    test_bad_reference_id = uuid.uuid4()
+    test_two_references = [
+        Reference(
+            id=test_good_reference_id,
+            identifiers=[
+                {"identifier": "10.1093/ajae/aaq063", "identifier_type": "doi"}
+            ],
+            enhancements=[],
+        ),
+        Reference(
+            id=test_bad_reference_id,
+            identifiers=[{"identifier": "W123456789", "identifier_type": "open_alex"}],
+            enhancements=[],
+        ),
+    ]
+
+    with pytest.raises(BatchEnhancementGenerationError):
+        await test_fulltext_enhancement_processor.generate_fulltext(
+            references=test_two_references,
+        )
+
+
+@pytest.mark.asyncio
 async def test_generate_fulltext_partial_success_empty_fulltexts_found_for_some_references(
     mocker,
     temporary_test_file,
