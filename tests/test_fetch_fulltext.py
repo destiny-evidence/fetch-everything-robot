@@ -152,3 +152,55 @@ def test_process_doi_tolower():
     raw = "10.1109/PSSGT64932.2025.11033854"
     cleaned = FullTextBatchFetcher.process_doi(raw)
     assert cleaned == "10.1109/pssgt64932.2025.11033854"
+
+
+@pytest.mark.asyncio
+async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_non_none_pdf_paths(
+    mocker,
+    test_settings,
+    test_study_collection,
+    test_publisher_dict,
+    scopus_api_config_valid_batch,
+    temporary_test_file,
+):
+    test_publisher_name = "TEST_PUBLISHER"
+    all_api_configs = {"fulltext": {test_publisher_name: scopus_api_config_valid_batch}}
+
+    doi1 = test_study_collection.studies[0].doi.identifier
+    doi2 = test_study_collection.studies[1].doi.identifier
+
+    expected_fulltext_found_result = {doi1: temporary_test_file}
+    expected_fulltext_not_found_result = {doi2: None}
+    mock_fetch = mocker.patch(
+        "app.fetching.fetchers.FullTextFetcher.fetch",
+        side_effect=[
+            expected_fulltext_found_result,
+            expected_fulltext_not_found_result,
+        ],
+    )
+
+    fetcher = FullTextBatchFetcher(test_settings, all_api_configs, test_publisher_dict)
+
+    results = await fetcher.get_many_fulltext_pdfs_cycling_apis(test_study_collection)
+
+    mock_fetch.assert_called_once()
+
+    found_fulltext = [result for result in results if result["fulltext"] is not None]
+    not_found_fulltext = [result for result in results if result["fulltext"] is None]
+
+    assert len(found_fulltext) == len(expected_fulltext_found_result.keys())
+    assert len(not_found_fulltext) == len(expected_fulltext_not_found_result.keys())
+
+    assert all(
+        found_result["fulltext"] == str(temporary_test_file)
+        for found_result in found_fulltext
+    )
+    assert all(
+        found_result["source"] == test_publisher_name for found_result in found_fulltext
+    )
+    assert all(
+        not_found_result["fulltext"] is None for not_found_result in not_found_fulltext
+    )
+    assert all(
+        not_found_result["source"] is None for not_found_result in not_found_fulltext
+    )

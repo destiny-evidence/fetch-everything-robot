@@ -169,19 +169,20 @@ class FullTextBatchFetcher:
             found_responses = False
             if retrieved_responses:
                 for doi, pdf_path in retrieved_responses.items():
-                    found_responses = True
-                    doi_to_remove = doi
+                    if pdf_path is not None:
+                        found_responses = True
+                        doi_to_remove = doi
 
-                    logger.info(f"Full text found for {doi} from {api_name}.")
-                    valid_dois.remove(self.process_doi(doi_to_remove))
-                    logger.info(
-                        f"Retrieved full text for doi {doi_to_remove} from {api_name}. "
-                        "Removing from master list."
-                    )
-                    api_count += 1
-                    retrieved_fulltexts.append(
-                        {"doi": doi, "fulltext": str(pdf_path), "source": api_name}
-                    )
+                        logger.info(f"Full text found for {doi} from {api_name}.")
+                        valid_dois.remove(self.process_doi(doi_to_remove))
+                        logger.info(
+                            f"Got full text for doi {doi_to_remove} from {api_name}. "
+                            "Removing from master list."
+                        )
+                        api_count += 1
+                        retrieved_fulltexts.append(
+                            {"doi": doi, "fulltext": str(pdf_path), "source": api_name}
+                        )
             if not found_responses:
                 error_message = (
                     f"No full texts found in {api_name} with"

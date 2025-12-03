@@ -16,7 +16,7 @@ def test_full_text_fetcher_init(mocker, test_publisher_dict):
     assert isinstance(fetcher.fetchers, dict)
     assert all(
         issubclass(f, BasePublisherFetcher) for f in fetcher.fetchers.values()
-    ), "All fetchers should be instances of BasePublisherFetcher"
+    ), "All fetchers should be subclasses of BasePublisherFetcher"
 
 
 @pytest.mark.asyncio
