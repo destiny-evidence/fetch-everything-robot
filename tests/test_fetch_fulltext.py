@@ -4,7 +4,8 @@ import httpx
 import pytest
 
 from app.data_models.generic import prepare_api_config
-from app.fetch_fulltext import FullTextBatchFetcher, FullTextFetcher
+from app.fetch_fulltext import FullTextBatchFetcher
+from app.fetching.fetchers import FullTextFetcher
 
 
 # TODO @harryjmoss: Re-Enable when multiple API configs are supported
