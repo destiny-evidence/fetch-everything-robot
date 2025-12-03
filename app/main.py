@@ -19,7 +19,7 @@ from app.config import Settings, get_settings
 from app.data_models.generic import APIConfig, prepare_api_config
 from app.data_models.scopus import get_scopus_batch_api_config
 from app.enhancement_processor import BatchEnhancementGenerationError
-from app.fetching.registry import PUBLISHER_FETCHERS
+from app.fetching.registry import get_publisher_fetcher_registry
 from app.logger import logger, set_up_logger
 from app.server import start_health_check_server
 from app.utils import get_version_number
@@ -158,7 +158,7 @@ async def main() -> None:
         source_name=title,
         global_api_config=global_api_config,
         available_api_configs=available_api_configs,
-        publisher_dict=PUBLISHER_FETCHERS,
+        publisher_dict=get_publisher_fetcher_registry(settings),
     )
     logger.info("Starting {} polling loop", title)
     logger.info("Polling interval: {} seconds", settings.poll_interval_seconds)
