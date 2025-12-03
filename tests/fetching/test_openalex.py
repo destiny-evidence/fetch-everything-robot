@@ -96,7 +96,9 @@ async def test_download_one_pdf(mocker, fetcher, temporary_test_file):
     mock_stream.return_value = temporary_test_file
     result = await fetcher.download_one_pdf(url, temporary_test_file)
     assert result == temporary_test_file
-    mock_stream.assert_called_once_with(url=url, destination=temporary_test_file)
+    mock_stream.assert_called_once_with(
+        url=url, destination=temporary_test_file, headers=None
+    )
 
 
 @pytest.mark.asyncio
