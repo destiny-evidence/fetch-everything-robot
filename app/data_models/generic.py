@@ -271,9 +271,13 @@ def prepare_api_config(
         all_api_configs[external_api.name] = {}
         for api in external_api.priorities:
             logger.debug(f"checking if {api.name} in list of available apis...")
-            if api not in api_config_map:
+            if api.value not in api_config_map:
+                error_message = (
+                    f"{api.name=} {api.value=} not in available api configs, skipping."
+                )
+                logger.error(error_message)
                 continue
-            target_config = api_config_map[api]
+            target_config = api_config_map[api.value]
             try:
                 logger.debug(f"trying to find & init api key for {api.name}")
                 target_config.init_api_key(settings=settings)

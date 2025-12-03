@@ -11,6 +11,7 @@ from app.data_models.generic import (
     ExternalAPIPriority,
     FullTextNotFoundError,
     FullTextUnpackError,
+    prepare_api_config,
 )
 
 
@@ -192,3 +193,36 @@ def test_api_config_populate_query_openalex(request, api_config_fixture, query):
     assert (
         url == expected_url
     ), "URL should include DOIs as filter parameters, separated by |."
+
+
+def test_prepare_api_config_key_type(
+    test_settings,
+    test_available_api_configs,
+    external_api_priorities,
+):
+    result = prepare_api_config(
+        api_configs=test_available_api_configs,
+        settings=test_settings,
+        external_api_priority=external_api_priorities["fulltext"],
+    )
+    expected_keys = [config.name.name for config in test_available_api_configs]
+
+    assert set(result["fulltext"].keys()) == set(expected_keys)
+
+
+def test_prepare_api_config_init_api_key_called_correctly(
+    test_settings,
+    test_available_api_configs,
+    external_api_priorities,
+):
+    all_results = prepare_api_config(
+        api_configs=test_available_api_configs,
+        settings=test_settings,
+        external_api_priority=external_api_priorities["fulltext"],
+    )
+    results = all_results["fulltext"]
+
+    assert all(
+        config.headers == results[config.name.name].headers
+        for config in test_available_api_configs
+    )
