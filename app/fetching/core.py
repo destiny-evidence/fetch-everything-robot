@@ -10,6 +10,10 @@ from loguru import logger
 from pydantic import AnyUrl, BaseModel, Field
 
 
+class BaseAuthError(Exception):
+    """Raise when fetcher API authentication fails."""
+
+
 class FullTextStreamError(Exception):
     """Custom exception to throw when full text streaming fails."""
 

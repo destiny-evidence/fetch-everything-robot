@@ -10,10 +10,15 @@ from app.config import Settings
 from app.fetching import BasePublisherFetcher
 from app.fetching.core import (
     AsyncHTTPXRetryClient,
+    BaseAuthError,
     FullTextStreamError,
     StudyCollection,
     stream_file,
 )
+
+
+class ElsevierAuthError(BaseAuthError):
+    """Raise when Elsevier API authentication fails."""
 
 
 class ElsevierFetcher(BasePublisherFetcher):
@@ -76,6 +81,21 @@ class ElsevierFetcher(BasePublisherFetcher):
             if self.settings.elsevier_scopus_inst_token is not None
             else None
         )
+
+        if api_key is None and inst_token is None:
+            error_message = (
+                "No Elsevier API key or institution token provided."
+                " Requests may be rate limited or fail."
+            )
+            logger.error(error_message)
+            raise ElsevierAuthError(error_message)
+
+        if api_key is not None and inst_token is None:
+            logger.warning(
+                "Using Elsevier API key without institution token"
+                ", requests may fail due to network settings."
+            )
+
         if api_key is not None:
             headers["X-ELS-APIKey"] = api_key
         if inst_token is not None:

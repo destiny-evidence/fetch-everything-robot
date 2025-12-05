@@ -5,7 +5,7 @@ from pathlib import Path
 
 from app.config import Settings
 from app.fetching import BasePublisherFetcher
-from app.fetching.core import StudyCollection
+from app.fetching.core import BaseAuthError, StudyCollection
 
 
 class FullTextFetcherError(Exception):
@@ -64,4 +64,12 @@ class FullTextFetcher:
             raise FullTextFetcherError(error_message)
         if output_directory is None:
             output_directory = Path(tempfile.TemporaryDirectory(delete=False).name)
-        return await fetcher.fetch_many_full_texts(study_collection, output_directory)
+        try:
+            return await fetcher.fetch_many_full_texts(
+                study_collection, output_directory
+            )
+        except BaseAuthError as auth_error:
+            error_message = (
+                f"Authentication error for publisher {publisher_name}: {auth_error}"
+            )
+            raise FullTextFetcherError(error_message) from auth_error

@@ -4,7 +4,8 @@ import httpx
 import pytest
 
 from app.data_models.generic import prepare_api_config
-from app.fetch_fulltext import FullTextBatchFetcher
+from app.fetch_fulltext import FullTextBatchFetcher, ZeroFullTextsGeneratedError
+from app.fetching.core import BaseAuthError
 from app.fetching.fetchers import FullTextFetcher
 
 
@@ -90,7 +91,7 @@ async def test_fetch_success(
 
     mock_get = mocker.patch("httpx.AsyncClient.get", return_value=mock_response)
     result = await fetcher.fetch(
-        "TEST_PUBLISHER", test_study_collection, output_directory=None
+        "test_publisher", test_study_collection, output_directory=None
     )
     assert result == {"foo": "bar"}
     mock_get.assert_called_once()
@@ -111,7 +112,7 @@ async def test_fetch_http_error(
         pytest.raises(httpx.HTTPError),
     ):
         await fetcher.fetch(
-            "TEST_PUBLISHER", test_study_collection, output_directory=None
+            "test_publisher", test_study_collection, output_directory=None
         )
 
 
@@ -164,7 +165,7 @@ async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_non_none_pdf_paths(
     scopus_api_config_valid_batch,
     temporary_test_file,
 ):
-    test_publisher_name = "TEST_PUBLISHER"
+    test_publisher_name = "test_publisher"
     all_api_configs = {"fulltext": {test_publisher_name: scopus_api_config_valid_batch}}
 
     doi1 = test_study_collection.studies[0].doi.identifier
@@ -210,3 +211,29 @@ async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_non_none_pdf_paths(
     assert all(
         not_found_result["source"] is None for not_found_result in not_found_fulltext
     )
+
+
+@pytest.mark.asyncio
+async def test_get_many_fulltext_pdfs_cycling_apis_error_with_individual_api(
+    mocker,
+    test_settings,
+    test_study_collection,
+    test_publisher_dict,
+    scopus_api_config_valid_batch,
+    temporary_test_file,
+    caplog,
+):
+    test_publisher_name = "test_publisher"
+    all_api_configs = {"fulltext": {test_publisher_name: scopus_api_config_valid_batch}}
+
+    mocker.patch.object(
+        test_publisher_dict[test_publisher_name],
+        "fetch_many_full_texts",
+        side_effect=BaseAuthError("Authentication failed"),
+    )
+    fetcher = FullTextBatchFetcher(test_settings, all_api_configs, test_publisher_dict)
+
+    with caplog.at_level("INFO"), pytest.raises(ZeroFullTextsGeneratedError):
+        await fetcher.get_many_fulltext_pdfs_cycling_apis(test_study_collection)
+
+    assert "Authentication error for publisher" in caplog.text

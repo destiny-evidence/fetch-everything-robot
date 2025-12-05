@@ -1,6 +1,6 @@
 """API config parsing and model."""
 
-from enum import StrEnum
+from enum import StrEnum, auto
 from functools import lru_cache
 
 from pydantic import UUID4, BaseModel, EmailStr, Field, HttpUrl, SecretStr
@@ -16,9 +16,9 @@ class ExternalAPI(StrEnum):
     implementation of retrieving their output.
     """
 
-    CROSSREF = "crossref"
-    SCOPUS = "scopus"
-    UNPAYWALL = "unpaywall"
+    CROSSREF = auto()
+    SCOPUS = auto()
+    UNPAYWALL = auto()
 
 
 class QueryType(StrEnum):

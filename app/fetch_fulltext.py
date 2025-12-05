@@ -18,7 +18,7 @@ from app.data_models.generic import (
 )
 from app.fetching import BasePublisherFetcher
 from app.fetching.core import StudyCollection
-from app.fetching.fetchers import FullTextFetcher
+from app.fetching.fetchers import FullTextFetcher, FullTextFetcherError
 from app.utils import InvalidDOIError, validate_doi
 
 
@@ -162,12 +162,19 @@ class FullTextBatchFetcher:
             api_count = 0
             api_config: APIConfig = self.all_api_configs["fulltext"][api_name]
 
-            retrieved_responses: dict[
-                str, Path | None
-            ] = await self.full_text_fetcher.fetch(
-                publisher_name=api_name,
-                study_collection=input_study_collection,
-            )
+            try:
+                retrieved_responses: dict[
+                    str, Path | None
+                ] = await self.full_text_fetcher.fetch(
+                    publisher_name=api_name,
+                    study_collection=input_study_collection,
+                )
+            except FullTextFetcherError as fetcher_error:
+                error_message = (
+                    f"Error fetching full texts from {api_name}: {fetcher_error}"
+                )
+                logger.error(error_message)
+                continue
 
             found_responses = False
             if retrieved_responses:
