@@ -30,7 +30,26 @@ class ElsevierFetcher(BasePublisherFetcher):
         self.settings = settings
         self.base_url = "https://api.elsevier.com/content/article/doi/"
 
-    async def fetch_full_text(
+    async def download_one_pdf(
+        self,
+        pdf_url: AnyUrl,
+        filepath: Path,
+        headers: dict | None = None,
+    ) -> Path | None:
+        """
+        Download one PDF from Elsevier.
+
+        Args:
+            pdf_url (AnyUrl): The URL of the PDF to download.
+            filepath (Path): Output file path.
+
+        Returns:
+            Path | None: The path to the downloaded PDF or None if download failed.
+
+        """
+        return await stream_file(url=pdf_url, destination=filepath, headers=headers)
+
+    async def fetch_many_full_texts(
         self, study_collection: StudyCollection, output_directory: Path
     ) -> dict[str, Path | None]:
         """
@@ -74,7 +93,7 @@ class ElsevierFetcher(BasePublisherFetcher):
                     response.raise_for_status()
                     if response.status_code == httpx.codes.OK:
                         file_path = output_directory / f"{uid}.xml"
-                        output_file_path = await stream_file(
+                        output_file_path = await self.download_one_pdf(
                             AnyUrl(url), file_path, headers=headers
                         )
                         if output_file_path:

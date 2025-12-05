@@ -103,7 +103,7 @@ def test_pdf_url_is_valid_invalid_publisher_keyword(
 
 
 @pytest.mark.asyncio
-async def test_fetch_full_text_no_valid_pdfs(
+async def test_fetch_many_full_texts_no_valid_pdfs(
     mocker, test_settings, test_study_collection, tmp_path
 ):
     fetcher = CrossrefFetcher(settings=test_settings)
@@ -122,7 +122,7 @@ async def test_fetch_full_text_no_valid_pdfs(
     patched_stream_file = mocker.patch(
         "app.fetching.crossref.stream_file", return_value=None
     )
-    await fetcher.fetch_full_text(
+    await fetcher.fetch_many_full_texts(
         study_collection=test_study_collection, output_directory=tmp_path
     )
 
@@ -133,7 +133,7 @@ async def test_fetch_full_text_no_valid_pdfs(
 
 
 @pytest.mark.asyncio
-async def test_fetch_full_text_with_valid_pdf(
+async def test_fetch_many_full_texts_with_valid_pdf(
     mocker, test_settings, test_study_collection, tmp_path
 ):
     fetcher = CrossrefFetcher(settings=test_settings)
@@ -153,7 +153,7 @@ async def test_fetch_full_text_with_valid_pdf(
     patched_stream_file = mocker.patch(
         "app.fetching.crossref.stream_file", return_value=tmp_path / "dummy.pdf"
     )
-    await fetcher.fetch_full_text(
+    await fetcher.fetch_many_full_texts(
         study_collection=test_study_collection, output_directory=tmp_path
     )
 
@@ -164,7 +164,7 @@ async def test_fetch_full_text_with_valid_pdf(
 
 
 @pytest.mark.asyncio
-async def test_fetch_full_text_fails_request_error(
+async def test_fetch_many_full_texts_fails_request_error(
     mocker, test_settings, test_study_collection, tmp_path, caplog
 ):
     uids = [str(study.uid) for study in test_study_collection.studies]
@@ -184,7 +184,7 @@ async def test_fetch_full_text_fails_request_error(
         "app.fetching.crossref.stream_file",
     )
     with caplog.at_level("ERROR"):
-        await fetcher.fetch_full_text(
+        await fetcher.fetch_many_full_texts(
             study_collection=test_study_collection, output_directory=tmp_path
         )
     assert "CrossRef request error" in caplog.text

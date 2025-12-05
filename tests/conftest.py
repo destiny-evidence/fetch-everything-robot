@@ -2,12 +2,14 @@
 import logging
 import uuid
 from collections.abc import Generator
+from pathlib import Path
 
 import destiny_sdk
 import httpx
 import pytest
 from fastapi import status
 from loguru import logger
+from pydantic import AnyUrl
 from pytest_httpx import HTTPXMock, IteratorStream
 
 from app.config import Settings
@@ -21,6 +23,7 @@ from app.data_models.generic import (
 from app.data_models.scopus import ScopusAPIConfig
 from app.enhancement_processor import FullTextEnhancementProcessor
 from app.fetching import BasePublisherFetcher
+from app.fetching.core import stream_file
 
 pytest_plugins = [
     "tests.fixtures.generic",
@@ -134,7 +137,31 @@ class DummyPublisherFetcher(BasePublisherFetcher):
 
     TEST_PUBLISHER = "test_publisher"
 
-    async def fetch_full_text(self, *args, **kwargs) -> dict:
+    async def download_one_pdf(
+        self,
+        pdf_url: AnyUrl,
+        filepath: Path,
+        headers: dict | None = None,
+    ) -> Path | None:
+        """
+        Define a dummy method to simulate downloading a PDF.
+
+        Args:
+            pdf_url (AnyUrl): The URL of the PDF to download.
+            filepath (Path): Output file path.
+            headers (dict | None, optional): Optional headers for the request. Defaults to None.
+
+        Returns:
+            Path | None: The path to the downloaded PDF or None if download failed.
+
+        """
+        async with httpx.AsyncClient() as client:
+            response = await client.get(pdf_url)
+        response.raise_for_status()
+        await stream_file(url=pdf_url, destination=filepath)
+        return filepath
+
+    async def fetch_many_full_texts(self, *args, **kwargs) -> dict:
         """
         Define a dummy method to simulate fetching full text.
 

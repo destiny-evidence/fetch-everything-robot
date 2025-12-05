@@ -9,11 +9,7 @@ from pydantic import AnyUrl
 
 from app.config import Settings
 from app.fetching import BasePublisherFetcher
-from app.fetching.core import (
-    FullTextStreamError,
-    StudyCollection,
-    stream_file,
-)
+from app.fetching.core import FullTextStreamError, StudyCollection, stream_file
 
 
 class CrossrefFetcher(BasePublisherFetcher):
@@ -25,8 +21,8 @@ class CrossrefFetcher(BasePublisherFetcher):
 
         Args:
             settings (Settings): The settings to use for the fetcher.
-            wait_time_seconds (int, optional): The wait time between requests.
-                Defaults to 2.
+            wait_time_seconds (int, optional):
+                The number of seconds to wait between requests. Defaults to 2.
 
         """
         self.settings = settings
@@ -85,7 +81,28 @@ class CrossrefFetcher(BasePublisherFetcher):
             for keyword in ["elsevier", "wiley", "tandfonline"]
         )
 
-    async def fetch_full_text(
+    async def download_one_pdf(
+        self,
+        pdf_url: AnyUrl,
+        filepath: Path,
+        headers: dict | None = None,
+    ) -> Path | None:
+        """
+        Download one PDF from CrossRef.
+
+        Args:
+            pdf_url (AnyUrl): The URL of the PDF to download.
+            filepath (Path): Output file path.
+            headers (dict | None, optional): Optional headers for the request.
+                Defaults to None.
+
+        Returns:
+            Path | None: The path to the downloaded PDF or None if download failed.
+
+        """
+        return await stream_file(url=pdf_url, destination=filepath, headers=headers)
+
+    async def fetch_many_full_texts(
         self, study_collection: StudyCollection, output_directory: Path
     ) -> dict[str, Path | None]:
         """
@@ -113,8 +130,10 @@ class CrossrefFetcher(BasePublisherFetcher):
                 if self.pdf_url_is_valid(content_info):
                     url = str(content_info.get("url"))
                     pdf_path = output_directory / f"{uid}.pdf"
-                    if uid not in found_pdfs:  # Avoid duplicate downloads
-                        output_file_path = await stream_file(AnyUrl(url), pdf_path)
+                    if uid not in found_pdfs:
+                        output_file_path = await self.download_one_pdf(
+                            AnyUrl(url), pdf_path
+                        )
                         if output_file_path:
                             output_doi_paths[doi] = output_file_path
                         found_pdfs.add(uid)
@@ -127,7 +146,7 @@ class CrossrefFetcher(BasePublisherFetcher):
                     output_doi_paths[doi] = None
             except RequestError as request_error:
                 error_message = (
-                    f"CrossRef request error for {uid}:{doi}" f" - {request_error}"
+                    f"CrossRef request error for {uid=}, {doi=} - {request_error}"
                 )
                 logger.error(error_message)
             except FullTextStreamError as fulltext_download_error:

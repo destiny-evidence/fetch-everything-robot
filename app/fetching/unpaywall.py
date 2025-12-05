@@ -30,7 +30,28 @@ class UnpaywallFetcher(BasePublisherFetcher):
         self.settings = settings
         self.base_url = "https://api.unpaywall.org/v2/"
 
-    async def fetch_full_text(
+    async def download_one_pdf(
+        self,
+        pdf_url: AnyUrl,
+        filepath: Path,
+        headers: dict | None = None,
+    ) -> Path | None:
+        """
+        Download one PDF from Unpaywall.
+
+        Args:
+            pdf_url (AnyUrl): The URL of the PDF to download.
+            filepath (Path): Output file path.
+            headers (dict | None, optional): Optional headers for the request.
+                Defaults to None.
+
+        Returns:
+            Path | None: The path to the downloaded PDF or None if download failed.
+
+        """
+        return await stream_file(url=pdf_url, destination=filepath, headers=headers)
+
+    async def fetch_many_full_texts(
         self,
         study_collection: StudyCollection,
         output_directory: Path,
@@ -82,7 +103,9 @@ class UnpaywallFetcher(BasePublisherFetcher):
                     )
                     if pdf_found and pdf_url is not None:
                         pdf_path = output_directory / f"{uid}.pdf"
-                        output_file_path = await stream_file(AnyUrl(pdf_url), pdf_path)
+                        output_file_path = await self.download_one_pdf(
+                            AnyUrl(pdf_url), pdf_path
+                        )
                         if output_file_path:
                             output_doi_paths[doi] = output_file_path
                         found_pdfs.append(uid)
