@@ -1,7 +1,6 @@
 """Core fetching utilities and models."""
 
 import tempfile
-from collections.abc import Iterator
 from pathlib import Path
 from uuid import UUID
 
@@ -9,6 +8,10 @@ import httpx
 from destiny_sdk.identifiers import DOIIdentifier
 from loguru import logger
 from pydantic import AnyUrl, BaseModel, Field
+
+
+class BaseAuthError(Exception):
+    """Raise when fetcher API authentication fails."""
 
 
 class FullTextStreamError(Exception):
@@ -34,9 +37,15 @@ class StudyCollection(BaseModel):
         default_factory=list, description="A collection of studies."
     )
 
-    def iterate_studies(self) -> Iterator[Study]:
-        """Iterate over the studies in the collection."""
-        return iter(self.studies)
+    def remove_study_by_doi(self, doi: str) -> None:
+        """
+        Remove a study from the collection by its DOI.
+
+        Args:
+            doi (str): The DOI of the study to remove.
+
+        """
+        self.studies = [study for study in self.studies if study.doi.identifier != doi]
 
 
 class AsyncHTTPXRetryClient(httpx.AsyncClient):

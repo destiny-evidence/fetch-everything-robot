@@ -15,19 +15,17 @@ SCOPUS_QUERY_PARAMS = {"next_cursor": "*", "view": "FULL"}
 
 SCOPUS_PDF_LINK_HEADERS = {
     "Accept": "application/json",
-    "X-ELS-APIKey": "",
-    "X-ELS-Insttoken": "",
 }
 
 SCOPUS_XML_HEADERS = {
     "Accept": "text/xml",
-    "X-ELS-APIKey": "",
-    "X-ELS-Insttoken": "",
 }
 
 SCOPUS_HEADERS = {
     "pdf_link": SCOPUS_PDF_LINK_HEADERS,
     "xml": SCOPUS_XML_HEADERS,
+    "X-ELS-APIKey": "",
+    "X-ELS-Insttoken": "",
 }
 
 SCOPUS_FULLTEXT_UNPACK_STRATEGY = FullTextUnpackStrategy(
@@ -96,7 +94,7 @@ def get_scopus_batch_api_config() -> ScopusAPIConfig:
 
     """
     return ScopusAPIConfig(
-        name="scopus_batch",
+        name="scopus",
         url=SCOPUS_URL,
         require_api_key=True,
         api_key_env_var_name="elsevier_scopus_key",  # pragma: allowlist secret

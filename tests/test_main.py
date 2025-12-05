@@ -23,7 +23,6 @@ async def test_process_robot_enhancement_batch_happy_path(
     batch_id = uuid.uuid4()
     reference_ids = [uuid.uuid4() for _ in range(3)]
     dois = [f"10.1000/{i}" for i in range(3)]
-    fulltexts = [f"This is fulltext {i}." for i in range(3)]
 
     # Mock the batch data
     batch = destiny_sdk.robots.RobotEnhancementBatch(
@@ -37,15 +36,6 @@ async def test_process_robot_enhancement_batch_happy_path(
 
     # Mock result upload
     httpx_mock.add_response(method="PUT", status_code=200)
-
-    test_fetch_many_fulltexts_return_value = [
-        {"doi": doi, "fulltext": fulltext}
-        for doi, fulltext in zip(dois, fulltexts, strict=False)
-    ]
-    mocker.patch(
-        "app.fetch_fulltext.FullTextFetcher.get_many_fulltexts_cycling_apis",
-        return_value=test_fetch_many_fulltexts_return_value,
-    )
 
     # Mock SDK result submission
     with (

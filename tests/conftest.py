@@ -1,12 +1,15 @@
-# ruff: noqa: E501, S106
+# ruff: noqa: E501, S106, ANN002, ANN003, ARG002
 import logging
 import uuid
 from collections.abc import Generator
+from pathlib import Path
 
 import destiny_sdk
+import httpx
 import pytest
 from fastapi import status
 from loguru import logger
+from pydantic import AnyUrl
 from pytest_httpx import HTTPXMock, IteratorStream
 
 from app.config import Settings
@@ -15,10 +18,12 @@ from app.data_models.generic import (
     ExternalAPI,
     FullTextUnpackStrategy,
     QueryType,
+    prepare_api_config,
 )
 from app.data_models.scopus import ScopusAPIConfig
 from app.enhancement_processor import FullTextEnhancementProcessor
-from app.fetch_fulltext import prepare_api_config
+from app.fetching import BasePublisherFetcher
+from app.fetching.core import stream_file
 
 pytest_plugins = [
     "tests.fixtures.generic",
@@ -76,48 +81,119 @@ def scopus_api_config_valid_batch():
     )
 
 
+# TODO @harryjmoss: Re-enable when OpenAlex fetcher is implemented
+# https://github.com/destiny-evidence/fetch-everything-robot/issues/9
+# @pytest.fixture
+# def openalex_api_config_valid_batch():
+#     return APIConfig(
+#         name=ExternalAPI.OPENALEX,
+#         url="https://api.example.com/",
+#         require_api_key=False,
+#         api_key_env_var_name=None,
+#         api_key_placement=None,
+#         query_type=QueryType.BATCH,
+#         unpack_strategy=FullTextUnpackStrategy(
+#             source=ExternalAPI.OPENALEX,
+#             doi_strategy=["message", "DOI"],
+#             pdf_link_strategy=["message", "pdf_url"],
+#             xml_strategy=["message", "xml"],
+#         ),
+#     )
+
+# TODO @harryjmoss: Re-Enable when multiple API configs are supported
+# https://github.com/destiny-evidence/fetch-everything-robot/issues/9
+# @pytest.fixture
+# def test_available_api_configs(
+#     scopus_api_config_valid_batch,
+#     openalex_api_config_valid_batch,
+# ) -> list[APIConfig]:
+#     return [
+#         scopus_api_config_valid_batch,
+#         openalex_api_config_valid_batch,
+#     ]
+
+
 @pytest.fixture
-def openalex_api_config_valid_batch():
-    return APIConfig(
-        name=ExternalAPI.OPENALEX,
-        url="https://api.example.com/",
-        require_api_key=False,
-        api_key_env_var_name=None,
-        api_key_placement=None,
-        query_type=QueryType.BATCH,
-        unpack_strategy=FullTextUnpackStrategy(
-            source=ExternalAPI.OPENALEX,
-            doi_strategy=["message", "DOI"],
-            pdf_link_strategy=["message", "pdf_url"],
-            xml_strategy=["message", "xml"],
-        ),
-    )
+def test_available_api_configs(
+    scopus_api_config_valid_batch,
+) -> list[APIConfig]:
+    return [
+        scopus_api_config_valid_batch,
+    ]
 
 
 @pytest.fixture
 def test_global_api_config(
-    scopus_api_config_valid_batch, openalex_api_config_valid_batch, test_settings
+    test_available_api_configs, test_settings
 ) -> dict[str, APIConfig]:
     return prepare_api_config(
-        api_configs=[scopus_api_config_valid_batch, openalex_api_config_valid_batch],
+        api_configs=test_available_api_configs,
         settings=test_settings,
     )
 
 
+class DummyPublisherFetcher(BasePublisherFetcher):
+    """Define dummy publisher fetcher for testing purposes."""
+
+    TEST_PUBLISHER = "test_publisher"
+
+    async def download_one_pdf(
+        self,
+        pdf_url: AnyUrl,
+        filepath: Path,
+        headers: dict | None = None,
+    ) -> Path | None:
+        """
+        Define a dummy method to simulate downloading a PDF.
+
+        Args:
+            pdf_url (AnyUrl): The URL of the PDF to download.
+            filepath (Path): Output file path.
+            headers (dict | None, optional): Optional headers for the request. Defaults to None.
+
+        Returns:
+            Path | None: The path to the downloaded PDF or None if download failed.
+
+        """
+        async with httpx.AsyncClient() as client:
+            response = await client.get(pdf_url)
+        response.raise_for_status()
+        await stream_file(url=pdf_url, destination=filepath)
+        return filepath
+
+    async def fetch_many_full_texts(self, *args, **kwargs) -> dict:
+        """
+        Define a dummy method to simulate fetching full text.
+
+        Returns:
+            dict: A dummy response.
+
+        """
+        async with httpx.AsyncClient() as client:
+            response = await client.get("https://example.com/test")
+        response.raise_for_status()
+        return await response.json()
+
+
+@pytest.fixture
+def test_publisher_dict() -> dict[str, BasePublisherFetcher]:
+    return {"test_publisher": DummyPublisherFetcher()}
+
+
 @pytest.fixture
 def test_fulltext_enhancement_processor(
-    scopus_api_config_valid_batch,
-    openalex_api_config_valid_batch,
+    test_available_api_configs,
     test_global_api_config,
+    test_settings,
+    test_publisher_dict,
 ) -> FullTextEnhancementProcessor:
     return FullTextEnhancementProcessor(
+        settings=test_settings,
         robot_version="9.9.9",
         source_name="Test Fetch Everything Robot",
         global_api_config=test_global_api_config,
-        available_api_configs=[
-            scopus_api_config_valid_batch,
-            openalex_api_config_valid_batch,
-        ],
+        available_api_configs=test_available_api_configs,
+        publisher_dict=test_publisher_dict,
     )
 
 

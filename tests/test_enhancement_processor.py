@@ -1,14 +1,15 @@
 import uuid
+from pathlib import Path
 
 import pytest
 from destiny_sdk.references import Reference
 from destiny_sdk.robots import RobotEnhancementBatch
 from pytest_mock import MockerFixture
 
-from app.config import Settings
 from app.enhancement_processor import (
     BatchEnhancementGenerationError,
     FullTextEnhancementProcessor,
+    MissingDOIError,
 )
 
 
@@ -58,11 +59,47 @@ async def test_process_batch_full_batch_failure(
     )
 
 
-def test_generate_fulltext_enhancement_batch_request_success(
+@pytest.mark.asyncio
+async def test_generate_fulltext_success(
     mocker,
-    test_settings: Settings,
     test_fulltext_enhancement_processor: FullTextEnhancementProcessor,
-    scopus_api_config_valid_batch,
+    temporary_test_file: Path,
+):
+    test_two_references = [
+        Reference(
+            id=uuid.uuid4(),
+            identifiers=[
+                {"identifier": "10.1093/ajae/aaq063", "identifier_type": "doi"}
+            ],
+            enhancements=[],
+        ),
+        Reference(
+            id=uuid.uuid4(),
+            identifiers=[
+                {"identifier": "10.1093/ajae/aaq064", "identifier_type": "doi"}
+            ],
+            enhancements=[],
+        ),
+    ]
+    fetch_mock = mocker.patch(
+        "app.fetching.fetchers.FullTextFetcher.fetch",
+        return_value={
+            str(test_two_references[0].identifiers[0].identifier): temporary_test_file,
+            str(test_two_references[1].identifiers[0].identifier): temporary_test_file,
+        },
+    )
+
+    await test_fulltext_enhancement_processor.generate_fulltext(
+        references=test_two_references,
+    )
+
+    fetch_mock.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_generate_fulltext_total_failure_no_fulltexts_found(
+    mocker,
+    test_fulltext_enhancement_processor,
 ):
     test_two_references = [
         Reference(
@@ -81,30 +118,51 @@ def test_generate_fulltext_enhancement_batch_request_success(
         ),
     ]
 
-    test_enhancement_references_map = [
-        {
-            "id": ref.id,
-            "fulltext": f"This is a mocked fulltext for {ref.id}.",
-        }
-        for ref in test_two_references
-    ]
-    available_api_configs = [scopus_api_config_valid_batch]
-    test_app_title = "A test app for batch requests."
-
-    with pytest.raises(NotImplementedError):
-        test_fulltext_enhancement_processor.generate_fulltext_enhancement_batch_request(
+    fetch_mock = mocker.patch(
+        "app.fetching.fetchers.FullTextFetcher.fetch",
+        side_effect=[None, {"10.1093/ajae/aaq064": None}],
+    )
+    with pytest.raises(BatchEnhancementGenerationError):
+        await test_fulltext_enhancement_processor.generate_fulltext(
             references=test_two_references,
-            enhancements_references_map=test_enhancement_references_map,
-            available_api_configs=available_api_configs,
-            app_title=test_app_title,
+        )
+
+    fetch_mock.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_generate_fulltext_total_failure_single_missing_doi(
+    mocker,
+    test_fulltext_enhancement_processor,
+):
+    test_good_reference_id = uuid.uuid4()
+    test_bad_reference_id = uuid.uuid4()
+    test_two_references = [
+        Reference(
+            id=test_good_reference_id,
+            identifiers=[
+                {"identifier": "10.1093/ajae/aaq063", "identifier_type": "doi"}
+            ],
+            enhancements=[],
+        ),
+        Reference(
+            id=test_bad_reference_id,
+            identifiers=[{"identifier": "W123456789", "identifier_type": "open_alex"}],
+            enhancements=[],
+        ),
+    ]
+
+    with pytest.raises(BatchEnhancementGenerationError):
+        await test_fulltext_enhancement_processor.generate_fulltext(
+            references=test_two_references,
         )
 
 
-def test_generate_fulltext_enhancement_batch_request_total_failure_empty_reference_id_in_map(
+@pytest.mark.asyncio
+async def test_generate_fulltext_partial_success_empty_fulltexts_found_for_some_references(
     mocker,
-    test_settings,
+    temporary_test_file,
     test_fulltext_enhancement_processor,
-    scopus_api_config_valid_batch,
 ):
     test_two_references = [
         Reference(
@@ -122,73 +180,44 @@ def test_generate_fulltext_enhancement_batch_request_total_failure_empty_referen
             enhancements=[],
         ),
     ]
-
-    test_enhancement_references_map = [
-        {
-            "id": None,
-            "fulltext": f"This is a mocked fulltext for {ref.id}.",
-        }
-        for ref in test_two_references
-    ]
-    available_api_configs = [scopus_api_config_valid_batch]
-    test_app_title = "A test app for batch requests."
-
-    with pytest.raises(NotImplementedError):
-        test_fulltext_enhancement_processor.generate_fulltext_enhancement_batch_request(
-            references=test_two_references,
-            enhancements_references_map=test_enhancement_references_map,
-            available_api_configs=available_api_configs,
-            app_title=test_app_title,
-        )
-
-
-def test_generate_fulltext_enhancement_batch_request_partial_success_empty_fulltexts_found_for_some_references(
-    mocker,
-    test_settings,
-    test_fulltext_enhancement_processor,
-    scopus_api_config_valid_batch,
-):
-    test_two_references = [
-        Reference(
-            id=uuid.uuid4(),
-            identifiers=[
-                {"identifier": "10.1093/ajae/aaq063", "identifier_type": "doi"}
-            ],
-            enhancements=[],
-        ),
-        Reference(
-            id=uuid.uuid4(),
-            identifiers=[
-                {"identifier": "10.1093/ajae/aaq064", "identifier_type": "doi"}
-            ],
-            enhancements=[],
-        ),
+    test_fetch_results = [
+        {str(test_two_references[0].identifiers[0].identifier): temporary_test_file},
+        {str(test_two_references[1].identifiers[0].identifier): None},
     ]
 
-    test_enhancement_references_map = [
+    expected_results = [
         {
-            "id": test_two_references[0].id,
-            "fulltext": f"This is a mocked fulltext for {test_two_references[0].id}.",
+            "doi": test_two_references[0].identifiers[0].identifier,
+            "fulltext_path": str(temporary_test_file),
+            "source": test_fulltext_enhancement_processor.available_api_configs[
+                0
+            ].name.value.upper(),
         },
         {
-            "id": test_two_references[1].id,
-            "fulltext": None,
+            "doi": test_two_references[1].identifiers[0].identifier,
+            "fulltext_path": None,
+            "source": None,
         },
     ]
 
-    available_api_configs = [scopus_api_config_valid_batch]
-    test_app_title = "A test app for batch requests."
+    fetch_mock = mocker.patch(
+        "app.fetching.fetchers.FullTextFetcher.fetch",
+        side_effect=test_fetch_results,
+    )
 
-    with pytest.raises(NotImplementedError):
-        test_fulltext_enhancement_processor.generate_fulltext_enhancement_batch_request(
-            references=test_two_references,
-            enhancements_references_map=test_enhancement_references_map,
-            available_api_configs=available_api_configs,
-            app_title=test_app_title,
-        )
+    results = await test_fulltext_enhancement_processor.generate_fulltext(
+        references=test_two_references,
+    )
+
+    fetch_mock.assert_called_once()
+
+    assert results == expected_results
 
 
-def test_generate_fulltext_enhancement_batch_request_appropriate_visibility(
+@pytest.mark.xfail(
+    reason="Not implemented yet - we need to map the source to visibility"
+)
+def test_generate_fulltext_request_appropriate_visibility(
     mocker,
     test_settings,
     test_fulltext_enhancement_processor,
@@ -217,11 +246,6 @@ def test_generate_fulltext_enhancement_batch_request_appropriate_visibility(
             "fulltext": f"This is a mocked fulltext for {test_two_references[0].id}.",
             "source": "SCOPUS",
         },
-        {
-            "id": test_two_references[1].id,
-            "fulltext": f"This is a mocked fulltext for {test_two_references[1].id}.",
-            "source": "crossref",
-        },
     ]
     available_api_configs = [scopus_api_config_valid_batch]
     test_app_title = "A test app for batch requests."
@@ -235,44 +259,23 @@ def test_generate_fulltext_enhancement_batch_request_appropriate_visibility(
         )
 
 
-def test_generate_fulltext_enhancement_batch_request_total_failure_no_fulltexts_found_for_any_reference(
-    mocker,
-    test_settings,
-    test_fulltext_enhancement_processor,
-    scopus_api_config_valid_batch,
-):
-    test_two_references = [
-        Reference(
-            id=uuid.uuid4(),
-            identifiers=[
-                {"identifier": "10.1093/ajae/aaq063", "identifier_type": "doi"}
-            ],
-            enhancements=[],
-        ),
-        Reference(
-            id=uuid.uuid4(),
-            identifiers=[
-                {"identifier": "10.1093/ajae/aaq064", "identifier_type": "doi"}
-            ],
-            enhancements=[],
-        ),
-    ]
+def test_get_study_collection_from_references_raises_error_missing_doi():
+    test_good_reference_id = uuid.uuid4()
+    test_bad_reference_id = uuid.uuid4()
+    reference_with_doi = Reference(
+        id=test_good_reference_id,
+        identifiers=[{"identifier": "10.1000/xyz123", "identifier_type": "doi"}],
+        enhancements=[],
+    )
 
-    test_enhancement_references_map = [
-        {
-            "id": ref.id,
-            "fulltext": None,
-            "source": None,
-        }
-        for ref in test_two_references
-    ]
-    available_api_configs = [scopus_api_config_valid_batch]
-    test_app_title = "A test app for batch requests."
+    reference_without_doi = Reference(
+        id=test_bad_reference_id,
+        identifiers=[{"identifier": "W123456789", "identifier_type": "open_alex"}],
+        enhancements=[],
+    )
 
-    with pytest.raises(NotImplementedError):
-        test_fulltext_enhancement_processor.generate_fulltext_enhancement_batch_request(
-            references=test_two_references,
-            enhancements_references_map=test_enhancement_references_map,
-            available_api_configs=available_api_configs,
-            app_title=test_app_title,
+    with pytest.raises(MissingDOIError) as error_info:
+        FullTextEnhancementProcessor.get_study_collection_from_references(
+            references=[reference_with_doi, reference_without_doi]
         )
+    assert str(test_bad_reference_id) in str(error_info.value)

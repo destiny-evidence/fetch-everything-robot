@@ -67,9 +67,10 @@ def validate_doi(doi_string: str) -> str:
         logger.error(error_message)
         raise InvalidDOIError(error_message)
     try:
+        formatted_doi = format_doi(doi_string)
         return DOIIdentifier(
-            identifier=doi_string, identifier_type=ExternalIdentifierType.DOI
-        ).remove_doi_url(doi_string)
+            identifier=formatted_doi, identifier_type=ExternalIdentifierType.DOI
+        ).remove_doi_url(formatted_doi)
     except ValidationError as invalid_doi_error:
         error_message = f"Invalid DOI: {doi_string}. Error: {invalid_doi_error}"
         logger.error(error_message)

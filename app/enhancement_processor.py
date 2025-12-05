@@ -1,18 +1,27 @@
 """Generation functions for single and batch fulltext enhancements."""
 
+from pathlib import Path
+
 import httpx
 from destiny_sdk.enhancements import (
     Enhancement,
 )
+from destiny_sdk.identifiers import DOIIdentifier
 from destiny_sdk.references import Reference
 from destiny_sdk.robots import (
-    LinkedRobotError,
     RobotEnhancementBatch,
 )
 from loguru import logger
 
+from app.config import Settings
 from app.data_models.generic import APIConfig
-from app.fetch_fulltext import FullTextFetcher
+from app.fetch_fulltext import FullTextBatchFetcher, ZeroFullTextsGeneratedError
+from app.fetching import BasePublisherFetcher
+from app.fetching.core import Study, StudyCollection
+
+
+class MissingDOIError(Exception):
+    """Custom exception for missing DOI in reference."""
 
 
 class BatchEnhancementGenerationError(Exception):
@@ -24,10 +33,12 @@ class FullTextEnhancementProcessor:
 
     def __init__(
         self,
+        settings: Settings,
         robot_version: str,
         source_name: str,
         global_api_config: dict[str, APIConfig],
         available_api_configs: list[APIConfig],
+        publisher_dict: dict[str, BasePublisherFetcher],
     ) -> None:
         """
         Initialise the processor with configuration.
@@ -38,15 +49,105 @@ class FullTextEnhancementProcessor:
                 In practical terms, this is the app name _of this app_.
             global_api_config (dict[str, APIConfig]): Global API configuration.
             available_api_configs (list[APIConfig]): List of API configurations.
+            publisher_dict (dict[str, BasePublisherFetcher]): Dictionary of
+                publisher fetchers.
 
         """
+        self.settings = settings
         self.robot_version = robot_version
         self.source_name = source_name
 
-        self.fulltext_fetcher = FullTextFetcher(global_api_config)
+        self.fulltext_fetcher = FullTextBatchFetcher(
+            self.settings, global_api_config, publisher_dict
+        )
         self.available_api_configs = available_api_configs
 
-    def create_fulltext_enhancement(
+    @staticmethod
+    def get_study_or_raise_error(reference: Reference) -> Study:
+        """
+        Convert a Reference object to a Study, raising an error if DOI is missing.
+
+        Args:
+            reference (Reference): A Reference object.
+
+        Returns:
+            Study: The corresponding Study object.
+
+        Raises:
+            MissingDOIError: If the Reference does not have a DOI identifier.
+
+        """
+        doi_id = next(
+            (
+                id_object
+                for id_object in reference.identifiers
+                if isinstance(id_object, DOIIdentifier)
+            ),
+            None,
+        )
+
+        if doi_id is None:
+            error_message = f"Reference {reference.id} is missing a DOI identifier."
+            raise MissingDOIError(error_message)
+
+        return Study(
+            doi=doi_id,
+            uid=reference.id,
+        )
+
+    @staticmethod
+    def get_study_collection_from_references(
+        references: list[Reference],
+    ) -> StudyCollection:
+        """
+        Convert a list of Reference objects to a StudyCollection.
+
+        Args:
+            references (list[Reference]): A list of Reference objects.
+
+        Returns:
+            StudyCollection: The corresponding StudyCollection.
+
+        """
+        studies = [
+            FullTextEnhancementProcessor.get_study_or_raise_error(reference)
+            for reference in references
+        ]
+        return StudyCollection(studies=studies)
+
+    async def generate_fulltext(
+        self,
+        references: list[Reference],
+    ) -> list[dict[str, Path | None]]:
+        """
+        Generate a dictionary mapping DOIs to fulltext file paths.
+
+        Args:
+            references (list[Reference]): A list of Reference objects.
+
+        Returns:
+            dict[str, Path | None]: A dictionary mapping DOIs to file paths or None.
+
+        """
+        try:
+            study_collection = self.get_study_collection_from_references(references)
+        except MissingDOIError as missing_doi_error:
+            error_message = (
+                "One or more references are missing DOI identifiers: "
+                f"{missing_doi_error}"
+            )
+            raise BatchEnhancementGenerationError(error_message) from missing_doi_error
+        try:
+            return await self.fulltext_fetcher.get_many_fulltext_pdfs_cycling_apis(
+                input_study_collection=study_collection,
+            )
+        except ZeroFullTextsGeneratedError as zero_full_texts_error:
+            error_message = "No full texts were retrieved from any API."
+            raise BatchEnhancementGenerationError(
+                error_message
+            ) from zero_full_texts_error
+
+    async def create_fulltext_enhancement(
         self,
         references: list[Reference],
     ) -> list[Enhancement]:
@@ -56,7 +157,7 @@ class FullTextEnhancementProcessor:
         This operates on a batch of references as a default,
         but that could be a batch of one.
 
-        This leverages the `get_many_fulltexts_cycling_apis` method,
+        This leverages the `get_many_fulltext_pdfs_cycling_apis` method,
         rather than strictly looping over individual requests (although
         this may be done in the background, depending on API config).
 
@@ -65,31 +166,6 @@ class FullTextEnhancementProcessor:
 
         Returns:
             list[Enhancement]: The generated batch of enhancements.
-
-        """
-        raise NotImplementedError
-
-    def generate_fulltext_enhancement_batch_request(
-        self,
-        references: list[Reference],
-        enhancements_references_map: list[dict],
-        available_api_configs: list[APIConfig],
-        app_title: str,
-    ) -> list[Enhancement | LinkedRobotError]:
-        """
-        Generate a batch of full text enhancements from a batch of references.
-
-        Args:
-            references (list[Reference]): A list of reference objects.
-            enhancements_references_map (list[dict]): A list of enhancement dictionaries
-                that map reference IDs to their enhancements.
-
-        Returns:
-            list[Enhancement]: The generated batch of enhancements.
-
-        Raises:
-            BatchEnhancementGenerationError: If there is an error generating the batch.
-                Represents a complete failing of the enhancement process.
 
         """
         raise NotImplementedError
@@ -160,7 +236,7 @@ class FullTextEnhancementProcessor:
         references = await self.download_references(str(batch.reference_storage_url))
         logger.debug(f"References: {references}")
         try:
-            generated_enhancements = self.create_fulltext_enhancement(
+            generated_enhancements = await self.create_fulltext_enhancement(
                 references=references,
             )
             await self.upload_enhancements(

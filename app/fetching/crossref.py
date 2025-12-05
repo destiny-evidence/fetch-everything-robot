@@ -9,11 +9,7 @@ from pydantic import AnyUrl
 
 from app.config import Settings
 from app.fetching import BasePublisherFetcher
-from app.fetching.core import (
-    FullTextStreamError,
-    StudyCollection,
-    stream_file,
-)
+from app.fetching.core import FullTextStreamError, StudyCollection, stream_file
 
 
 class CrossrefFetcher(BasePublisherFetcher):
@@ -25,8 +21,8 @@ class CrossrefFetcher(BasePublisherFetcher):
 
         Args:
             settings (Settings): The settings to use for the fetcher.
-            wait_time_seconds (int, optional): The wait time between requests.
-                Defaults to 2.
+            wait_time_seconds (int, optional):
+                The number of seconds to wait between requests. Defaults to 2.
 
         """
         self.settings = settings
@@ -85,9 +81,30 @@ class CrossrefFetcher(BasePublisherFetcher):
             for keyword in ["elsevier", "wiley", "tandfonline"]
         )
 
-    async def fetch_full_text(
+    async def download_one_pdf(
+        self,
+        pdf_url: AnyUrl,
+        filepath: Path,
+        headers: dict | None = None,
+    ) -> Path | None:
+        """
+        Download one PDF from CrossRef.
+
+        Args:
+            pdf_url (AnyUrl): The URL of the PDF to download.
+            filepath (Path): Output file path.
+            headers (dict | None, optional): Optional headers for the request.
+                Defaults to None.
+
+        Returns:
+            Path | None: The path to the downloaded PDF or None if download failed.
+
+        """
+        return await stream_file(url=pdf_url, destination=filepath, headers=headers)
+
+    async def fetch_many_full_texts(
         self, study_collection: StudyCollection, output_directory: Path
-    ) -> None:
+    ) -> dict[str, Path | None]:
         """
         Fetch full texts using the CrossRef API.
 
@@ -95,21 +112,30 @@ class CrossrefFetcher(BasePublisherFetcher):
             study_collection (StudyCollection): The collection of studies to fetch.
             output_directory (Path): The directory to save the fetched full texts.
 
+        Returns:
+            dict[str, Path]: A dictionary mapping study UIDs to the paths of
+                the saved full text files.
+
         """
         output_directory.mkdir(parents=True, exist_ok=True)
         crossref = Crossref()
         found_pdfs = set()
+        output_doi_paths: dict[str, Path | None] = {}
         for study in study_collection.studies:
             doi = study.doi.identifier.lower()
-            uid = str(study.uid).lower()
+            uid = study.uid
             try:
                 crossref_response = crossref.works(ids=doi)
                 content_info = self.get_url_from_pdf_content_type(crossref_response)
                 if self.pdf_url_is_valid(content_info):
                     url = str(content_info.get("url"))
                     pdf_path = output_directory / f"{uid}.pdf"
-                    if uid not in found_pdfs:  # Avoid duplicate downloads
-                        await stream_file(AnyUrl(url), pdf_path)
+                    if uid not in found_pdfs:
+                        output_file_path = await self.download_one_pdf(
+                            AnyUrl(url), pdf_path
+                        )
+                        if output_file_path:
+                            output_doi_paths[doi] = output_file_path
                         found_pdfs.add(uid)
                         logger.info(f"Crossref download success for {uid}: {url}")
                         await asyncio.sleep(self.wait_time_seconds)
@@ -117,9 +143,10 @@ class CrossrefFetcher(BasePublisherFetcher):
                     logger.warning(
                         f"No valid PDF found via CrossRef for {doi=}, {uid=}"
                     )
+                    output_doi_paths[doi] = None
             except RequestError as request_error:
                 error_message = (
-                    f"CrossRef request error for {uid}:{doi}" f" - {request_error}"
+                    f"CrossRef request error for {uid=}, {doi=} - {request_error}"
                 )
                 logger.error(error_message)
             except FullTextStreamError as fulltext_download_error:
@@ -128,4 +155,6 @@ class CrossrefFetcher(BasePublisherFetcher):
                     f" - {fulltext_download_error}"
                 )
                 logger.error(error_message)
+
         logger.info(f"{len(found_pdfs)} full texts found via CrossRef!")
+        return output_doi_paths

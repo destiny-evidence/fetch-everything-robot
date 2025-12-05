@@ -11,6 +11,7 @@ from app.data_models.generic import (
     ExternalAPIPriority,
     FullTextNotFoundError,
     FullTextUnpackError,
+    prepare_api_config,
 )
 
 
@@ -27,10 +28,13 @@ def test_custom_exceptions():
 
 
 def test_external_api_enum():
+    assert ExternalAPI.CROSSREF == "crossref"
+    assert ExternalAPI.UNPAYWALL == "unpaywall"
     assert ExternalAPI.SCOPUS == "scopus"
-    assert ExternalAPI.OPENALEX == "openalex"
+
     assert set(ExternalAPI) == {
-        ExternalAPI.OPENALEX,
+        ExternalAPI.CROSSREF,
+        ExternalAPI.UNPAYWALL,
         ExternalAPI.SCOPUS,
     }
 
@@ -39,12 +43,14 @@ def test_external_api_priority_model():
     model = ExternalAPIPriority(
         name="test_priority",
         priorities={
-            ExternalAPI.OPENALEX: 1,
-            ExternalAPI.SCOPUS: 2,
+            ExternalAPI.CROSSREF: 1,
+            ExternalAPI.UNPAYWALL: 2,
+            ExternalAPI.SCOPUS: 3,
         },
     )
-    assert model.priorities[ExternalAPI.OPENALEX] == 1
-    assert model.priorities[ExternalAPI.SCOPUS] == 2
+    assert model.priorities[ExternalAPI.CROSSREF] == 1
+    assert model.priorities[ExternalAPI.UNPAYWALL] == 2
+    assert model.priorities[ExternalAPI.SCOPUS] == 3
 
 
 @pytest.mark.parametrize(
@@ -69,16 +75,18 @@ def test_external_api_priority_model():
             ["search-results", "entry", "pdf_url"],
             ["search-results", "entry", "xml"],
         ),
-        (
-            "openalex_api_config_valid_batch",
-            {"Accept": "application/json"},
-            ExternalAPI.OPENALEX,
-            "https://api.example.com/",
-            {},
-            ExternalAPI.OPENALEX,
-            ["message", "pdf_url"],
-            ["message", "xml"],
-        ),
+        # TODO @harryjmoss: Re-Enable when OpenAlex fetcher is implemented
+        # https://github.com/destiny-evidence/fetch-everything-robot/issues/9
+        # (
+        #     "openalex_api_config_valid_batch",
+        #     {"Accept": "application/json"},
+        #     ExternalAPI.CROSSREF,
+        #     "https://api.example.com/",
+        #     {},
+        #     ExternalAPI.CROSSREF,
+        #     ["message", "pdf_url"],
+        #     ["message", "xml"],
+        # ),
     ],
 )
 def test_api_config_validator_success(
@@ -109,7 +117,9 @@ def test_api_config_validator_success(
     ("api_config_fixture"),
     [
         ("scopus_api_config_valid_batch"),
-        ("openalex_api_config_valid_batch"),
+        # TODO @harryjmoss: Re-Enable when OpenAlex fetcher is implemented
+        # https://github.com/destiny-evidence/fetch-everything-robot/issues/9
+        # ("openalex_api_config_valid_batch"),
     ],
 )
 def test_api_config_validator_failure(request, api_config_fixture, monkeypatch):
@@ -130,7 +140,9 @@ def test_api_config_validator_failure(request, api_config_fixture, monkeypatch):
     ("api_config_fixture", "expected_key", "expected_value"),
     [
         ("scopus_api_config_valid_batch", "X-API-Key", "dummy_scopus_key"),
-        ("openalex_api_config_valid_batch", None, None),
+        # TODO @harryjmoss: Re-Enable when OpenAlex fetcher is implemented
+        # https://github.com/destiny-evidence/fetch-everything-robot/issues/9
+        # ("openalex_api_config_valid_batch", None, None),
     ],
 )
 def test_api_config_init_api_key_success(
@@ -167,6 +179,7 @@ def test_api_config_populate_query_scopus(request, api_config_fixture, query):
     ), "URL should append DOI to base URL."
 
 
+@pytest.mark.xfail(reason="OpenAlex fetcher not yet implemented")
 @pytest.mark.parametrize(
     ("api_config_fixture", "query"),
     [
@@ -180,3 +193,36 @@ def test_api_config_populate_query_openalex(request, api_config_fixture, query):
     assert (
         url == expected_url
     ), "URL should include DOIs as filter parameters, separated by |."
+
+
+def test_prepare_api_config_key_type(
+    test_settings,
+    test_available_api_configs,
+    external_api_priorities,
+):
+    result = prepare_api_config(
+        api_configs=test_available_api_configs,
+        settings=test_settings,
+        external_api_priority=external_api_priorities["fulltext"],
+    )
+    expected_keys = [config.name.name for config in test_available_api_configs]
+
+    assert set(result["fulltext"].keys()) == set(expected_keys)
+
+
+def test_prepare_api_config_init_api_key_called_correctly(
+    test_settings,
+    test_available_api_configs,
+    external_api_priorities,
+):
+    all_results = prepare_api_config(
+        api_configs=test_available_api_configs,
+        settings=test_settings,
+        external_api_priority=external_api_priorities["fulltext"],
+    )
+    results = all_results["fulltext"]
+
+    assert all(
+        config.headers == results[config.name.name].headers
+        for config in test_available_api_configs
+    )
