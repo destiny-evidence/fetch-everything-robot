@@ -3,8 +3,8 @@
 from loguru import logger
 from pydantic import Field
 
-from app.config import Settings
-from app.data_models.generic import (
+from fer.config import Settings
+from fer.data_models.generic import (
     APIConfig,
     APIKeyNotPresentError,
     FullTextUnpackStrategy,

@@ -5,7 +5,7 @@ from pathlib import Path
 
 from pydantic import AnyUrl
 
-from app.fetching.core import StudyCollection
+from fer.fetching.core import StudyCollection
 
 
 class BasePublisherFetcher(ABC):

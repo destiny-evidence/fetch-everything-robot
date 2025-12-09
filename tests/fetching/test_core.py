@@ -5,7 +5,7 @@ import pytest
 from destiny_sdk.identifiers import DOIIdentifier, ExternalIdentifierType
 from pytest_httpx import IteratorStream
 
-from app.fetching.core import (
+from fer.fetching.core import (
     AsyncHTTPXRetryClient,
     FullTextStreamError,
     Study,
@@ -42,7 +42,7 @@ async def test_async_httpx_retry_client_context_manager():
 async def test_download_temporary_file(mocker, tmp_path):
     temp_file = tmp_path / "mocked_temp_file"
     temp_file.write_bytes(b"test content")
-    mocker.patch("app.fetching.core.stream_file", return_value=temp_file)
+    mocker.patch("fer.fetching.core.stream_file", return_value=temp_file)
 
     test_url = "http://example.com/testfile"
     temp_file_path = await download_temporary_file(test_url)

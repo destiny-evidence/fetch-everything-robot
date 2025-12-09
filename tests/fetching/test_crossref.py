@@ -1,7 +1,7 @@
 import pytest
 from habanero import RequestError
 
-from app.fetching.crossref import CrossrefFetcher
+from fer.fetching.crossref import CrossrefFetcher
 
 
 def test_crossref_get_content_type_success(test_settings):
@@ -107,7 +107,7 @@ async def test_fetch_many_full_texts_no_valid_pdfs(
     mocker, test_settings, test_study_collection, tmp_path
 ):
     fetcher = CrossrefFetcher(settings=test_settings)
-    patched_crossref_works = mocker.patch("app.fetching.crossref.Crossref.works")
+    patched_crossref_works = mocker.patch("fer.fetching.crossref.Crossref.works")
     patched_url_get_call = mocker.patch.object(
         fetcher,
         "get_url_from_pdf_content_type",
@@ -120,7 +120,7 @@ async def test_fetch_many_full_texts_no_valid_pdfs(
         fetcher, "pdf_url_is_valid", return_value=False
     )
     patched_stream_file = mocker.patch(
-        "app.fetching.crossref.stream_file", return_value=None
+        "fer.fetching.crossref.stream_file", return_value=None
     )
     await fetcher.fetch_many_full_texts(
         study_collection=test_study_collection, output_directory=tmp_path
@@ -138,7 +138,7 @@ async def test_fetch_many_full_texts_with_valid_pdf(
 ):
     fetcher = CrossrefFetcher(settings=test_settings)
     mocker.patch("asyncio.sleep")
-    patched_crossref_works = mocker.patch("app.fetching.crossref.Crossref.works")
+    patched_crossref_works = mocker.patch("fer.fetching.crossref.Crossref.works")
     patched_url_get_call = mocker.patch.object(
         fetcher,
         "get_url_from_pdf_content_type",
@@ -151,7 +151,7 @@ async def test_fetch_many_full_texts_with_valid_pdf(
         fetcher, "pdf_url_is_valid", return_value=True
     )
     patched_stream_file = mocker.patch(
-        "app.fetching.crossref.stream_file", return_value=tmp_path / "dummy.pdf"
+        "fer.fetching.crossref.stream_file", return_value=tmp_path / "dummy.pdf"
     )
     await fetcher.fetch_many_full_texts(
         study_collection=test_study_collection, output_directory=tmp_path
@@ -172,7 +172,7 @@ async def test_fetch_many_full_texts_fails_request_error(
     fetcher = CrossrefFetcher(settings=test_settings)
     mocker.patch("asyncio.sleep")
     patched_crossref_works = mocker.patch(
-        "app.fetching.crossref.Crossref.works",
+        "fer.fetching.crossref.Crossref.works",
         side_effect=RequestError(404, "Not Found"),
     )
     patched_url_get_call = mocker.patch.object(
@@ -181,7 +181,7 @@ async def test_fetch_many_full_texts_fails_request_error(
     )
     patched_pdf_url_is_valid = mocker.patch.object(fetcher, "pdf_url_is_valid")
     patched_stream_file = mocker.patch(
-        "app.fetching.crossref.stream_file",
+        "fer.fetching.crossref.stream_file",
     )
     with caplog.at_level("ERROR"):
         await fetcher.fetch_many_full_texts(

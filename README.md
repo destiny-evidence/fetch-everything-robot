@@ -61,6 +61,12 @@ pre-commit run --all-files
 
 See `.pre-commit-config.yaml` for the list of pre-commit hooks and their configuration.
 
+Import modules from the `fer` package. For example:
+
+```python
+from fer.fetching.crossref import CrossrefFetcher
+```
+
 ## Application
 
 Run the application locally with:
@@ -106,7 +112,7 @@ uv run run_robot.py
 
 ## Authentication Against Destiny Repository
 
-Authentication between the Fetch Everything Robot and Destiny Repository uses HMAC authentication, where a request signature is encrypted with the robot's secret key and set as a header. To simplify this process, the destiny_sdk provides a client for communicating with destiny repository that handles adding signatures. In Fetch Everything Robot the client is inititalised in app/main.py and used for sending requests.
+Authentication between the Fetch Everything Robot and Destiny Repository uses HMAC authentication, where a request signature is encrypted with the robot's secret key and set as a header. To simplify this process, the destiny_sdk provides a client for communicating with destiny repository that handles adding signatures. In Fetch Everything Robot the client is inititalised in fer/main.py and used for sending requests.
 
 ### Configuring Authentication
 

@@ -6,7 +6,7 @@ from destiny_sdk.references import Reference
 from destiny_sdk.robots import RobotEnhancementBatch
 from pytest_mock import MockerFixture
 
-from app.enhancement_processor import (
+from fer.enhancement_processor import (
     BatchEnhancementGenerationError,
     FullTextEnhancementProcessor,
     MissingDOIError,
@@ -26,17 +26,17 @@ async def test_process_batch_full_batch_failure(
     )
 
     download_references_mock = mocker.patch(
-        "app.enhancement_processor.FullTextEnhancementProcessor.download_references",
+        "fer.enhancement_processor.FullTextEnhancementProcessor.download_references",
         return_value=test_references,
     )
 
     create_fulltext_enhancement_mock = mocker.patch(
-        "app.enhancement_processor.FullTextEnhancementProcessor.create_fulltext_enhancement",
+        "fer.enhancement_processor.FullTextEnhancementProcessor.create_fulltext_enhancement",
         side_effect=BatchEnhancementGenerationError("Test batch generation error."),
     )
 
     upload_enhancements_mock = mocker.patch(
-        "app.enhancement_processor.FullTextEnhancementProcessor.upload_enhancements",
+        "fer.enhancement_processor.FullTextEnhancementProcessor.upload_enhancements",
         return_value=None,
     )
 
@@ -82,7 +82,7 @@ async def test_generate_fulltext_success(
         ),
     ]
     fetch_mock = mocker.patch(
-        "app.fetching.fetchers.FullTextFetcher.fetch",
+        "fer.fetching.fetchers.FullTextFetcher.fetch",
         return_value={
             str(test_two_references[0].identifiers[0].identifier): temporary_test_file,
             str(test_two_references[1].identifiers[0].identifier): temporary_test_file,
@@ -119,7 +119,7 @@ async def test_generate_fulltext_total_failure_no_fulltexts_found(
     ]
 
     fetch_mock = mocker.patch(
-        "app.fetching.fetchers.FullTextFetcher.fetch",
+        "fer.fetching.fetchers.FullTextFetcher.fetch",
         side_effect=[None, {"10.1093/ajae/aaq064": None}],
     )
     with pytest.raises(BatchEnhancementGenerationError):
@@ -201,7 +201,7 @@ async def test_generate_fulltext_partial_success_empty_fulltexts_found_for_some_
     ]
 
     fetch_mock = mocker.patch(
-        "app.fetching.fetchers.FullTextFetcher.fetch",
+        "fer.fetching.fetchers.FullTextFetcher.fetch",
         side_effect=test_fetch_results,
     )
 

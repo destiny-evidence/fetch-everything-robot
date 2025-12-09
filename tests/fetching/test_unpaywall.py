@@ -1,8 +1,8 @@
 import httpx
 import pytest
 
-from app.fetching.core import FullTextStreamError
-from app.fetching.unpaywall import UnpaywallFetcher
+from fer.fetching.core import FullTextStreamError
+from fer.fetching.unpaywall import UnpaywallFetcher
 
 
 @pytest.mark.asyncio
@@ -16,14 +16,14 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_success_pdf_found(
         "publisher": "Test Publisher",
     }
     fetcher = UnpaywallFetcher(settings=test_settings)
-    mocker.patch("app.fetching.unpaywall.stream_file")
+    mocker.patch("fer.fetching.unpaywall.stream_file")
     mock_response = mocker.MagicMock()
     mock_response.status_code = httpx.codes.OK
     mock_response.raise_for_status.return_value = None
     mock_response.json = mocker.AsyncMock(return_value=test_data)
 
     mock_get = mocker.patch(
-        "app.fetching.unpaywall.AsyncHTTPXRetryClient.get",
+        "fer.fetching.unpaywall.AsyncHTTPXRetryClient.get",
         new=mocker.AsyncMock(return_value=mock_response),
     )
 
@@ -58,14 +58,14 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_no_pdf_found_publisher(
         "publisher": publisher,
     }
     fetcher = UnpaywallFetcher(settings=test_settings)
-    mocker.patch("app.fetching.unpaywall.stream_file")
+    mocker.patch("fer.fetching.unpaywall.stream_file")
     mock_response = mocker.MagicMock()
     mock_response.status_code = httpx.codes.OK
     mock_response.raise_for_status.return_value = None
     mock_response.json = mocker.AsyncMock(return_value=test_data)
 
     mock_get = mocker.patch(
-        "app.fetching.unpaywall.AsyncHTTPXRetryClient.get",
+        "fer.fetching.unpaywall.AsyncHTTPXRetryClient.get",
         new=mocker.AsyncMock(return_value=mock_response),
     )
 
@@ -99,14 +99,14 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_no_pdf_found_taylor_and_f
         "publisher": "Test Publisher",
     }
     fetcher = UnpaywallFetcher(settings=test_settings)
-    mocker.patch("app.fetching.unpaywall.stream_file")
+    mocker.patch("fer.fetching.unpaywall.stream_file")
     mock_response = mocker.MagicMock()
     mock_response.status_code = httpx.codes.OK
     mock_response.raise_for_status.return_value = None
     mock_response.json = mocker.AsyncMock(return_value=test_data)
 
     mock_get = mocker.patch(
-        "app.fetching.unpaywall.AsyncHTTPXRetryClient.get",
+        "fer.fetching.unpaywall.AsyncHTTPXRetryClient.get",
         new=mocker.AsyncMock(return_value=mock_response),
     )
 
@@ -134,7 +134,7 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_http_error(
     mock_response.raise_for_status.side_effect = httpx.HTTPError("HTTP error occurred")
 
     mock_get = mocker.patch(
-        "app.fetching.unpaywall.AsyncHTTPXRetryClient.get",
+        "fer.fetching.unpaywall.AsyncHTTPXRetryClient.get",
         new=mocker.AsyncMock(return_value=mock_response),
     )
 
@@ -161,7 +161,7 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_fulltextstreamerror(
     }
     fetcher = UnpaywallFetcher(settings=test_settings)
     mock_stream_file = mocker.patch(
-        "app.fetching.unpaywall.stream_file",
+        "fer.fetching.unpaywall.stream_file",
         side_effect=FullTextStreamError("test error"),
     )
     mock_response = mocker.MagicMock()
@@ -170,7 +170,7 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_fulltextstreamerror(
     mock_response.json = mocker.AsyncMock(return_value=test_data)
 
     mock_get = mocker.patch(
-        "app.fetching.unpaywall.AsyncHTTPXRetryClient.get",
+        "fer.fetching.unpaywall.AsyncHTTPXRetryClient.get",
         new=mocker.AsyncMock(return_value=mock_response),
     )
 
@@ -198,14 +198,14 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_no_best_oa_location(
         "publisher": "Test Publisher",
     }
     fetcher = UnpaywallFetcher(settings=test_settings)
-    mocker.patch("app.fetching.unpaywall.stream_file")
+    mocker.patch("fer.fetching.unpaywall.stream_file")
     mock_response = mocker.MagicMock()
     mock_response.status_code = httpx.codes.OK
     mock_response.raise_for_status.return_value = None
     mock_response.json = mocker.AsyncMock(return_value=test_data)
 
     mock_get = mocker.patch(
-        "app.fetching.unpaywall.AsyncHTTPXRetryClient.get",
+        "fer.fetching.unpaywall.AsyncHTTPXRetryClient.get",
         new=mocker.AsyncMock(return_value=mock_response),
     )
 

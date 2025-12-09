@@ -3,7 +3,7 @@ from uuid import uuid4
 import pytest
 from destiny_sdk.identifiers import DOIIdentifier
 
-from app.fetching.core import Study, StudyCollection
+from fer.fetching.core import Study, StudyCollection
 
 
 @pytest.fixture

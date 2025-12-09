@@ -5,7 +5,7 @@ import sys
 import loguru
 from loguru import logger
 
-from app.config import Environment, get_settings
+from fer.config import Environment, get_settings
 
 
 def set_up_logger() -> loguru._logger.Logger:
@@ -23,7 +23,7 @@ def set_up_logger() -> loguru._logger.Logger:
         logger.add(sys.stderr, level="INFO")
 
     else:
-        logger.add("app.log", level="DEBUG", rotation="500 mb")
+        logger.add("fer.log", level="DEBUG", rotation="500 mb")
         logger.add(sys.stderr, level="DEBUG")
 
     return logger

@@ -11,15 +11,15 @@ from defusedxml.ElementTree import ParseError, fromstring
 from destiny_sdk.identifiers import DOIIdentifier
 from loguru import logger
 
-from app.config import Settings
-from app.data_models.generic import (
+from fer.config import Settings
+from fer.data_models.generic import (
     APIConfig,
     FullTextUnpackStrategy,
 )
-from app.fetching import BasePublisherFetcher
-from app.fetching.core import StudyCollection
-from app.fetching.fetchers import FullTextFetcher, FullTextFetcherError
-from app.utils import InvalidDOIError, validate_doi
+from fer.fetching import BasePublisherFetcher
+from fer.fetching.core import StudyCollection
+from fer.fetching.fetchers import FullTextFetcher, FullTextFetcherError
+from fer.utils import InvalidDOIError, validate_doi
 
 
 class ZeroFullTextsGeneratedError(Exception):

@@ -1,7 +1,7 @@
 """Config constants for OpenAlex API using batch requests of up to 50 DOIs."""
 
-from app.config import Settings
-from app.data_models.generic import APIConfig, FullTextUnpackStrategy, QueryType
+from fer.config import Settings
+from fer.data_models.generic import APIConfig, FullTextUnpackStrategy, QueryType
 
 
 def get_openalex_batch_api_config(settings: Settings) -> APIConfig:

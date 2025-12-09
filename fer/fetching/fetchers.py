@@ -3,9 +3,9 @@
 import tempfile
 from pathlib import Path
 
-from app.config import Settings
-from app.fetching import BasePublisherFetcher
-from app.fetching.core import BaseAuthError, StudyCollection
+from fer.config import Settings
+from fer.fetching import BasePublisherFetcher
+from fer.fetching.core import BaseAuthError, StudyCollection
 
 
 class FullTextFetcherError(Exception):

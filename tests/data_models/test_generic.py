@@ -1,10 +1,10 @@
-"""tests for generic data models in app/data_models/generic.py."""
+"""tests for generic data models in fer/data_models/generic.py."""
 
 import pytest
 from pydantic import ValidationError
 
-from app.config import get_settings
-from app.data_models.generic import (
+from fer.config import get_settings
+from fer.data_models.generic import (
     APIConfig,
     APIKeyNotPresentError,
     ExternalAPI,

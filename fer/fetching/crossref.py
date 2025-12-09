@@ -7,9 +7,9 @@ from habanero import Crossref, RequestError
 from loguru import logger
 from pydantic import AnyUrl
 
-from app.config import Settings
-from app.fetching import BasePublisherFetcher
-from app.fetching.core import FullTextStreamError, StudyCollection, stream_file
+from fer.config import Settings
+from fer.fetching import BasePublisherFetcher
+from fer.fetching.core import FullTextStreamError, StudyCollection, stream_file
 
 
 class CrossrefFetcher(BasePublisherFetcher):
