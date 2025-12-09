@@ -496,6 +496,9 @@
 <div class="highlight"><pre><span></span><code>pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
 </code></pre></div>
 <p>See <code>.pre-commit-config.yaml</code> for the list of pre-commit hooks and their configuration.</p>
+<p>Import modules from the <code>fer</code> package. For example:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">fer.fetching.crossref</span><span class="w"> </span><span class="kn">import</span> <span class="n">CrossrefFetcher</span>
+</code></pre></div>
 <h2 id="application">Application</h2>
 <p>Run the application locally with:</p>
 <div class="highlight"><pre><span></span><code>uv<span class="w"> </span>run<span class="w"> </span>run_robot.py
@@ -531,7 +534,7 @@
         Blob Storage-&gt;&gt;-Data Repository: Validate and import all enhancements
         Note over Data Repository: Update request state to IMPORTING → INDEXING → COMPLETED</code></pre>
 <h2 id="authentication-against-destiny-repository">Authentication Against Destiny Repository</h2>
-<p>Authentication between the Fetch Everything Robot and Destiny Repository uses HMAC authentication, where a request signature is encrypted with the robot's secret key and set as a header. To simplify this process, the destiny_sdk provides a client for communicating with destiny repository that handles adding signatures. In Fetch Everything Robot the client is inititalised in app/main.py and used for sending requests.</p>
+<p>Authentication between the Fetch Everything Robot and Destiny Repository uses HMAC authentication, where a request signature is encrypted with the robot's secret key and set as a header. To simplify this process, the destiny_sdk provides a client for communicating with destiny repository that handles adding signatures. In Fetch Everything Robot the client is inititalised in fer/main.py and used for sending requests.</p>
 <h3 id="configuring-authentication">Configuring Authentication</h3>
 <ul>
 <li>If you are running the robot with a local instance of destiny repository that is not enforcing authentication, add <code>ENV=local</code> to your <code>.env</code> file. This will cause the robot to bypass authentication. This is to allow easy development only and the robot should not be deployed with <code>env=local</code>.</li>
