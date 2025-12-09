@@ -61,6 +61,12 @@ pre-commit run --all-files
 
 See `.pre-commit-config.yaml` for the list of pre-commit hooks and their configuration.
 
+Import modules from the `fer` package. For example:
+
+```python
+from fer.fetching.crossref import CrossrefFetcher
+```
+
 ## Application
 
 Run the application locally with:

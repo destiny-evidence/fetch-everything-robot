@@ -5,7 +5,7 @@ import sys
 import loguru
 from loguru import logger
 
-from app.config import Environment, get_settings
+from fer.config import Environment, get_settings
 
 
 def set_up_logger() -> loguru._logger.Logger:

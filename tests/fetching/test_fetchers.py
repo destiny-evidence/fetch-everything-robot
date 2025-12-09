@@ -1,7 +1,7 @@
 import pytest
 
-from app.fetching import BasePublisherFetcher
-from app.fetching.fetchers import FullTextFetcher, FullTextFetcherError
+from fer.fetching import BasePublisherFetcher
+from fer.fetching.fetchers import FullTextFetcher, FullTextFetcherError
 
 
 def test_full_text_fetcher_init(mocker, test_publisher_dict):

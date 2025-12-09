@@ -1,4 +1,4 @@
-"""tests for functions in app/utils.py."""
+"""tests for functions in fer/utils.py."""
 
 from unittest.mock import patch
 from uuid import uuid4
@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 from destiny_sdk.references import Reference
 
-from app.utils import (
+from fer.utils import (
     InvalidDOIError,
     MissingDOIError,
     VersionInfoNotFoundError,
@@ -53,7 +53,7 @@ def test_get_doi_from_reference_success():
     dummy_id = DummyIdentifier(test_good_doi)
     dummy_ref = DummyReference([dummy_id])
 
-    with patch("app.utils.validate_doi", return_value=True):
+    with patch("fer.utils.validate_doi", return_value=True):
         assert get_doi_from_reference(dummy_ref) == test_good_doi
 
 
@@ -127,7 +127,7 @@ def test_validate_doi_success():
 
 
 def test_get_version_number_success(mocker):
-    mocker.patch("app.utils.version", return_value="1.2.3")
+    mocker.patch("fer.utils.version", return_value="1.2.3")
     version = get_version_number("fetch-everything-robot")
     assert version == "1.2.3"
 

@@ -1,6 +1,6 @@
 import pytest
 
-from app.data_models.generic import (
+from fer.data_models.generic import (
     APIConfig,
     ExternalAPI,
     ExternalAPIPriority,

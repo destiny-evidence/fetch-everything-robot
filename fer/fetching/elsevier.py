@@ -6,9 +6,9 @@ import httpx
 from loguru import logger
 from pydantic import AnyUrl
 
-from app.config import Settings
-from app.fetching import BasePublisherFetcher
-from app.fetching.core import (
+from fer.config import Settings
+from fer.fetching import BasePublisherFetcher
+from fer.fetching.core import (
     AsyncHTTPXRetryClient,
     BaseAuthError,
     FullTextStreamError,

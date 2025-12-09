@@ -1,8 +1,8 @@
 import httpx
 import pytest
 
-from app.fetching.core import FullTextStreamError
-from app.fetching.elsevier import ElsevierFetcher
+from fer.fetching.core import FullTextStreamError
+from fer.fetching.elsevier import ElsevierFetcher
 
 
 @pytest.mark.asyncio
@@ -10,13 +10,13 @@ async def test_elsevier_fetcher_fetch_many_full_texts_success(
     mocker, test_settings, test_study_collection, tmp_path
 ):
     fetcher = ElsevierFetcher(settings=test_settings)
-    mocker.patch("app.fetching.elsevier.stream_file")
+    mocker.patch("fer.fetching.elsevier.stream_file")
     mock_response = mocker.MagicMock()
     mock_response.status_code = httpx.codes.OK
     mock_response.raise_for_status.return_value = None
 
     mock_get = mocker.patch(
-        "app.fetching.elsevier.AsyncHTTPXRetryClient.get",
+        "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
         new=mocker.AsyncMock(return_value=mock_response),
     )
 
@@ -35,14 +35,14 @@ async def test_elsevier_fetcher_fetch_many_full_texts_non_http_200(
     uids = [str(study.uid).lower() for study in test_study_collection.studies]
     dois = [study.doi.identifier.lower() for study in test_study_collection.studies]
     fetcher = ElsevierFetcher(settings=test_settings)
-    mocker.patch("app.fetching.elsevier.stream_file")
+    mocker.patch("fer.fetching.elsevier.stream_file")
     test_status_code = httpx.codes.ACCEPTED
     mock_response = mocker.MagicMock()
     mock_response.status_code = test_status_code
     mock_response.raise_for_status.return_value = None
 
     mock_get = mocker.patch(
-        "app.fetching.elsevier.AsyncHTTPXRetryClient.get",
+        "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
         new=mocker.AsyncMock(return_value=mock_response),
     )
 
@@ -63,13 +63,13 @@ async def test_elsevier_fetcher_fetch_many_full_texts_http_error(
 ):
     dois = [study.doi.identifier.lower() for study in test_study_collection.studies]
     fetcher = ElsevierFetcher(settings=test_settings)
-    mocker.patch("app.fetching.elsevier.stream_file")
+    mocker.patch("fer.fetching.elsevier.stream_file")
 
     mock_response = mocker.MagicMock()
     mock_response.raise_for_status.side_effect = httpx.HTTPError("Test HTTP error")
 
     mock_get = mocker.patch(
-        "app.fetching.elsevier.AsyncHTTPXRetryClient.get",
+        "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
         new=mocker.AsyncMock(return_value=mock_response),
     )
 
@@ -90,7 +90,7 @@ async def test_elsevier_fetcher_fetch_many_full_texts_stream_error(
     dois = [study.doi.identifier.lower() for study in test_study_collection.studies]
     fetcher = ElsevierFetcher(settings=test_settings)
     mocker.patch(
-        "app.fetching.elsevier.stream_file",
+        "fer.fetching.elsevier.stream_file",
         side_effect=FullTextStreamError("Test stream error"),
     )
 
@@ -99,7 +99,7 @@ async def test_elsevier_fetcher_fetch_many_full_texts_stream_error(
     mock_response.raise_for_status.return_value = None
 
     mock_get = mocker.patch(
-        "app.fetching.elsevier.AsyncHTTPXRetryClient.get",
+        "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
         new=mocker.AsyncMock(return_value=mock_response),
     )
 

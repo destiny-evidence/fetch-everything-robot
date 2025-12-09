@@ -3,7 +3,7 @@
 from loguru import logger
 from pydantic import AnyUrl, BaseModel, Field, model_validator
 
-from app.config import (
+from fer.config import (
     ExternalAPI,
     ExternalAPIPriority,
     QueryType,

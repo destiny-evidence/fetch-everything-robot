@@ -12,18 +12,18 @@ from loguru import logger
 from pydantic import AnyUrl
 from pytest_httpx import HTTPXMock, IteratorStream
 
-from app.config import Settings
-from app.data_models.generic import (
+from fer.config import Settings
+from fer.data_models.generic import (
     APIConfig,
     ExternalAPI,
     FullTextUnpackStrategy,
     QueryType,
     prepare_api_config,
 )
-from app.data_models.scopus import ScopusAPIConfig
-from app.enhancement_processor import FullTextEnhancementProcessor
-from app.fetching import BasePublisherFetcher
-from app.fetching.core import stream_file
+from fer.data_models.scopus import ScopusAPIConfig
+from fer.enhancement_processor import FullTextEnhancementProcessor
+from fer.fetching import BasePublisherFetcher
+from fer.fetching.core import stream_file
 
 pytest_plugins = [
     "tests.fixtures.generic",

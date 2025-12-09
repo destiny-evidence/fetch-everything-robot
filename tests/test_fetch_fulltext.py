@@ -1,12 +1,12 @@
-"""tests for the core fetch_fulltext module in app/fetch_fulltext.py."""
+"""tests for the core fetch_fulltext module in fer/fetch_fulltext.py."""
 
 import httpx
 import pytest
 
-from app.data_models.generic import prepare_api_config
-from app.fetch_fulltext import FullTextBatchFetcher, ZeroFullTextsGeneratedError
-from app.fetching.core import BaseAuthError
-from app.fetching.fetchers import FullTextFetcher
+from fer.data_models.generic import prepare_api_config
+from fer.fetch_fulltext import FullTextBatchFetcher, ZeroFullTextsGeneratedError
+from fer.fetching.core import BaseAuthError
+from fer.fetching.fetchers import FullTextFetcher
 
 
 # TODO @harryjmoss: Re-Enable when multiple API configs are supported
@@ -66,7 +66,7 @@ def test_full_text_fetcher_init_logs(
     mocker, request, api_config_fixture, test_settings, test_publisher_dict
 ):
     api_config_fulltext = request.getfixturevalue(api_config_fixture["fulltext"])
-    mock_logger = mocker.patch("app.fetch_fulltext.logger")
+    mock_logger = mocker.patch("fer.fetch_fulltext.logger")
     all_api_configs = prepare_api_config([api_config_fulltext], test_settings)
     fetcher = FullTextBatchFetcher(test_settings, all_api_configs, test_publisher_dict)
     mock_logger.info.assert_any_call(
@@ -174,7 +174,7 @@ async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_non_none_pdf_paths(
     expected_fulltext_found_result = {doi1: temporary_test_file}
     expected_fulltext_not_found_result = {doi2: None}
     mock_fetch = mocker.patch(
-        "app.fetching.fetchers.FullTextFetcher.fetch",
+        "fer.fetching.fetchers.FullTextFetcher.fetch",
         side_effect=[
             expected_fulltext_found_result,
             expected_fulltext_not_found_result,

@@ -1,6 +1,6 @@
-"""tests for app/config.py."""
+"""tests for fer/config.py."""
 
-from app.config import Settings
+from fer.config import Settings
 
 
 def test_get_settings(

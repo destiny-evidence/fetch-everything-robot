@@ -13,16 +13,18 @@ from destiny_sdk.robots import (
     RobotEnhancementBatchResult,
     RobotError,
 )
-from enhancement_processor import FullTextEnhancementProcessor
 
-from app.config import Settings, get_settings
-from app.data_models.generic import APIConfig, prepare_api_config
-from app.data_models.scopus import get_scopus_batch_api_config
-from app.enhancement_processor import BatchEnhancementGenerationError
-from app.fetching.registry import get_publisher_fetcher_registry
-from app.logger import logger, set_up_logger
-from app.server import start_health_check_server
-from app.utils import get_version_number
+from fer.config import Settings, get_settings
+from fer.data_models.generic import APIConfig, prepare_api_config
+from fer.data_models.scopus import get_scopus_batch_api_config
+from fer.enhancement_processor import (
+    BatchEnhancementGenerationError,
+    FullTextEnhancementProcessor,
+)
+from fer.fetching.registry import get_publisher_fetcher_registry
+from fer.logger import logger, set_up_logger
+from fer.server import start_health_check_server
+from fer.utils import get_version_number
 
 
 async def process_robot_enhancement_batch(

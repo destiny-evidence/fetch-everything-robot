@@ -1,4 +1,4 @@
-"""Unit tests for app/fetching/openalex.py."""
+"""Unit tests for fer/fetching/openalex.py."""
 
 from uuid import uuid4
 
@@ -6,8 +6,8 @@ import pytest
 from destiny_sdk.identifiers import DOIIdentifier, ExternalIdentifierType
 from httpx import HTTPError, Response
 
-from app.fetching.core import FullTextStreamError, Study, StudyCollection
-from app.fetching.openalex import OpenalexFetcher
+from fer.fetching.core import FullTextStreamError, Study, StudyCollection
+from fer.fetching.openalex import OpenalexFetcher
 
 
 @pytest.fixture
@@ -34,7 +34,7 @@ async def test_get_work_success(mocker, fetcher):
     mock_response.json.return_value = expected_data
     mock_response.raise_for_status = mocker.MagicMock()
 
-    mock_client = mocker.patch("app.fetching.openalex.AsyncHTTPXRetryClient")
+    mock_client = mocker.patch("fer.fetching.openalex.AsyncHTTPXRetryClient")
     mock_client_instance = mocker.AsyncMock()
     mock_client.return_value.__aenter__.return_value = mock_client_instance
     mock_client_instance.get.return_value = mock_response
@@ -54,7 +54,7 @@ async def test_get_work_success(mocker, fetcher):
 async def test_get_work_http_error(mocker, fetcher):
     """Test _get_work raises HTTPError on failure."""
     doi = "10.1234/example"
-    mock_client = mocker.patch("app.fetching.openalex.AsyncHTTPXRetryClient")
+    mock_client = mocker.patch("fer.fetching.openalex.AsyncHTTPXRetryClient")
     mock_client_instance = mocker.AsyncMock()
     mock_client.return_value.__aenter__.return_value = mock_client_instance
 
@@ -91,7 +91,7 @@ async def test_download_one_pdf(mocker, fetcher, temporary_test_file):
     url = "http://example.com/file.pdf"
 
     mock_stream = mocker.patch(
-        "app.fetching.openalex.stream_file", new_callable=mocker.AsyncMock
+        "fer.fetching.openalex.stream_file", new_callable=mocker.AsyncMock
     )
     mock_stream.return_value = temporary_test_file
     result = await fetcher.download_one_pdf(url, temporary_test_file)

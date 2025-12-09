@@ -8,8 +8,8 @@ import httpx
 import pytest
 from pytest_httpx import HTTPXMock, IteratorStream
 
-from app.enhancement_processor import FullTextEnhancementProcessor
-from app.main import process_robot_enhancement_batch
+from fer.enhancement_processor import FullTextEnhancementProcessor
+from fer.main import process_robot_enhancement_batch
 
 
 @pytest.mark.xfail(reason="Needs to be updated to handle full text enhancements.")
@@ -39,7 +39,7 @@ async def test_process_robot_enhancement_batch_happy_path(
 
     # Mock SDK result submission
     with (
-        patch("app.main.DestinyClient") as mock_client,
+        patch("fer.main.DestinyClient") as mock_client,
     ):
         await process_robot_enhancement_batch(
             mock_client, test_fulltext_enhancement_processor, batch
@@ -68,7 +68,7 @@ async def test_process_robot_enhancement_batch_with_download_error(
     # Mock download failure
     httpx_mock.add_response(method="GET", status_code=404)
 
-    with patch("app.main.DestinyClient") as mock_client:
+    with patch("fer.main.DestinyClient") as mock_client:
         # Process should raise an exception due to HTTP error
         with pytest.raises(httpx.HTTPStatusError, match="404"):
             await process_robot_enhancement_batch(

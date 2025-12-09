@@ -31,7 +31,7 @@ description = "Robot for adding full-text and other more fully featured enhancem
 name = "fetch-everything-robot"
 readme = "README.md"
 requires-python = ">=3.13"
-version = "0.1.0"
+version = "0.2.0"
 
 [project.optional-dependencies]
 dev = [
@@ -66,7 +66,7 @@ pythonpath = "."
 testpaths = ["tests"]
 
 [tool.ruff]
-extend-exclude = ["app/migrations/versions/*.py", "docs/*.py"]
+extend-exclude = ["docs/*.py", "fer/migrations/versions/*.py"]
 fix = true
 force-exclude = true
 target-version = "py313"
@@ -82,11 +82,11 @@ lint.ignore = [
     "FIX002", # implicit trust that TODOs are not trivial, or else they would be fixed
     "ISC001", # simplify implicit str concatenation (ruff-format recommended)
 ]
-lint.per-file-ignores = {"app/enhancement_processor.py" = [
+lint.per-file-ignores = {"fer/enhancement_processor.py" = [
     "PLR0913", # Too many arguments in function definition
-], "app/fetch_fulltext.py" = [
+], "fer/fetch_fulltext.py" = [
     "PLR0915", # Too many statements
-], "app/main.py" = [
+], "fer/main.py" = [
     "S104", # Possible binding to all interfaces
 ], "scripts*" = [
     "ANN201", # Missing return type annotation for public function
@@ -116,11 +116,9 @@ lint.select = ["ALL"]
 lint.mccabe.max-complexity = 18
 lint.pep8-naming.classmethod-decorators = ["classmethod"]
 
-[tool.setuptools.package-dir]
-"" = "app"
-
-[tool.setuptools.packages.find]
-where = ["app"]
+[tool.setuptools]
+package-dir = {"" = "."}
+packages = ["fer"]
 
 [tool.tomlsort]
 all = true

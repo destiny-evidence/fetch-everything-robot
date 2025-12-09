@@ -1,10 +1,10 @@
 """Registry of Publisher Fetchers."""
 
-from app.config import Settings
-from app.fetching.crossref import CrossrefFetcher
-from app.fetching.elsevier import ElsevierFetcher
-from app.fetching.fetchers import BasePublisherFetcher
-from app.fetching.unpaywall import UnpaywallFetcher
+from fer.config import Settings
+from fer.fetching.crossref import CrossrefFetcher
+from fer.fetching.elsevier import ElsevierFetcher
+from fer.fetching.fetchers import BasePublisherFetcher
+from fer.fetching.unpaywall import UnpaywallFetcher
 
 
 def get_publisher_fetcher_registry(
