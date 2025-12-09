@@ -23,7 +23,7 @@ def set_up_logger() -> loguru._logger.Logger:
         logger.add(sys.stderr, level="INFO")
 
     else:
-        logger.add("app.log", level="DEBUG", rotation="500 mb")
+        logger.add("fer.log", level="DEBUG", rotation="500 mb")
         logger.add(sys.stderr, level="DEBUG")
 
     return logger

@@ -143,7 +143,7 @@ async def test_stream_file_empty_downloaded_file(
 
 
 @pytest.mark.asyncio
-async def test_stream_file_ferends_all_chunks(mocker, temporary_test_file):
+async def test_stream_file_appends_all_chunks(mocker, temporary_test_file):
     test_url = "http://example.com/streamfile"
     chunks = [b"first ", b"second ", b"third"]
 
