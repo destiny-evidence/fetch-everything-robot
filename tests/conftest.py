@@ -94,9 +94,9 @@ def openalex_api_config_valid_batch():
         query_type=QueryType.BATCH,
         unpack_strategy=FullTextUnpackStrategy(
             source=ExternalAPI.OPENALEX,
-            doi_strategy=["message", "DOI"],
-            pdf_link_strategy=["message", "pdf_url"],
-            xml_strategy=["message", "xml"],
+            doi_strategy=["doi"],
+            pdf_link_strategy=["best_oa_location", "pdf_url"],
+            xml_strategy=None,
         ),
     )
 
