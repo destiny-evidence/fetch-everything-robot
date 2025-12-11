@@ -19,7 +19,7 @@ def test_init(fetcher, test_settings):
     """Test initialization of OpenalexFetcher."""
     assert fetcher.settings == test_settings
     assert fetcher.wait_time_seconds == 0.0
-    assert fetcher.base_url == "https://api.openalex.org/works/doi:"
+    assert str(fetcher.base_url) == "https://api.openalex.org/works/"
     assert fetcher.query_params == {"mailto": "test@test.com"}
     assert fetcher.headers["User-Agent"] == "destiny-project-ucl"
 
@@ -39,7 +39,7 @@ async def test_get_work_success(mocker, fetcher):
     mock_client.return_value.__aenter__.return_value = mock_client_instance
     mock_client_instance.get.return_value = mock_response
 
-    result = await fetcher._get_work(doi)
+    result = await fetcher._get_work_doi(doi)
 
     assert result == expected_data
     mock_client_instance.get.assert_called_once()
@@ -63,7 +63,7 @@ async def test_get_work_http_error(mocker, fetcher):
     mock_client_instance.get.return_value = mock_response
 
     with pytest.raises(HTTPError):
-        await fetcher._get_work(doi)
+        await fetcher._get_work_doi(doi)
 
 
 def test_get_pdf_url_success(fetcher):
@@ -118,7 +118,7 @@ async def test_fetch_many_full_texts_success(mocker, fetcher, tmp_path):
     )
 
     mock_get_work = mocker.patch.object(
-        fetcher, "_get_work", new_callable=mocker.AsyncMock
+        fetcher, "_get_work_doi", new_callable=mocker.AsyncMock
     )
     mock_get_pdf_url = mocker.patch.object(fetcher, "_get_pdf_url")
     mock_download = mocker.patch.object(
@@ -156,7 +156,7 @@ async def test_fetch_many_full_texts_no_pdf(mocker, fetcher, tmp_path):
     )
 
     mock_get_work = mocker.patch.object(
-        fetcher, "_get_work", new_callable=mocker.AsyncMock
+        fetcher, "_get_work_doi", new_callable=mocker.AsyncMock
     )
     mock_get_pdf_url = mocker.patch.object(fetcher, "_get_pdf_url")
     mocker.patch("asyncio.sleep", new_callable=mocker.AsyncMock)
@@ -178,7 +178,7 @@ async def test_fetch_many_full_texts_http_error(mocker, fetcher, tmp_path):
     mock_collection.studies.return_value = [mock_study]
 
     mock_get_work = mocker.patch.object(
-        fetcher, "_get_work", new_callable=mocker.AsyncMock
+        fetcher, "_get_work_doi", new_callable=mocker.AsyncMock
     )
     mocker.patch("asyncio.sleep", new_callable=mocker.AsyncMock)
 
@@ -201,7 +201,7 @@ async def test_fetch_many_full_texts_stream_error(mocker, fetcher, tmp_path):
     mock_collection.studies.return_value = [mock_study]
 
     mock_get_work = mocker.patch.object(
-        fetcher, "_get_work", new_callable=mocker.AsyncMock
+        fetcher, "_get_work_doi", new_callable=mocker.AsyncMock
     )
     mock_get_pdf_url = mocker.patch.object(fetcher, "_get_pdf_url")
     mock_download = mocker.patch.object(

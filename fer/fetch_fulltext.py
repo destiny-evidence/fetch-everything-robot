@@ -5,6 +5,7 @@ from various APIs.
 
 import re
 from pathlib import Path
+from typing import TYPE_CHECKING
 from xml.etree.ElementTree import Element
 
 from defusedxml.ElementTree import ParseError, fromstring
@@ -12,14 +13,15 @@ from destiny_sdk.identifiers import DOIIdentifier
 from loguru import logger
 
 from fer.config import Settings
-from fer.data_models.generic import (
-    APIConfig,
-    FullTextUnpackStrategy,
-)
 from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import StudyCollection
 from fer.fetching.fetchers import FullTextFetcher, FullTextFetcherError
 from fer.utils import InvalidDOIError, validate_doi
+
+if TYPE_CHECKING:
+    from fer.data_models.generic import (
+        APIConfig,
+    )
 
 
 class ZeroFullTextsGeneratedError(Exception):
@@ -267,53 +269,3 @@ class FullTextBatchFetcher:
             # fallback: strip tags with regex
             cleaned = re.sub(r"<[^>]+>", "", full_text_xml)
             return cleaned.strip()
-
-    def unpack_one_full_text(
-        self,
-        response_obj: dict,
-        strategy: FullTextUnpackStrategy,
-    ) -> str:
-        """
-        Unpack plain text of the full text using an unpack strategy.
-
-        If our `FullTextUnpackStrategy` has field `clean_full_text_string`
-        set to `True`, we will run the `clean_full_text_string` method.
-
-        Args:
-            response_obj (dict): JSON response object from the API.
-            strategy (FullTextUnpackStrategy): Unpack strategy to use.
-
-        Returns:
-            str: The plain text extracted from the response object.
-
-        Raises:
-            FullTextUnpackError: If unpacking the full text fails.
-
-        """
-        raise NotImplementedError
-
-    @staticmethod
-    def _traverse(nested_full_text_dict: dict, path: list[str]) -> list | str | None:
-        """
-        Traverse a nested dictionary using a list of keys.
-
-        TODO @harryjmoss: Re-write for full text cases.
-        https://github.com/destiny-evidence/fetch-everything-robot/issues/9
-
-        Args:
-            nested_full_text_dict (dict): The nested dictionary to traverse.
-            path (list[str]): A list of keys representing the path to traverse.
-
-        Returns:
-            list | str | None: A list found in the response with corresponding key, or a
-            string if found in the case of individual DOIs and full texts.
-            Returns None if not found.
-
-        """
-        raise NotImplementedError
-
-    def unpack_many_full_texts(
-        self, response_obj: dict | list, strategy: FullTextUnpackStrategy
-    ) -> list[dict]:
-        """Unpack many full texts using strategy and doi_strategy."""
-        raise NotImplementedError

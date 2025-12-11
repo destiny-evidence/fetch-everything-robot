@@ -2,12 +2,14 @@
 
 import asyncio
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from httpx import HTTPError
 from loguru import logger
 from pydantic import AnyUrl
 
 from fer.config import Settings
+from fer.data_models.openalex import get_openalex_api_config
 from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import (
     AsyncHTTPXRetryClient,
@@ -16,6 +18,9 @@ from fer.fetching.core import (
     stream_file,
 )
 from fer.utils import format_doi, validate_doi
+
+if TYPE_CHECKING:
+    from fer.data_models.generic import APIConfig
 
 
 class OpenAlexAPIError(Exception):
@@ -31,33 +36,37 @@ class OpenalexFetcher(BasePublisherFetcher):
 
     def __init__(self, settings: Settings, wait_time_seconds: float = 2.0) -> None:
         """
-        Init an OpenAlex fetcher instance.
+        Initialise an OpenAlex fetcher instance.
 
         Args:
             settings (Settings): The settings to use for the fetcher.
-            wait_time_seconds (float, optional): Wait time b/w requests.
+            wait_time_seconds (float, optional): Wait time between requests.
 
         """
         self.settings = settings
         self.wait_time_seconds = wait_time_seconds
-        # @harryjmoss below could come from api-config also...
-        self.base_url: str = (
-            "https://api.openalex.org/works/doi:"  # right now just for DOI
-        )
-        self.query_params: dict = {"mailto": settings.mailto}
-        self.headers: dict = {
-            "User-Agent": "destiny-project-ucl",
-            "Accept": "application/json",
-        }
+        self.api_config: APIConfig = get_openalex_api_config(settings)
+        self.base_url: AnyUrl = self.api_config.url
+        self.query_params: dict = self.api_config.query_params
+        self.headers: dict = self.api_config.headers
 
-    async def _get_work(self, doi: str) -> dict:
-        """Run a GET request from OA API to get one work by DOI."""
+    async def _get_work_doi(self, doi: str) -> dict:
+        """
+        Run a GET request from OA API to get one work by DOI.
+
+        Args:
+            doi (str): The DOI to look up.
+
+        Returns:
+            dict: The JSON response from the OA API.
+
+        """
         doi_fmtd = format_doi(doi)
         doi_valid = validate_doi(doi_fmtd)
 
         async with AsyncHTTPXRetryClient() as client:
             response = await client.get(
-                url=self.base_url + doi_valid,
+                url=str(self.base_url) + "doi:" + doi_valid,
                 headers=self.headers,
                 params=self.query_params,
             )
@@ -66,7 +75,18 @@ class OpenalexFetcher(BasePublisherFetcher):
         return response.json()
 
     def _get_pdf_url(self, response_object: dict) -> AnyUrl | None:
-        """Retrieve best pdf URL if available."""
+        """
+        Extract the PDF URL from the OpenAlex response object.
+
+        Retrieves the best pdf URL, if available.
+
+        Args:
+            response_object (dict): The response object from OpenAlex API.
+
+        Returns:
+            AnyUrl | None: The PDF URL if found, else None.
+
+        """
         if "locations" not in response_object:
             return None
         locations = response_object["locations"]
@@ -119,7 +139,7 @@ class OpenalexFetcher(BasePublisherFetcher):
             try:
                 doi = study.doi.identifier.lower()
                 uid = study.uid
-                work = await self._get_work(doi)
+                work = await self._get_work_doi(doi)
                 pdf_url = self._get_pdf_url(work)
                 pdf_path: Path | None = None
                 if pdf_url is not None:

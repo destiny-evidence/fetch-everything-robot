@@ -31,11 +31,13 @@ def test_external_api_enum():
     assert ExternalAPI.CROSSREF == "crossref"
     assert ExternalAPI.UNPAYWALL == "unpaywall"
     assert ExternalAPI.SCOPUS == "scopus"
+    assert ExternalAPI.OPENALEX == "openalex"
 
     assert set(ExternalAPI) == {
         ExternalAPI.CROSSREF,
         ExternalAPI.UNPAYWALL,
         ExternalAPI.SCOPUS,
+        ExternalAPI.OPENALEX,
     }
 
 
@@ -43,14 +45,16 @@ def test_external_api_priority_model():
     model = ExternalAPIPriority(
         name="test_priority",
         priorities={
-            ExternalAPI.CROSSREF: 1,
-            ExternalAPI.UNPAYWALL: 2,
-            ExternalAPI.SCOPUS: 3,
+            ExternalAPI.OPENALEX: 1,
+            ExternalAPI.CROSSREF: 2,
+            ExternalAPI.UNPAYWALL: 3,
+            ExternalAPI.SCOPUS: 4,
         },
     )
-    assert model.priorities[ExternalAPI.CROSSREF] == 1
-    assert model.priorities[ExternalAPI.UNPAYWALL] == 2
-    assert model.priorities[ExternalAPI.SCOPUS] == 3
+    assert model.priorities[ExternalAPI.OPENALEX] == 1
+    assert model.priorities[ExternalAPI.CROSSREF] == 2
+    assert model.priorities[ExternalAPI.UNPAYWALL] == 3
+    assert model.priorities[ExternalAPI.SCOPUS] == 4
 
 
 @pytest.mark.parametrize(

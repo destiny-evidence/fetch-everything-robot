@@ -4,9 +4,9 @@ from fer.config import Settings
 from fer.data_models.generic import APIConfig, FullTextUnpackStrategy, QueryType
 
 
-def get_openalex_batch_api_config(settings: Settings) -> APIConfig:
+def get_openalex_api_config(settings: Settings) -> APIConfig:
     """
-    Define and return the OpenAlex batch API configuration.
+    Define and return the OpenAlex API configuration.
 
     Note that OpenAlex allows up to 50 DOIs per request.
 
@@ -14,7 +14,7 @@ def get_openalex_batch_api_config(settings: Settings) -> APIConfig:
         settings (Settings): The application settings containing configuration values.
 
     Returns:
-        APIConfig: The configuration for the OpenAlex batch API.
+        APIConfig: The configuration for the OpenAlex API.
 
     """
     openalex_url = "https://api.openalex.org/works/"
@@ -22,19 +22,20 @@ def get_openalex_batch_api_config(settings: Settings) -> APIConfig:
     openalex_headers = {
         "User-Agent": "destiny-project-ucl",
         "Accept": "application/json",
+        "api_key": "",
     }
     openalex_unpack_strategy = FullTextUnpackStrategy(
         source="openalex",
-        doi_strategy="metadata_field",
-        pdf_link_strategy=["primary_location", "url"],
+        doi_strategy=["doi"],
+        pdf_link_strategy=["primary_location", "pdf_url"],
         xml_strategy=None,
     )
     return APIConfig(
         name="openalex",
         url=openalex_url,
         require_api_key=True,
-        api_key_env_var_name="openalex_key",  # pragma: allowlist secret
-        api_key_placement=None,
+        api_key_env_var_name="openalex_api_key",  # pragma: allowlist secret
+        api_key_placement="api_key",  # pragma: allowlist secret
         headers=openalex_headers,
         query_type=QueryType.BATCH,
         query_params=openalex_query_params,

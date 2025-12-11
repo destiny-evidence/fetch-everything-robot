@@ -48,6 +48,7 @@ def set_test_environment_variables(
     monkeypatch.setenv("DESTINY_REPOSITORY_URL", "http://localhost:8001/enhancement/")
     monkeypatch.setenv("ROBOT_ID", "e0aba318-eee9-4b4c-b503-7f72547063d8")
     monkeypatch.setenv("ROBOT_SECRET", "dummy_secret")
+    monkeypatch.setenv("OPENALEX_KEY", "dummy_openalex_key")
     monkeypatch.setenv("ELSEVIER_SCOPUS_KEY", "dummy_scopus_key")
     monkeypatch.setenv("ELSEVIER_SCOPUS_INST_TOKEN", "dummy_inst_token")
     yield
@@ -55,6 +56,7 @@ def set_test_environment_variables(
     monkeypatch.delenv("DESTINY_REPOSITORY_URL")
     monkeypatch.delenv("ROBOT_ID")
     monkeypatch.delenv("ROBOT_SECRET")
+    monkeypatch.delenv("OPENALEX_KEY")
     monkeypatch.delenv("ELSEVIER_SCOPUS_KEY")
     monkeypatch.delenv("ELSEVIER_SCOPUS_INST_TOKEN")
 
@@ -81,44 +83,32 @@ def scopus_api_config_valid_batch():
     )
 
 
-# TODO @harryjmoss: Re-enable when OpenAlex fetcher is implemented
-# https://github.com/destiny-evidence/fetch-everything-robot/issues/9
-# @pytest.fixture
-# def openalex_api_config_valid_batch():
-#     return APIConfig(
-#         name=ExternalAPI.OPENALEX,
-#         url="https://api.example.com/",
-#         require_api_key=False,
-#         api_key_env_var_name=None,
-#         api_key_placement=None,
-#         query_type=QueryType.BATCH,
-#         unpack_strategy=FullTextUnpackStrategy(
-#             source=ExternalAPI.OPENALEX,
-#             doi_strategy=["message", "DOI"],
-#             pdf_link_strategy=["message", "pdf_url"],
-#             xml_strategy=["message", "xml"],
-#         ),
-#     )
-
-# TODO @harryjmoss: Re-Enable when multiple API configs are supported
-# https://github.com/destiny-evidence/fetch-everything-robot/issues/9
-# @pytest.fixture
-# def test_available_api_configs(
-#     scopus_api_config_valid_batch,
-#     openalex_api_config_valid_batch,
-# ) -> list[APIConfig]:
-#     return [
-#         scopus_api_config_valid_batch,
-#         openalex_api_config_valid_batch,
-#     ]
+@pytest.fixture
+def openalex_api_config_valid_batch():
+    return APIConfig(
+        name=ExternalAPI.OPENALEX,
+        url="https://api.example.com/",
+        require_api_key=False,
+        api_key_env_var_name=None,
+        api_key_placement=None,
+        query_type=QueryType.BATCH,
+        unpack_strategy=FullTextUnpackStrategy(
+            source=ExternalAPI.OPENALEX,
+            doi_strategy=["message", "DOI"],
+            pdf_link_strategy=["message", "pdf_url"],
+            xml_strategy=["message", "xml"],
+        ),
+    )
 
 
 @pytest.fixture
 def test_available_api_configs(
     scopus_api_config_valid_batch,
+    openalex_api_config_valid_batch,
 ) -> list[APIConfig]:
     return [
         scopus_api_config_valid_batch,
+        openalex_api_config_valid_batch,
     ]
 
 
