@@ -179,7 +179,7 @@ class ElsevierFetcher(BasePublisherFetcher):
                                     pdf_path=output_file_path,
                                 )
                             )
-                        logger.info(f"Elsevier XML content saved {uid}: {file_path}")
+                        logger.info(f"Elsevier content saved {uid}: {file_path}")
                     else:
                         warning_message = (
                             f"Unexpected successful status code for {uid=}, {doi=}."
