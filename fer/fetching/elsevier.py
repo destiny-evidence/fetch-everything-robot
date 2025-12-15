@@ -138,8 +138,6 @@ class ElsevierFetcher(BasePublisherFetcher):
         Args:
             study_collection (StudyCollection): The collection of studies to fetch.
             output_directory (Path): The output directory path.
-            get_pdf (bool, optional): Whether to fetch PDF files. Defaults to True.
-            get_xml (bool, optional): Whether to fetch XML files. Defaults to False.
 
         Returns:
             list[RetrievedFullText]: A list of RetrievedFullText instances
