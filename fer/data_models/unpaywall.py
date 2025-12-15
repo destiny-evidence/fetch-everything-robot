@@ -10,7 +10,7 @@ def get_unpaywall_api_config() -> APIConfig:
     Define and return the Unpaywall API configuration.
 
     Returns:
-        APIConfig: The configuration for the CrossRef API.
+        APIConfig: The configuration for the Unpaywall API.
 
     """
     unpaywall_unpack_strategy = FullTextUnpackStrategy(

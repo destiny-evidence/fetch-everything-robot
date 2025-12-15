@@ -65,8 +65,8 @@ class FullTextUnpackStrategy(BaseModel):
             values.get("pdf_link_strategy") is None
             and values.get("xml_strategy") is None
         ):
-            error_msg = "At least one unpacking strategy must be provided!"
-            raise ValueError(error_msg)
+            error_message = "At least one unpacking strategy must be provided!"
+            raise ValueError(error_message)
         return values
 
 
@@ -116,9 +116,9 @@ class APIConfig(BaseModel):
             values["headers"] is not None
             and values["api_key_placement"] not in values["headers"]
         ):
-            error_msg = f"api_key_placement '{values['api_key_placement']}'"
+            error_message = f"api_key_placement '{values['api_key_placement']}'"
             "must be in the values dict"
-            raise ValueError(error_msg)
+            raise ValueError(error_message)
         return values
 
     def init_api_key(self, settings: Settings) -> None:
@@ -137,8 +137,8 @@ class APIConfig(BaseModel):
                 else None
             )
             if api_key is None:
-                error_msg = f"API key for {self.name} is not present in settings."
-                raise APIKeyNotPresentError(error_msg)
+                error_message = f"API key for {self.name} is not present in settings."
+                raise APIKeyNotPresentError(error_message)
             self.headers[self.api_key_placement] = api_key.get_secret_value()
         else:
             logger.info("API does not require an API key, skipping header population.")
@@ -186,11 +186,11 @@ class APIConfig(BaseModel):
         """
         # Set a hard limit on the max array length to fit within API constraints
         if len(dois) > max_array_length:
-            error_msg = (
+            error_message = (
                 "array of items to query for is too long. max"
                 f"n(items): {max_array_length}"
             )
-            raise ValueError(error_msg)
+            raise ValueError(error_message)
         pipe_separated_dois = "|".join(dois)
         return f"{url!s}?filter=doi:{pipe_separated_dois}"
 
@@ -219,8 +219,8 @@ class APIConfig(BaseModel):
         """
         if self.query_type == QueryType.BATCH:
             if not isinstance(query, list):
-                error_msg = "query_type `batch` requires a `list` type query."
-                raise TypeError(error_msg)
+                error_message = "query_type `batch` requires a `list` type query."
+                raise TypeError(error_message)
             url = self.build_query_batch(
                 url=self.url, dois=query, max_array_length=max_array_length
             )
@@ -233,15 +233,15 @@ class APIConfig(BaseModel):
         if self.query_type == QueryType.BATCHED_SINGLE:
             is_multi_item_list = isinstance(query, list) and len(query) > 1
             if is_multi_item_list:
-                error_msg = (
+                error_message = (
                     "query_type `batched_single` requires a `str` type query, "
                     "or a single-item list."
                 )
-                raise TypeError(error_msg)
+                raise TypeError(error_message)
             extracted_query = query[0] if isinstance(query, list) else query
             if not isinstance(extracted_query, str):
-                error_msg = f"Unable to parse query from initial query {query}."
-                raise TypeError(error_msg)
+                error_message = f"Unable to parse query from initial query {query}."
+                raise TypeError(error_message)
             url = self.build_query_single(
                 doi=extracted_query, url=self.url.encoded_string()
             )
@@ -251,8 +251,8 @@ class APIConfig(BaseModel):
                 "headers": self.headers,
             }
 
-        error_msg = "Unable to format query. Check query and query type."
-        raise ValueError(error_msg)
+        error_message = "Unable to format query. Check query and query type."
+        raise ValueError(error_message)
 
 
 def prepare_api_config(

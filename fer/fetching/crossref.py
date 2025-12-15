@@ -26,6 +26,7 @@ class CrossrefFetcher(BasePublisherFetcher):
         Initialise a CrossrefFetcher.
 
         Args:
+            settings (Settings): The settings object to use for the fetcher.
             wait_time_seconds (int, optional):
                 The number of seconds to wait between requests. Defaults to 2.
 

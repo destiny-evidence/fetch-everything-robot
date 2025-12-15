@@ -16,15 +16,15 @@ from fer.data_models.generic import (
 
 
 def test_custom_exceptions():
-    error_msg = "API key missing"
+    error_message = "API key missing"
     with pytest.raises(APIKeyNotPresentError):
-        raise APIKeyNotPresentError(error_msg)
-    error_msg = "Unpack failed"
+        raise APIKeyNotPresentError(error_message)
+    error_message = "Unpack failed"
     with pytest.raises(FullTextUnpackError):
-        raise FullTextUnpackError(error_msg)
-    error_msg = "Not found"
+        raise FullTextUnpackError(error_message)
+    error_message = "Not found"
     with pytest.raises(FullTextNotFoundError):
-        raise FullTextNotFoundError(error_msg)
+        raise FullTextNotFoundError(error_message)
 
 
 def test_external_api_enum():
