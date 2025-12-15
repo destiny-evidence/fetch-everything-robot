@@ -34,6 +34,7 @@ class BasePublisherFetcher(ABC):
         self,
         study_collection: StudyCollection,
         output_directory: Path,
+        **kwargs: object,
     ) -> list[RetrievedFullText]:
         """
         Fetch full text for a given StudyCollection and save them to output_directory.

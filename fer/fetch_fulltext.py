@@ -122,13 +122,19 @@ class FullTextBatchFetcher:
         return valid_dois, invalid_dois
 
     async def get_many_fulltext_pdfs_cycling_apis(
-        self, input_study_collection: StudyCollection
+        self,
+        input_study_collection: StudyCollection,
+        *,
+        get_pdf: bool = True,
+        get_xml: bool = False,
     ) -> list[dict[str, str | Path | None]]:
         """
         Get many full texts from a list of DOIs, cycling APIs in order of priority.
 
         Args:
             input_study_collection (StudyCollection): Input collection of studies.
+            get_pdf (bool, optional): Whether to fetch PDF files. Defaults to True.
+            get_xml (bool, optional): Whether to fetch XML files. Defaults to False.
 
         Returns:
             list[dict[str, str | Path | None]]: A list of dictionaries containing:
@@ -163,6 +169,8 @@ class FullTextBatchFetcher:
                 ] = await self.full_text_fetcher.fetch(
                     publisher_name=api_name,
                     study_collection=input_study_collection,
+                    get_pdf=get_pdf,
+                    get_xml=get_xml,
                 )
             except FullTextFetcherError as fetcher_error:
                 error_message = (

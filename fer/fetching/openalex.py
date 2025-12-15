@@ -120,7 +120,10 @@ class OpenalexFetcher(BasePublisherFetcher):
         return await stream_file(url=pdf_url, destination=filepath, headers=headers)
 
     async def fetch_many_full_texts(
-        self, study_collection: StudyCollection, output_directory: Path
+        self,
+        study_collection: StudyCollection,
+        output_directory: Path,
+        **kwargs: object,
     ) -> list[RetrievedFullText]:
         """
         Fetch full text for a given StudyCollection and save them to output_directory.
@@ -135,6 +138,7 @@ class OpenalexFetcher(BasePublisherFetcher):
                 representing the saved PDF files.
 
         """
+        _ = kwargs
         output_directory.mkdir(parents=True, exist_ok=True)
         output_items: list[RetrievedFullText] = []
         for study in study_collection.studies:

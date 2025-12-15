@@ -209,6 +209,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
         self,
         study_collection: StudyCollection,
         output_directory: Path,
+        **kwargs: object,
     ) -> list[RetrievedFullText]:
         """
         Fetch the full text of an Unpaywall article.
@@ -222,6 +223,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
                 representing the saved PDF files.
 
         """
+        _ = kwargs
         output_directory.mkdir(parents=True, exist_ok=True)
 
         found_pdfs = []

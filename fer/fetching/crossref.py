@@ -128,7 +128,10 @@ class CrossrefFetcher(BasePublisherFetcher):
         return await stream_file(url=pdf_url, destination=filepath, headers=headers)
 
     async def fetch_many_full_texts(
-        self, study_collection: StudyCollection, output_directory: Path
+        self,
+        study_collection: StudyCollection,
+        output_directory: Path,
+        **kwargs: object,
     ) -> list[RetrievedFullText]:
         """
         Fetch full texts using the CrossRef API.
@@ -142,6 +145,7 @@ class CrossrefFetcher(BasePublisherFetcher):
                 representing the saved full text files.
 
         """
+        _ = kwargs
         output_directory.mkdir(parents=True, exist_ok=True)
         crossref = Crossref(mailto=self.settings.mailto)
         found_pdfs = set()
