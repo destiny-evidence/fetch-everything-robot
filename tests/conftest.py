@@ -52,6 +52,7 @@ def set_test_environment_variables(
     monkeypatch.setenv("OPENALEX_KEY", "dummy_openalex_key")
     monkeypatch.setenv("ELSEVIER_SCOPUS_KEY", "dummy_scopus_key")
     monkeypatch.setenv("ELSEVIER_SCOPUS_INST_TOKEN", "dummy_inst_token")
+    monkeypatch.setenv("MAILTO", "test@test.com")
     yield
     monkeypatch.delenv("ENV")
     monkeypatch.delenv("DESTINY_REPOSITORY_URL")
@@ -60,6 +61,7 @@ def set_test_environment_variables(
     monkeypatch.delenv("OPENALEX_KEY")
     monkeypatch.delenv("ELSEVIER_SCOPUS_KEY")
     monkeypatch.delenv("ELSEVIER_SCOPUS_INST_TOKEN")
+    monkeypatch.delenv("MAILTO")
 
 
 @pytest.fixture
@@ -217,7 +219,10 @@ class DummyPublisherFetcher(BasePublisherFetcher):
         return filepath
 
     async def fetch_many_full_texts(
-        self, study_collection: StudyCollection, output_directory: Path
+        self,
+        study_collection: StudyCollection,
+        output_directory: Path,
+        **kwargs: object,
     ) -> list[RetrievedFullText]:
         """
         Define a dummy method to simulate fetching full text.
