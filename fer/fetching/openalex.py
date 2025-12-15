@@ -14,6 +14,7 @@ from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import (
     AsyncHTTPXRetryClient,
     FullTextStreamError,
+    RetrievedFullText,
     StudyCollection,
     stream_file,
 )
@@ -47,7 +48,7 @@ class OpenalexFetcher(BasePublisherFetcher):
         self.wait_time_seconds = wait_time_seconds
         self.api_config: APIConfig = get_openalex_api_config(settings)
         self.base_url: AnyUrl = self.api_config.url
-        self.query_params: dict = self.api_config.query_params
+        self.query_params: dict | None = self.api_config.query_params
         self.headers: dict = self.api_config.headers
 
     async def _get_work_doi(self, doi: str) -> dict:
@@ -120,7 +121,7 @@ class OpenalexFetcher(BasePublisherFetcher):
 
     async def fetch_many_full_texts(
         self, study_collection: StudyCollection, output_directory: Path
-    ) -> dict[str, Path | None]:
+    ) -> list[RetrievedFullText]:
         """
         Fetch full text for a given StudyCollection and save them to output_directory.
 
@@ -130,11 +131,12 @@ class OpenalexFetcher(BasePublisherFetcher):
             output_directory (Path): The directory where the full text should be saved.
 
         Returns:
-            dict[str, Path | None]: A dictionary mapping DOIs to the paths
+            list[RetrievedFullText]: A list of RetrievedFullText instances
+                representing the saved PDF files.
 
         """
         output_directory.mkdir(parents=True, exist_ok=True)
-        output_doi_paths: dict[str, Path | None] = {}
+        output_items: list[RetrievedFullText] = []
         for study in study_collection.studies:
             try:
                 doi = study.doi.identifier.lower()
@@ -146,17 +148,40 @@ class OpenalexFetcher(BasePublisherFetcher):
                     pdf_path = await self.download_one_pdf(
                         pdf_url=pdf_url, filepath=output_directory / f"{uid}.pdf"
                     )
+                    output_items.append(
+                        RetrievedFullText(
+                            doi=doi,
+                            uid=uid,
+                            pdf_path=pdf_path,
+                        )
+                    )
                 else:
-                    logger.warning(f"No pdf for doi {doi}.")
-                output_doi_paths[doi] = pdf_path
-
+                    warning_message = f"No PDF found for {doi=}."
+                    output_items.append(
+                        RetrievedFullText(
+                            doi=doi, uid=uid, pdf_path=None, error=warning_message
+                        )
+                    )
             except OpenAlexAPIError as openalex_error:
-                logger.error(
+                error_message = (
                     f"Openalex API error fetching data for {doi}: {openalex_error}"
                 )
+
+                logger.error(error_message)
+                output_items.append(
+                    RetrievedFullText(
+                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                    )
+                )
             except HTTPError as http_error:
-                logger.error(
+                error_message = (
                     f"HTTP error fetching Openalex data for {doi}: {http_error}"
+                )
+                logger.error(error_message)
+                output_items.append(
+                    RetrievedFullText(
+                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                    )
                 )
             except FullTextStreamError as fulltext_download_error:
                 error_message = (
@@ -164,10 +189,15 @@ class OpenalexFetcher(BasePublisherFetcher):
                     f" {fulltext_download_error}"
                 )
                 logger.error(error_message)
+                output_items.append(
+                    RetrievedFullText(
+                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                    )
+                )
 
             logger.debug(
                 f"Sleeping {self.wait_time_seconds} seconds before next request..."
             )
             await asyncio.sleep(self.wait_time_seconds)
 
-        return output_doi_paths
+        return output_items

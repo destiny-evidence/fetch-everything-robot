@@ -118,7 +118,7 @@ class FullTextEnhancementProcessor:
     async def generate_fulltext(
         self,
         references: list[Reference],
-    ) -> list[dict[str, Path | None]]:
+    ) -> list[dict[str, str | Path | None]]:
         """
         Generate a dictionary mapping DOIs to fulltext file paths.
 
@@ -126,7 +126,7 @@ class FullTextEnhancementProcessor:
             references (list[Reference]): A list of Reference objects.
 
         Returns:
-            dict[str, Path | None]: A dictionary mapping DOIs to file paths or None.
+            list[dict]: A list of dictionaries representing the retrieved full texts.
 
         """
         try:

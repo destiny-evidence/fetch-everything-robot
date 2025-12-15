@@ -12,6 +12,7 @@ from fer.fetching.core import (
     AsyncHTTPXRetryClient,
     BaseAuthError,
     FullTextStreamError,
+    RetrievedFullText,
     StudyCollection,
     stream_file,
 )
@@ -56,7 +57,7 @@ class ElsevierFetcher(BasePublisherFetcher):
 
     async def fetch_many_full_texts(
         self, study_collection: StudyCollection, output_directory: Path
-    ) -> dict[str, Path | None]:
+    ) -> list[RetrievedFullText]:
         """
         Fetch the full text of an Elsevier article.
 
@@ -65,8 +66,8 @@ class ElsevierFetcher(BasePublisherFetcher):
             output_directory (Path): The output directory path.
 
         Returns:
-            dict[str, Path]: A dictionary mapping DOIs to the paths of the
-                saved XML files
+            list[RetrievedFullText]: A list of RetrievedFullText instances
+                representing the saved output files.
 
         """
         output_directory.mkdir(parents=True, exist_ok=True)
@@ -101,7 +102,7 @@ class ElsevierFetcher(BasePublisherFetcher):
         if inst_token is not None:
             headers["X-ELS-Insttoken"] = inst_token
 
-        output_doi_paths: dict[str, Path | None] = {}
+        output_items: list[RetrievedFullText] = []
         for study in study_collection.studies:
             doi = study.doi.identifier.lower()
             uid = study.uid
@@ -117,7 +118,13 @@ class ElsevierFetcher(BasePublisherFetcher):
                             AnyUrl(url), file_path, headers=headers
                         )
                         if output_file_path:
-                            output_doi_paths[doi] = output_file_path
+                            output_items.append(
+                                RetrievedFullText(
+                                    doi=doi,
+                                    uid=uid,
+                                    pdf_path=output_file_path,
+                                )
+                            )
                         logger.info(f"Elsevier XML content saved {uid}: {file_path}")
                     else:
                         warning_message = (
@@ -126,10 +133,20 @@ class ElsevierFetcher(BasePublisherFetcher):
                         )
                         logger.warning(warning_message)
                         logger.warning(f"Response Content: {response.text}")
-                        output_doi_paths[doi] = None
+                        output_items.append(
+                            RetrievedFullText(
+                                doi=doi, uid=uid, pdf_path=None, error=warning_message
+                            )
+                        )
             except httpx.HTTPError as http_error:
-                logger.error(
+                error_message = (
                     f"HTTP error fetching Elsevier data for {doi}: {http_error}"
+                )
+                logger.error(error_message)
+                output_items.append(
+                    RetrievedFullText(
+                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                    )
                 )
             except FullTextStreamError as fulltext_download_error:
                 error_message = (
@@ -137,4 +154,9 @@ class ElsevierFetcher(BasePublisherFetcher):
                     f" {fulltext_download_error}"
                 )
                 logger.error(error_message)
-        return output_doi_paths
+                output_items.append(
+                    RetrievedFullText(
+                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                    )
+                )
+        return output_items

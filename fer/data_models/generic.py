@@ -54,6 +54,21 @@ class FullTextUnpackStrategy(BaseModel):
         XML representation. Optional.""",
     )
 
+    @model_validator(mode="before")
+    @classmethod
+    def validate_unpack_strategies(cls, values: dict) -> dict:
+        """Ensure at least one unpacking strategy is provided."""
+        if not isinstance(values, dict):
+            error_message = "Invalid unpacking strategy values provided."
+            raise ValueError(error_message)  # noqa: TRY004
+        if (
+            values.get("pdf_link_strategy") is None
+            and values.get("xml_strategy") is None
+        ):
+            error_msg = "At least one unpacking strategy must be provided!"
+            raise ValueError(error_msg)
+        return values
+
 
 class APIConfig(BaseModel):
     """
@@ -64,20 +79,24 @@ class APIConfig(BaseModel):
     name: ExternalAPI = Field(
         description="Name (we've given) to this external API service"
     )
-    url: AnyUrl = Field(description="URL/endpoint for the given API")
     require_api_key: bool = Field(description="Is API key required to hit this API.")
+    url: AnyUrl = Field(
+        description="URL/endpoint for the given API",
+    )
     api_key_env_var_name: str | None = Field(
         description="Name of the environment variable/settings field "
-        "which represents an api key for this api."
+        "which represents an api key for this api.",
+        default=None,
     )
     api_key_placement: str | None = Field(
-        description="Dict key in `headers` where we should insert our API key."
+        description="Dict key in `headers` where we should insert our API key.",
+        default=None,
     )
-    query_type: QueryType = Field(
-        default=QueryType.BATCHED_SINGLE,
+    query_type: QueryType | None = Field(
+        default=None,
         description="Type of query; i.e. batched_single or batch.",
     )
-    query_params: dict = Field(
+    query_params: dict | None = Field(
         default={},
         description="Query params to pass with the api call.",
     )
@@ -232,10 +251,7 @@ class APIConfig(BaseModel):
                 "headers": self.headers,
             }
 
-        error_msg = (
-            "Unable to format query. Ensure correct specification ",
-            "of query and query type.",
-        )
+        error_msg = "Unable to format query. Check query and query type."
         raise ValueError(error_msg)
 
 

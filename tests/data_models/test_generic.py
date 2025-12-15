@@ -79,18 +79,36 @@ def test_external_api_priority_model():
             ["search-results", "entry", "pdf_url"],
             ["search-results", "entry", "xml"],
         ),
-        # TODO @harryjmoss: Re-Enable when OpenAlex fetcher is implemented
-        # https://github.com/destiny-evidence/fetch-everything-robot/issues/9
-        # (
-        #     "openalex_api_config_valid_batch",
-        #     {"Accept": "application/json"},
-        #     ExternalAPI.CROSSREF,
-        #     "https://api.example.com/",
-        #     {},
-        #     ExternalAPI.CROSSREF,
-        #     ["message", "pdf_url"],
-        #     ["message", "xml"],
-        # ),
+        (
+            "openalex_api_config_valid_batch",
+            {"Accept": "application/json"},
+            ExternalAPI.OPENALEX,
+            "https://api.example.com/",
+            {},
+            ExternalAPI.OPENALEX,
+            ["best_oa_location", "pdf_url"],
+            None,
+        ),
+        (
+            "crossref_api_config_valid_batch",
+            {"Accept": "application/json"},
+            ExternalAPI.CROSSREF,
+            "https://api.example.com/",
+            {},
+            ExternalAPI.CROSSREF,
+            ["message", "link"],
+            None,
+        ),
+        (
+            "unpaywall_api_config_valid_batch",
+            {"Accept": "application/json"},
+            ExternalAPI.UNPAYWALL,
+            "https://api.example.com/",
+            {},
+            ExternalAPI.UNPAYWALL,
+            ["best_oa_location", "pdf_url"],
+            None,
+        ),
     ],
 )
 def test_api_config_validator_success(
@@ -121,17 +139,19 @@ def test_api_config_validator_success(
     ("api_config_fixture"),
     [
         ("scopus_api_config_valid_batch"),
-        # TODO @harryjmoss: Re-Enable when OpenAlex fetcher is implemented
-        # https://github.com/destiny-evidence/fetch-everything-robot/issues/9
-        # ("openalex_api_config_valid_batch"),
+        ("openalex_api_config_valid_batch"),
+        ("crossref_api_config_valid_batch"),
+        ("unpaywall_api_config_valid_batch"),
     ],
 )
 def test_api_config_validator_failure(request, api_config_fixture, monkeypatch):
     api_config = request.getfixturevalue(api_config_fixture)
     bad_fields = [
-        ("headers", None),
-        ("unpack_strategy", "not_a_strategy"),
+        ("name", None),
         ("name", "not_an_enum"),
+        ("require_api_key", None),
+        ("query_type", "not_an_enum"),
+        ("unpack_strategy", "not_a_strategy"),
     ]
     for field, bad_value in bad_fields:
         broken = api_config.model_copy()
@@ -144,9 +164,9 @@ def test_api_config_validator_failure(request, api_config_fixture, monkeypatch):
     ("api_config_fixture", "expected_key", "expected_value"),
     [
         ("scopus_api_config_valid_batch", "X-API-Key", "dummy_scopus_key"),
-        # TODO @harryjmoss: Re-Enable when OpenAlex fetcher is implemented
-        # https://github.com/destiny-evidence/fetch-everything-robot/issues/9
-        # ("openalex_api_config_valid_batch", None, None),
+        ("openalex_api_config_valid_batch", None, None),
+        ("crossref_api_config_valid_batch", None, None),
+        ("unpaywall_api_config_valid_batch", None, None),
     ],
 )
 def test_api_config_init_api_key_success(
@@ -183,7 +203,6 @@ def test_api_config_populate_query_scopus(request, api_config_fixture, query):
     ), "URL should append DOI to base URL."
 
 
-@pytest.mark.xfail(reason="OpenAlex fetcher not yet implemented")
 @pytest.mark.parametrize(
     ("api_config_fixture", "query"),
     [

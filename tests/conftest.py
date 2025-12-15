@@ -12,7 +12,7 @@ from loguru import logger
 from pydantic import AnyUrl
 from pytest_httpx import HTTPXMock, IteratorStream
 
-from fer.config import Settings
+from fer.config import ExternalAPIPriority, Settings
 from fer.data_models.generic import (
     APIConfig,
     ExternalAPI,
@@ -23,11 +23,12 @@ from fer.data_models.generic import (
 from fer.data_models.scopus import ScopusAPIConfig
 from fer.enhancement_processor import FullTextEnhancementProcessor
 from fer.fetching import BasePublisherFetcher
-from fer.fetching.core import stream_file
+from fer.fetching.core import RetrievedFullText, StudyCollection, stream_file
 
 pytest_plugins = [
     "tests.fixtures.generic",
     "tests.fixtures.studies",
+    "tests.fixtures.fetching",
 ]
 
 
@@ -102,14 +103,78 @@ def openalex_api_config_valid_batch():
 
 
 @pytest.fixture
+def crossref_api_config_valid_batch():
+    return APIConfig(
+        name=ExternalAPI.CROSSREF,
+        url="https://api.example.com/",
+        require_api_key=False,
+        api_key_env_var_name=None,
+        api_key_placement=None,
+        query_type=QueryType.BATCH,
+        unpack_strategy=FullTextUnpackStrategy(
+            source=ExternalAPI.CROSSREF,
+            doi_strategy=["doi"],
+            pdf_link_strategy=["message", "link"],
+            xml_strategy=None,
+        ),
+    )
+
+
+@pytest.fixture
+def unpaywall_api_config_valid_batch():
+    return APIConfig(
+        name=ExternalAPI.UNPAYWALL,
+        url="https://api.example.com/",
+        require_api_key=False,
+        api_key_env_var_name=None,
+        api_key_placement=None,
+        query_type=QueryType.BATCH,
+        unpack_strategy=FullTextUnpackStrategy(
+            source=ExternalAPI.UNPAYWALL,
+            doi_strategy=["doi"],
+            pdf_link_strategy=["best_oa_location", "pdf_url"],
+            xml_strategy=None,
+        ),
+    )
+
+
+@pytest.fixture
 def test_available_api_configs(
     scopus_api_config_valid_batch,
     openalex_api_config_valid_batch,
+    crossref_api_config_valid_batch,
+    unpaywall_api_config_valid_batch,
 ) -> list[APIConfig]:
     return [
-        scopus_api_config_valid_batch,
         openalex_api_config_valid_batch,
+        crossref_api_config_valid_batch,
+        unpaywall_api_config_valid_batch,
+        scopus_api_config_valid_batch,
     ]
+
+
+@pytest.fixture
+def test_external_api_priority() -> ExternalAPIPriority:
+    return ExternalAPIPriority(
+        name="fulltext",
+        priorities={
+            ExternalAPI.OPENALEX: 1,
+            ExternalAPI.CROSSREF: 2,
+            ExternalAPI.UNPAYWALL: 3,
+            ExternalAPI.SCOPUS: 4,
+        },
+    )
+
+
+@pytest.fixture
+def test_prepared_available_api_configs(
+    test_available_api_configs, test_settings, test_external_api_priority
+) -> dict[str, APIConfig]:
+    return prepare_api_config(
+        test_available_api_configs,
+        test_settings,
+        external_api_priority=test_external_api_priority,
+    )
 
 
 @pytest.fixture
@@ -151,7 +216,9 @@ class DummyPublisherFetcher(BasePublisherFetcher):
         await stream_file(url=pdf_url, destination=filepath)
         return filepath
 
-    async def fetch_many_full_texts(self, *args, **kwargs) -> dict:
+    async def fetch_many_full_texts(
+        self, study_collection: StudyCollection, output_directory: Path
+    ) -> list[RetrievedFullText]:
         """
         Define a dummy method to simulate fetching full text.
 
@@ -272,13 +339,19 @@ def test_references() -> list[destiny_sdk.references.Reference]:
         destiny_sdk.references.Reference(
             id=uuid.uuid4(),
             identifiers=[
-                destiny_sdk.identifiers.DOIIdentifier(identifier="10.1000/xyz123")
+                destiny_sdk.identifiers.DOIIdentifier(
+                    identifier="10.1000/xyz123",
+                    identifier_type=destiny_sdk.identifiers.ExternalIdentifierType.DOI,
+                )
             ],
         ),
         destiny_sdk.references.Reference(
             id=uuid.uuid4(),
             identifiers=[
-                destiny_sdk.identifiers.DOIIdentifier(identifier="10.1000/xyz456")
+                destiny_sdk.identifiers.DOIIdentifier(
+                    identifier="10.1000/xyz456",
+                    identifier_type=destiny_sdk.identifiers.ExternalIdentifierType.DOI,
+                )
             ],
         ),
     ]

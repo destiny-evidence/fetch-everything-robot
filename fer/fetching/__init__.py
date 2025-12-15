@@ -5,7 +5,7 @@ from pathlib import Path
 
 from pydantic import AnyUrl
 
-from fer.fetching.core import StudyCollection
+from fer.fetching.core import RetrievedFullText, StudyCollection
 
 
 class BasePublisherFetcher(ABC):
@@ -34,7 +34,7 @@ class BasePublisherFetcher(ABC):
         self,
         study_collection: StudyCollection,
         output_directory: Path,
-    ) -> dict[str, Path | None]:
+    ) -> list[RetrievedFullText]:
         """
         Fetch full text for a given StudyCollection and save them to output_directory.
 
@@ -44,7 +44,7 @@ class BasePublisherFetcher(ABC):
             output_directory (Path): The directory where the full text should be saved.
 
         Returns:
-            dict[str, Path | None]: A dictionary mapping DOIs to the paths
-                of the saved full text files.
+            list[RetrievedFullText]: A list of RetrievedFullText instances
+                representing the saved full text files.
 
         """

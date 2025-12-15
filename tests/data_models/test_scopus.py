@@ -23,7 +23,7 @@ def test_scopus_api_config_creation_success_no_inst_token(
         unpack_strategy=FullTextUnpackStrategy(
             source="scopus",
             doi_strategy=["search-results", "entry", "prism:doi"],
-            strategy=["search-results", "entry", "dc:description"],
+            pdf_link_strategy=["search-results", "entry", "dc:description"],
         ),
         api_inst_token_env_var_name=None,
         api_inst_token_placement=None,
@@ -57,7 +57,7 @@ def test_scopus_api_config_no_api_key(test_settings: Settings):
         unpack_strategy=FullTextUnpackStrategy(
             source="scopus",
             doi_strategy=["search-results", "entry", "prism:doi"],
-            strategy=["search-results", "entry", "dc:description"],
+            xml_strategy=["search-results", "entry", "dc:description"],
         ),
     )
 
@@ -81,7 +81,7 @@ def test_scopus_api_config_with_valid_keys(test_settings: Settings):
         unpack_strategy=FullTextUnpackStrategy(
             source="scopus",
             doi_strategy=["search-results", "entry", "prism:doi"],
-            strategy=["search-results", "entry", "dc:description"],
+            xml_strategy=["search-results", "entry", "dc:description"],
         ),
         api_inst_token_env_var_name="elsevier_scopus_inst_token",  # pragma: allowlist secret # noqa: S106
         api_inst_token_placement="X-Inst-Token",  # pragma: allowlist secret # noqa: S106

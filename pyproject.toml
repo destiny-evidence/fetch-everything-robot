@@ -86,6 +86,8 @@ lint.per-file-ignores = {"fer/enhancement_processor.py" = [
     "PLR0913", # Too many arguments in function definition
 ], "fer/fetch_fulltext.py" = [
     "PLR0915", # Too many statements
+], "fer/fetching/unpaywall.py" = [
+    "PLR0915", # Too many statements
 ], "fer/main.py" = [
     "S104", # Possible binding to all interfaces
 ], "scripts*" = [

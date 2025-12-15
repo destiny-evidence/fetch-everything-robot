@@ -7,7 +7,7 @@ from uuid import UUID
 import httpx
 from destiny_sdk.identifiers import DOIIdentifier
 from loguru import logger
-from pydantic import AnyUrl, BaseModel, Field
+from pydantic import AnyUrl, BaseModel, Field, model_validator
 
 
 class BaseAuthError(Exception):
@@ -46,6 +46,36 @@ class StudyCollection(BaseModel):
 
         """
         self.studies = [study for study in self.studies if study.doi.identifier != doi]
+
+
+class RetrievedFullText(BaseModel):
+    """Model representing a retrieved full text file."""
+
+    doi: str = Field(..., description="The DOI of the study.")
+    uid: UUID = Field(..., description="The unique identifier of the study.")
+    pdf_path: Path | None = Field(
+        None, description="The path to the retrieved PDF file."
+    )
+    error: str | None = Field(
+        None, description="An error message if the retrieval failed."
+    )
+
+    @model_validator(mode="after")
+    def check_pdf_path_or_error(self) -> "RetrievedFullText":
+        """
+        Validate that either pdf_path or error is set.
+
+        Raises:
+            ValueError: If neither pdf_path nor error is set.
+
+        """
+        if self.pdf_path is None and self.error is None:
+            error_message = "Either pdf_path or error must be set."
+            raise ValueError(error_message)
+        if self.pdf_path is not None and self.error is not None:
+            error_message = "Only one of pdf_path or error can be set."
+            raise ValueError(error_message)
+        return self
 
 
 class AsyncHTTPXRetryClient(httpx.AsyncClient):

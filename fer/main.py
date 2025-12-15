@@ -15,8 +15,11 @@ from destiny_sdk.robots import (
 )
 
 from fer.config import Settings, get_settings
+from fer.data_models.crossref import get_crossref_api_config
 from fer.data_models.generic import APIConfig, prepare_api_config
+from fer.data_models.openalex import get_openalex_api_config
 from fer.data_models.scopus import get_scopus_batch_api_config
+from fer.data_models.unpaywall import get_unpaywall_api_config
 from fer.enhancement_processor import (
     BatchEnhancementGenerationError,
     FullTextEnhancementProcessor,
@@ -148,6 +151,9 @@ async def main() -> None:
     )
 
     available_api_configs: list[APIConfig] = [
+        get_openalex_api_config(settings),
+        get_crossref_api_config(),
+        get_unpaywall_api_config(),
         get_scopus_batch_api_config(),
     ]
     global_api_config = prepare_api_config(

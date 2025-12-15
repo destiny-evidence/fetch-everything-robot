@@ -16,7 +16,9 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_success_pdf_found(
         "publisher": "Test Publisher",
     }
     fetcher = UnpaywallFetcher(settings=test_settings)
-    mocker.patch("fer.fetching.unpaywall.stream_file")
+    mocker.patch(
+        "fer.fetching.unpaywall.stream_file", return_value=tmp_path / "dummy.pdf"
+    )
     mock_response = mocker.MagicMock()
     mock_response.status_code = httpx.codes.OK
     mock_response.raise_for_status.return_value = None
@@ -198,7 +200,9 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_no_best_oa_location(
         "publisher": "Test Publisher",
     }
     fetcher = UnpaywallFetcher(settings=test_settings)
-    mocker.patch("fer.fetching.unpaywall.stream_file")
+    mocker.patch(
+        "fer.fetching.unpaywall.stream_file", return_value=tmp_path / "dummy.pdf"
+    )
     mock_response = mocker.MagicMock()
     mock_response.status_code = httpx.codes.OK
     mock_response.raise_for_status.return_value = None

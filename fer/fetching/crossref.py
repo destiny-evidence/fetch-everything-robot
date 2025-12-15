@@ -8,8 +8,14 @@ from loguru import logger
 from pydantic import AnyUrl
 
 from fer.config import Settings
+from fer.data_models.crossref import get_crossref_api_config
 from fer.fetching import BasePublisherFetcher
-from fer.fetching.core import FullTextStreamError, StudyCollection, stream_file
+from fer.fetching.core import (
+    FullTextStreamError,
+    RetrievedFullText,
+    StudyCollection,
+    stream_file,
+)
 
 
 class CrossrefFetcher(BasePublisherFetcher):
@@ -20,12 +26,12 @@ class CrossrefFetcher(BasePublisherFetcher):
         Initialise a CrossrefFetcher.
 
         Args:
-            settings (Settings): The settings to use for the fetcher.
             wait_time_seconds (int, optional):
                 The number of seconds to wait between requests. Defaults to 2.
 
         """
         self.settings = settings
+        self.api_config = get_crossref_api_config()
         self.wait_time_seconds = wait_time_seconds
 
     def get_url_from_pdf_content_type(self, crossref_response: dict) -> dict:
@@ -41,13 +47,31 @@ class CrossrefFetcher(BasePublisherFetcher):
 
         """
         content_type = "application/pdf"
-        if "message" in crossref_response and "link" in crossref_response["message"]:
-            unique_content_url_pairs = []
-            observed_urls = set()
-            for link in crossref_response["message"]["link"]:
-                url = link["URL"]
-                if url not in observed_urls:
-                    found_content_type = link.get("content-type", "")
+        data = crossref_response
+        pdf_link_possible = (
+            self.api_config.unpack_strategy.pdf_link_strategy is not None
+        )
+        if not pdf_link_possible:
+            logger.debug("No PDF link strategy defined in CrossRef unpack strategy.")
+            return {"content_type": None, "url": None}
+        pdf_strategy = self.api_config.unpack_strategy.pdf_link_strategy
+        if pdf_strategy is None:
+            logger.debug("No PDF link strategy defined in CrossRef unpack strategy.")
+            return {"content_type": None, "url": None}
+        for key in pdf_strategy:
+            if isinstance(data, dict) and key in data:
+                data = data.get(key, {})
+            else:
+                logger.error(f"Key {key} not found in CrossRef response.")
+                return {"content_type": None, "url": None}
+
+        unique_content_url_pairs: list[tuple[str, str]] = []
+        observed_urls: set[str] = set()
+        if isinstance(data, list):
+            for link in data:
+                url: str = link["URL"]
+                if url and url not in observed_urls:
+                    found_content_type: str = link.get("content-type", "")
                     unique_content_url_pairs.append((found_content_type, url))
                     observed_urls.add(url)
                     if found_content_type == content_type:
@@ -104,7 +128,7 @@ class CrossrefFetcher(BasePublisherFetcher):
 
     async def fetch_many_full_texts(
         self, study_collection: StudyCollection, output_directory: Path
-    ) -> dict[str, Path | None]:
+    ) -> list[RetrievedFullText]:
         """
         Fetch full texts using the CrossRef API.
 
@@ -113,14 +137,14 @@ class CrossrefFetcher(BasePublisherFetcher):
             output_directory (Path): The directory to save the fetched full texts.
 
         Returns:
-            dict[str, Path]: A dictionary mapping study UIDs to the paths of
-                the saved full text files.
+            list[RetrievedFullText]: A list of RetrievedFullText instances
+                representing the saved full text files.
 
         """
         output_directory.mkdir(parents=True, exist_ok=True)
-        crossref = Crossref()
+        crossref = Crossref(mailto=self.settings.mailto)
         found_pdfs = set()
-        output_doi_paths: dict[str, Path | None] = {}
+        output_items: list[RetrievedFullText] = []
         for study in study_collection.studies:
             doi = study.doi.identifier.lower()
             uid = study.uid
@@ -135,26 +159,47 @@ class CrossrefFetcher(BasePublisherFetcher):
                             AnyUrl(url), pdf_path
                         )
                         if output_file_path:
-                            output_doi_paths[doi] = output_file_path
+                            output_items.append(
+                                RetrievedFullText(
+                                    doi=doi,
+                                    uid=uid,
+                                    pdf_path=output_file_path,
+                                )
+                            )
                         found_pdfs.add(uid)
                         logger.info(f"Crossref download success for {uid}: {url}")
                         await asyncio.sleep(self.wait_time_seconds)
                 else:
-                    logger.warning(
+                    error_message = (
                         f"No valid PDF found via CrossRef for {doi=}, {uid=}"
                     )
-                    output_doi_paths[doi] = None
+                    logger.warning(error_message)
+                    output_items.append(
+                        RetrievedFullText(
+                            doi=doi, uid=uid, pdf_path=None, error=error_message
+                        )
+                    )
             except RequestError as request_error:
                 error_message = (
                     f"CrossRef request error for {uid=}, {doi=} - {request_error}"
                 )
                 logger.error(error_message)
+                output_items.append(
+                    RetrievedFullText(
+                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                    )
+                )
             except FullTextStreamError as fulltext_download_error:
                 error_message = (
                     f"Error streaming CrossRef data {uid}:{doi}"
                     f" - {fulltext_download_error}"
                 )
                 logger.error(error_message)
+                output_items.append(
+                    RetrievedFullText(
+                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                    )
+                )
 
         logger.info(f"{len(found_pdfs)} full texts found via CrossRef!")
-        return output_doi_paths
+        return output_items

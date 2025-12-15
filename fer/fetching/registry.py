@@ -4,6 +4,7 @@ from fer.config import Settings
 from fer.fetching.crossref import CrossrefFetcher
 from fer.fetching.elsevier import ElsevierFetcher
 from fer.fetching.fetchers import BasePublisherFetcher
+from fer.fetching.openalex import OpenalexFetcher
 from fer.fetching.unpaywall import UnpaywallFetcher
 
 
@@ -22,8 +23,9 @@ def get_publisher_fetcher_registry(
 
     """
     return {
-        "elsevier": ElsevierFetcher(settings),
-        "scopus": ElsevierFetcher(settings),
+        "openalex": OpenalexFetcher(settings),
         "unpaywall": UnpaywallFetcher(settings),
         "crossref": CrossrefFetcher(settings),
+        "elsevier": ElsevierFetcher(settings),
+        "scopus": ElsevierFetcher(settings),
     }

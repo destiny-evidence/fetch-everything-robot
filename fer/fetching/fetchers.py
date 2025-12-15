@@ -5,7 +5,7 @@ from pathlib import Path
 
 from fer.config import Settings
 from fer.fetching import BasePublisherFetcher
-from fer.fetching.core import BaseAuthError, StudyCollection
+from fer.fetching.core import BaseAuthError, RetrievedFullText, StudyCollection
 
 
 class FullTextFetcherError(Exception):
@@ -43,7 +43,7 @@ class FullTextFetcher:
         publisher_name: str,
         study_collection: StudyCollection,
         output_directory: Path | None = None,
-    ) -> dict[str, Path | None]:
+    ) -> list[RetrievedFullText]:
         """
         Fetch full-text articles from the specified publisher.
 
@@ -54,8 +54,8 @@ class FullTextFetcher:
                 fetched articles. Defaults to None.
 
         Returns:
-            dict[str, Path | None]: A dictionary mapping study DOIs to the paths of the
-                saved full text files.
+            list[RetrievedFullText]: A list of RetrievedFullText instances
+                representing the saved full text files.
 
         """
         fetcher = self.fetchers.get(publisher_name.lower())

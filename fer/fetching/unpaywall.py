@@ -4,13 +4,15 @@ from pathlib import Path
 
 import httpx
 from loguru import logger
-from pydantic import AnyUrl
+from pydantic import AnyUrl, ValidationError
 
 from fer.config import Settings
+from fer.data_models.unpaywall import get_unpaywall_api_config
 from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import (
     AsyncHTTPXRetryClient,
     FullTextStreamError,
+    RetrievedFullText,
     StudyCollection,
     stream_file,
 )
@@ -28,7 +30,8 @@ class UnpaywallFetcher(BasePublisherFetcher):
 
         """
         self.settings = settings
-        self.base_url = "https://api.unpaywall.org/v2/"
+        self.api_config = get_unpaywall_api_config()
+        self.base_url = self.api_config.url
 
     async def download_one_pdf(
         self,
@@ -55,7 +58,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
         self,
         study_collection: StudyCollection,
         output_directory: Path,
-    ) -> dict[str, Path | None]:
+    ) -> list[RetrievedFullText]:
         """
         Fetch the full text of an Unpaywall article.
 
@@ -64,14 +67,14 @@ class UnpaywallFetcher(BasePublisherFetcher):
             output_directory (Path): The output directory path.
 
         Returns:
-            dict[str, Path | None]: A dictionary mapping DOIs to the paths of the
-                saved PDF files
+            list[RetrievedFullText]: A list of RetrievedFullText instances
+                representing the saved PDF files.
 
         """
         output_directory.mkdir(parents=True, exist_ok=True)
 
         found_pdfs = []
-        output_doi_paths: dict[str, Path | None] = {}
+        output_items: list[RetrievedFullText] = []
         for study in study_collection.studies:
             doi = study.doi.identifier.lower()
             uid = study.uid
@@ -82,10 +85,35 @@ class UnpaywallFetcher(BasePublisherFetcher):
                     response = await client.get(url)
                     response.raise_for_status()
                     data = await response.json()
-                    pdf_url: str | None = None
-                    if data.get("best_oa_location"):
-                        pdf_url = data["best_oa_location"].get("url_for_pdf")
+                    pdf_url: AnyUrl | None = None
+
                     publisher = data.get("publisher", "")
+                    pdf_strategy = self.api_config.unpack_strategy.pdf_link_strategy
+                    if pdf_strategy is not None:
+                        for key in pdf_strategy:
+                            if isinstance(data, dict) and key in data:
+                                data = data.get(key, {})
+                            else:
+                                error_message = (
+                                    f"Unpaywall PDF key {key} not found for {doi}"
+                                )
+                                logger.error(error_message)
+                                output_items.append(
+                                    RetrievedFullText(
+                                        doi=doi,
+                                        uid=uid,
+                                        pdf_path=None,
+                                        error=error_message,
+                                    )
+                                )
+                        try:
+                            pdf_url = AnyUrl(data) if isinstance(data, str) else None
+                        except ValidationError:
+                            error_message = (
+                                f"Unpaywall: Invalid PDF URL for {doi}: {data}"
+                            )
+                            logger.error(error_message)
+                            pdf_url = None
 
                     publisher_in_excluded_list = publisher in [
                         "Wiley",
@@ -93,7 +121,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
                         "SAGE Publications",
                     ]
                     taylor_and_francis_in_url = (
-                        "tandfonline" in pdf_url if pdf_url else False
+                        "tandfonline" in str(pdf_url) if pdf_url else False
                     )
 
                     pdf_found = bool(
@@ -107,23 +135,40 @@ class UnpaywallFetcher(BasePublisherFetcher):
                             AnyUrl(pdf_url), pdf_path
                         )
                         if output_file_path:
-                            output_doi_paths[doi] = output_file_path
+                            output_items.append(
+                                RetrievedFullText(
+                                    doi=doi,
+                                    uid=uid,
+                                    pdf_path=output_file_path,
+                                )
+                            )
                         found_pdfs.append(uid)
                         logger.info(
                             f"Unpaywall download success for {uid=}, {doi=}: {pdf_url}"
                         )
                     else:
-                        logger.warning(f"Unpaywall PDF not found for {uid=}, {doi=}")
+                        warning_message = f"Unpaywall PDF not found for {uid=}, {doi=}"
+                        logger.warning(warning_message)
                         logger.warning(
                             f"{publisher=},"
                             f" {publisher_in_excluded_list=},"
                             f" {taylor_and_francis_in_url=}"
                         )
-                        output_doi_paths[doi] = None
+                        output_items.append(
+                            RetrievedFullText(
+                                doi=doi, uid=uid, pdf_path=None, error=warning_message
+                            )
+                        )
 
             except httpx.HTTPError as http_error:
-                logger.error(
+                error_message = (
                     f"HTTP error fetching Unpaywall data for {doi}: {http_error}"
+                )
+                logger.error(error_message)
+                output_items.append(
+                    RetrievedFullText(
+                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                    )
                 )
             except FullTextStreamError as fulltext_download_error:
                 error_message = (
@@ -131,5 +176,10 @@ class UnpaywallFetcher(BasePublisherFetcher):
                     f" - {fulltext_download_error}"
                 )
                 logger.error(error_message)
+                output_items.append(
+                    RetrievedFullText(
+                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                    )
+                )
         logger.info(f"{len(found_pdfs)} full texts found via Unpaywall")
-        return output_doi_paths
+        return output_items
