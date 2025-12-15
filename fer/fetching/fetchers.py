@@ -5,7 +5,8 @@ from pathlib import Path
 
 from fer.config import Settings
 from fer.fetching import BasePublisherFetcher
-from fer.fetching.core import BaseAuthError, StudyCollection
+from fer.fetching.core import BaseAuthError, RetrievedFullText, StudyCollection
+from fer.fetching.elsevier import ElsevierFetcher
 
 
 class FullTextFetcherError(Exception):
@@ -43,7 +44,10 @@ class FullTextFetcher:
         publisher_name: str,
         study_collection: StudyCollection,
         output_directory: Path | None = None,
-    ) -> dict[str, Path | None]:
+        *,
+        get_pdf: bool = True,
+        get_xml: bool = False,
+    ) -> list[RetrievedFullText]:
         """
         Fetch full-text articles from the specified publisher.
 
@@ -52,10 +56,12 @@ class FullTextFetcher:
             study_collection (StudyCollection): A collection of studies.
             output_directory (Path | None, optional): The directory to save the
                 fetched articles. Defaults to None.
+            get_pdf (bool, optional): Whether to fetch PDF files. Defaults to True.
+            get_xml (bool, optional): Whether to fetch XML files. Defaults to False.
 
         Returns:
-            dict[str, Path | None]: A dictionary mapping study DOIs to the paths of the
-                saved full text files.
+            list[RetrievedFullText]: A list of RetrievedFullText instances
+                representing the saved full text files.
 
         """
         fetcher = self.fetchers.get(publisher_name.lower())
@@ -65,6 +71,13 @@ class FullTextFetcher:
         if output_directory is None:
             output_directory = Path(tempfile.TemporaryDirectory(delete=False).name)
         try:
+            if isinstance(fetcher, ElsevierFetcher):
+                return await fetcher.fetch_many_full_texts(
+                    study_collection,
+                    output_directory,
+                    get_pdf=get_pdf,
+                    get_xml=get_xml,
+                )
             return await fetcher.fetch_many_full_texts(
                 study_collection, output_directory
             )

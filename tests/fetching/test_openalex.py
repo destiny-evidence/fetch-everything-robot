@@ -1,12 +1,9 @@
 """Unit tests for fer/fetching/openalex.py."""
 
-from uuid import uuid4
-
 import pytest
-from destiny_sdk.identifiers import DOIIdentifier, ExternalIdentifierType
 from httpx import HTTPError, Response
 
-from fer.fetching.core import FullTextStreamError, Study, StudyCollection
+from fer.fetching.core import FullTextStreamError
 from fer.fetching.openalex import OpenalexFetcher
 
 
@@ -19,7 +16,7 @@ def test_init(fetcher, test_settings):
     """Test initialization of OpenalexFetcher."""
     assert fetcher.settings == test_settings
     assert fetcher.wait_time_seconds == 0.0
-    assert fetcher.base_url == "https://api.openalex.org/works/doi:"
+    assert str(fetcher.base_url) == "https://api.openalex.org/works/"
     assert fetcher.query_params == {"mailto": "test@test.com"}
     assert fetcher.headers["User-Agent"] == "destiny-project-ucl"
 
@@ -39,7 +36,7 @@ async def test_get_work_success(mocker, fetcher):
     mock_client.return_value.__aenter__.return_value = mock_client_instance
     mock_client_instance.get.return_value = mock_response
 
-    result = await fetcher._get_work(doi)
+    result = await fetcher._get_work_doi(doi)
 
     assert result == expected_data
     mock_client_instance.get.assert_called_once()
@@ -63,7 +60,7 @@ async def test_get_work_http_error(mocker, fetcher):
     mock_client_instance.get.return_value = mock_response
 
     with pytest.raises(HTTPError):
-        await fetcher._get_work(doi)
+        await fetcher._get_work_doi(doi)
 
 
 def test_get_pdf_url_success(fetcher):
@@ -102,23 +99,13 @@ async def test_download_one_pdf(mocker, fetcher, temporary_test_file):
 
 
 @pytest.mark.asyncio
-async def test_fetch_many_full_texts_success(mocker, fetcher, tmp_path):
+async def test_fetch_many_full_texts_success(
+    mocker, fetcher, test_study_collection, tmp_path
+):
     """Test fetch_many_full_texts successfully downloads PDFs."""
-    test_uuid = uuid4()
-    study_collection = StudyCollection(
-        studies=[
-            Study(
-                doi=DOIIdentifier(
-                    identifier="10.1234/example",
-                    identifier_type=ExternalIdentifierType.DOI,
-                ),
-                uid=test_uuid,
-            ),
-        ]
-    )
-
+    test_uuids = [study.uid for study in test_study_collection.studies]
     mock_get_work = mocker.patch.object(
-        fetcher, "_get_work", new_callable=mocker.AsyncMock
+        fetcher, "_get_work_doi", new_callable=mocker.AsyncMock
     )
     mock_get_pdf_url = mocker.patch.object(fetcher, "_get_pdf_url")
     mock_download = mocker.patch.object(
@@ -126,82 +113,92 @@ async def test_fetch_many_full_texts_success(mocker, fetcher, tmp_path):
     )
     mock_sleep = mocker.patch("asyncio.sleep", new_callable=mocker.AsyncMock)
 
-    mock_get_work.return_value = {"some": "data"}
-    mock_get_pdf_url.return_value = "http://example.com/file.pdf"
-    mock_download.return_value = tmp_path / "uid_123.pdf"
-    results = await fetcher.fetch_many_full_texts(study_collection, tmp_path)
+    mock_get_work.side_effect = [{"some": "data"}, {"more": "data"}]
+    mock_get_pdf_url.side_effect = [
+        "http://example.com/file_one.pdf",
+        "http://example.com/file_two.pdf",
+    ]
+    mock_download.side_effect = [
+        tmp_path / f"{test_uuids[0]}.pdf",
+        tmp_path / f"{test_uuids[1]}.pdf",
+    ]
+    results = await fetcher.fetch_many_full_texts(test_study_collection, tmp_path)
 
-    assert (
-        results["10.1234/example"] == tmp_path / "uid_123.pdf"
-    ), "PDF path should match expected value"
-    mock_get_work.assert_called_once_with("10.1234/example")
-    mock_download.assert_called_once()
-    mock_sleep.assert_called_once_with(0.0)
+    assert all(
+        result.doi == study.doi.identifier.lower()
+        for result, study in zip(results, test_study_collection.studies, strict=False)
+    )
+    assert all(
+        result.uid == study.uid
+        for result, study in zip(results, test_study_collection.studies, strict=False)
+    )
+    assert all(
+        result.pdf_path == tmp_path / f"{study.uid}.pdf"
+        for result, study in zip(results, test_study_collection.studies, strict=False)
+    )
+
+    assert mock_get_work.call_count == len(test_study_collection.studies)
+    assert mock_download.call_count == len(test_study_collection.studies)
+    assert mock_sleep.call_count == len(test_study_collection.studies)
+    assert mock_sleep.call_args_list == [mocker.call(0.0), mocker.call(0.0)]
 
 
 @pytest.mark.asyncio
-async def test_fetch_many_full_texts_no_pdf(mocker, fetcher, tmp_path):
+async def test_fetch_many_full_texts_no_pdf(
+    mocker, fetcher, test_study_collection, tmp_path
+):
     """Test fetch_many_full_texts handles missing PDF URLs gracefully."""
-    test_uuid = uuid4()
-    study_collection = StudyCollection(
-        studies=[
-            Study(
-                doi=DOIIdentifier(
-                    identifier="10.1234/example",
-                    identifier_type=ExternalIdentifierType.DOI,
-                ),
-                uid=test_uuid,
-            ),
-        ]
-    )
-
     mock_get_work = mocker.patch.object(
-        fetcher, "_get_work", new_callable=mocker.AsyncMock
+        fetcher, "_get_work_doi", new_callable=mocker.AsyncMock
     )
     mock_get_pdf_url = mocker.patch.object(fetcher, "_get_pdf_url")
     mocker.patch("asyncio.sleep", new_callable=mocker.AsyncMock)
-    mock_get_work.return_value = {"some": "data"}
-    mock_get_pdf_url.return_value = None
-    results = await fetcher.fetch_many_full_texts(study_collection, tmp_path)
+    mock_get_work.side_effect = [{"some": "data"}, {"more": "data"}]
+    mock_get_pdf_url.side_effect = [None, None]
+    results = await fetcher.fetch_many_full_texts(test_study_collection, tmp_path)
 
-    assert (
-        results["10.1234/example"] is None
+    assert all(
+        result.doi == study.doi.identifier.lower()
+        for result, study in zip(results, test_study_collection.studies, strict=False)
+    )
+    assert all(
+        result.uid == study.uid
+        for result, study in zip(results, test_study_collection.studies, strict=False)
+    )
+    assert all(
+        result.pdf_path is None for result in results
     ), "PDF path should be None when no PDF URL is available"
 
 
 @pytest.mark.asyncio
-async def test_fetch_many_full_texts_http_error(mocker, fetcher, tmp_path):
+async def test_fetch_many_full_texts_http_error(
+    mocker, fetcher, test_study_collection, tmp_path
+):
     """Test fetch_many_full_texts handles HTTP errors gracefully."""
-    mock_study = mocker.MagicMock()
-    mock_study.doi.identifier = "10.1234/example"
-    mock_collection = mocker.MagicMock()
-    mock_collection.studies.return_value = [mock_study]
-
     mock_get_work = mocker.patch.object(
-        fetcher, "_get_work", new_callable=mocker.AsyncMock
+        fetcher, "_get_work_doi", new_callable=mocker.AsyncMock
     )
     mocker.patch("asyncio.sleep", new_callable=mocker.AsyncMock)
 
     mock_get_work.side_effect = HTTPError("API Error")
 
-    results = await fetcher.fetch_many_full_texts(mock_collection, tmp_path)
+    results = await fetcher.fetch_many_full_texts(test_study_collection, tmp_path)
 
-    # error caught, DOI not added to results
-    assert "10.1234/example" not in results
-    assert results == {}
+    assert all(
+        result.pdf_path is None for result in results
+    ), "PDF path should be None when HTTP error occurs"
+    assert all(
+        result.error is not None for result in results
+    ), "Error message should be present when HTTP error occurs"
 
 
 @pytest.mark.asyncio
-async def test_fetch_many_full_texts_stream_error(mocker, fetcher, tmp_path):
+async def test_fetch_many_full_texts_stream_error(
+    mocker, fetcher, test_study_collection, tmp_path
+):
     """Test fetch_many_full_texts handles download stream errors gracefully."""
-    mock_study = mocker.MagicMock()
-    mock_study.doi.identifier = "10.1234/example"
-    mock_study.uid = "uid_123"
-    mock_collection = mocker.MagicMock()
-    mock_collection.studies.return_value = [mock_study]
-
     mock_get_work = mocker.patch.object(
-        fetcher, "_get_work", new_callable=mocker.AsyncMock
+        fetcher, "_get_work_doi", new_callable=mocker.AsyncMock
     )
     mock_get_pdf_url = mocker.patch.object(fetcher, "_get_pdf_url")
     mock_download = mocker.patch.object(
@@ -212,5 +209,11 @@ async def test_fetch_many_full_texts_stream_error(mocker, fetcher, tmp_path):
     mock_get_work.return_value = {}
     mock_get_pdf_url.return_value = "http://url"
     mock_download.side_effect = FullTextStreamError("Stream failed")
-    results = await fetcher.fetch_many_full_texts(mock_collection, tmp_path)
-    assert results == {}
+    results = await fetcher.fetch_many_full_texts(test_study_collection, tmp_path)
+
+    assert all(
+        result.pdf_path is None for result in results
+    ), "PDF path should be None when stream error occurs"
+    assert all(
+        result.error is not None for result in results
+    ), "Error message should be present when stream error occurs"

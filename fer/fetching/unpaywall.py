@@ -4,13 +4,16 @@ from pathlib import Path
 
 import httpx
 from loguru import logger
-from pydantic import AnyUrl
+from pydantic import AnyUrl, HttpUrl, ValidationError
 
 from fer.config import Settings
+from fer.data_models.unpaywall import get_unpaywall_api_config
 from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import (
     AsyncHTTPXRetryClient,
     FullTextStreamError,
+    RetrievedFullText,
+    Study,
     StudyCollection,
     stream_file,
 )
@@ -28,7 +31,8 @@ class UnpaywallFetcher(BasePublisherFetcher):
 
         """
         self.settings = settings
-        self.base_url = "https://api.unpaywall.org/v2/"
+        self.api_config = get_unpaywall_api_config()
+        self.base_url = self.api_config.url
 
     async def download_one_pdf(
         self,
@@ -51,11 +55,162 @@ class UnpaywallFetcher(BasePublisherFetcher):
         """
         return await stream_file(url=pdf_url, destination=filepath, headers=headers)
 
+    def validate_pdf_url(self, doi: str, data: str | dict) -> HttpUrl | None:
+        """
+        Validate the PDF URL.
+
+        Args:
+            doi (str): The DOI of the study.
+            data (str | dict): The data to validate as a URL.
+
+        Returns:
+            HttpUrl | None: The validated HttpUrl or None if invalid.
+
+        """
+        try:
+            return HttpUrl(data) if isinstance(data, str) else None
+        except ValidationError:
+            error_message = f"Unpaywall: Invalid PDF URL for {doi}: {data}"
+            logger.error(error_message)
+            return None
+
+    async def retrieve_pdf_url(
+        self, pdf_strategy: list[str] | None, doi: str, data: dict
+    ) -> HttpUrl | None:
+        """
+        Retrieve the PDF URL using the provided strategy for a single study response.
+
+        Args:
+            pdf_strategy (list[str] | None): The list of keys to recursively
+                use to extract the PDF URL from the response data dictionary.
+            doi (str): The DOI of the study.
+            data (dict): The data dictionary containing study information.
+
+        Returns:
+            HttpUrl | None: The validated PDF URL or None if not found.
+
+        """
+        if not isinstance(pdf_strategy, list) or not pdf_strategy:
+            error_message = (
+                f"Unpaywall: Invalid PDF strategy provided for {doi}: {pdf_strategy}"
+            )
+            logger.error(error_message)
+            return None
+        for key in pdf_strategy:
+            if isinstance(data, dict) and key in data:
+                data = data.get(key, {})
+            else:
+                error_message = f"Unpaywall PDF key {key} not found for {doi}"
+                logger.error(error_message)
+                return None
+        return self.validate_pdf_url(doi, data)
+
+    async def process_single_study_response(
+        self, study: Study, output_directory: Path
+    ) -> RetrievedFullText:
+        """
+        Process a single study response from Unpaywall.
+
+        Args:
+            study (Study): The Study object to process.
+            output_directory (Path): The directory where the PDF should be saved.
+
+        Returns:
+            RetrievedFullText: The result of the PDF retrieval process.
+
+        """
+        doi = study.doi.identifier.lower()
+        uid = study.uid
+        url = f"{self.base_url}{doi}?email={self.settings.mailto}"
+
+        try:
+            async with AsyncHTTPXRetryClient() as client:
+                response = await client.get(url)
+                response.raise_for_status()
+                data = await response.json()
+                pdf_url: AnyUrl | None = None
+
+                publisher = data.get("publisher", "")
+                pdf_strategy = self.api_config.unpack_strategy.pdf_link_strategy
+                pdf_url = await self.retrieve_pdf_url(pdf_strategy, doi, data)
+                if pdf_url is None:
+                    warning_message = f"Unpaywall PDF URL not found for {uid=}, {doi=}"
+                    logger.error(warning_message)
+                    return RetrievedFullText(
+                        doi=doi,
+                        uid=uid,
+                        pdf_path=None,
+                        error=warning_message,
+                    )
+
+                publisher_in_excluded_list = publisher in [
+                    "Wiley",
+                    "Elsevier BV",
+                    "SAGE Publications",
+                ]
+                taylor_and_francis_in_url = (
+                    "tandfonline" in str(pdf_url) if pdf_url else False
+                )
+
+                pdf_found = bool(
+                    not publisher_in_excluded_list and not taylor_and_francis_in_url
+                )
+                if pdf_found:
+                    pdf_path = output_directory / f"{uid}.pdf"
+                    output_file_path = await self.download_one_pdf(
+                        AnyUrl(pdf_url), pdf_path
+                    )
+                    if output_file_path:
+                        logger.info(
+                            f"Unpaywall download success for {uid=}, {doi=}: {pdf_url}"
+                        )
+                        return RetrievedFullText(
+                            doi=doi,
+                            uid=uid,
+                            pdf_path=output_file_path,
+                        )
+                    return RetrievedFullText(
+                        doi=doi,
+                        uid=uid,
+                        pdf_path=None,
+                        error="Unpaywall PDF download failed.",
+                    )
+
+                warning_message = f"Unpaywall PDF not found for {uid=}, {doi=}"
+                logger.warning(warning_message)
+                logger.warning(
+                    f"{publisher=},"
+                    f" {publisher_in_excluded_list=},"
+                    f" {taylor_and_francis_in_url=}"
+                )
+                return RetrievedFullText(
+                    doi=doi, uid=uid, pdf_path=None, error=warning_message
+                )
+
+        except httpx.HTTPError as http_error:
+            error_message = (
+                f"HTTP error fetching Unpaywall data for {doi}: {http_error}"
+            )
+            logger.error(error_message)
+            return RetrievedFullText(
+                doi=doi, uid=uid, pdf_path=None, error=error_message
+            )
+        except FullTextStreamError as fulltext_download_error:
+            error_message = (
+                f"Error streaming Unpaywall data {uid}:{doi}"
+                f" - {fulltext_download_error}"
+            )
+            logger.error(error_message)
+            return RetrievedFullText(
+                doi=doi, uid=uid, pdf_path=None, error=error_message
+            )
+
     async def fetch_many_full_texts(
         self,
         study_collection: StudyCollection,
         output_directory: Path,
-    ) -> dict[str, Path | None]:
+        **kwargs: object,
+    ) -> list[RetrievedFullText]:
         """
         Fetch the full text of an Unpaywall article.
 
@@ -64,72 +219,20 @@ class UnpaywallFetcher(BasePublisherFetcher):
             output_directory (Path): The output directory path.
 
         Returns:
-            dict[str, Path | None]: A dictionary mapping DOIs to the paths of the
-                saved PDF files
+            list[RetrievedFullText]: A list of RetrievedFullText instances
+                representing the saved PDF files.
 
         """
+        _ = kwargs
         output_directory.mkdir(parents=True, exist_ok=True)
 
         found_pdfs = []
-        output_doi_paths: dict[str, Path | None] = {}
+        output_items: list[RetrievedFullText] = []
         for study in study_collection.studies:
-            doi = study.doi.identifier.lower()
-            uid = study.uid
-            url = f"{self.base_url}{doi}?email={self.settings.mailto}"
+            result = await self.process_single_study_response(study, output_directory)
+            output_items.append(result)
+            if result.pdf_path is not None:
+                found_pdfs.append(result.uid)
 
-            try:
-                async with AsyncHTTPXRetryClient() as client:
-                    response = await client.get(url)
-                    response.raise_for_status()
-                    data = await response.json()
-                    pdf_url: str | None = None
-                    if data.get("best_oa_location"):
-                        pdf_url = data["best_oa_location"].get("url_for_pdf")
-                    publisher = data.get("publisher", "")
-
-                    publisher_in_excluded_list = publisher in [
-                        "Wiley",
-                        "Elsevier BV",
-                        "SAGE Publications",
-                    ]
-                    taylor_and_francis_in_url = (
-                        "tandfonline" in pdf_url if pdf_url else False
-                    )
-
-                    pdf_found = bool(
-                        pdf_url
-                        and not publisher_in_excluded_list
-                        and not taylor_and_francis_in_url
-                    )
-                    if pdf_found and pdf_url is not None:
-                        pdf_path = output_directory / f"{uid}.pdf"
-                        output_file_path = await self.download_one_pdf(
-                            AnyUrl(pdf_url), pdf_path
-                        )
-                        if output_file_path:
-                            output_doi_paths[doi] = output_file_path
-                        found_pdfs.append(uid)
-                        logger.info(
-                            f"Unpaywall download success for {uid=}, {doi=}: {pdf_url}"
-                        )
-                    else:
-                        logger.warning(f"Unpaywall PDF not found for {uid=}, {doi=}")
-                        logger.warning(
-                            f"{publisher=},"
-                            f" {publisher_in_excluded_list=},"
-                            f" {taylor_and_francis_in_url=}"
-                        )
-                        output_doi_paths[doi] = None
-
-            except httpx.HTTPError as http_error:
-                logger.error(
-                    f"HTTP error fetching Unpaywall data for {doi}: {http_error}"
-                )
-            except FullTextStreamError as fulltext_download_error:
-                error_message = (
-                    f"Error streaming Unpaywall data {uid}:{doi}"
-                    f" - {fulltext_download_error}"
-                )
-                logger.error(error_message)
         logger.info(f"{len(found_pdfs)} full texts found via Unpaywall")
-        return output_doi_paths
+        return output_items

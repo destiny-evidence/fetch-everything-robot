@@ -19,6 +19,7 @@ class ExternalAPI(StrEnum):
     CROSSREF = auto()
     SCOPUS = auto()
     UNPAYWALL = auto()
+    OPENALEX = auto()
 
 
 class QueryType(StrEnum):
@@ -44,9 +45,10 @@ class ExternalAPIPriority(BaseModel):
 external_api_priority = ExternalAPIPriority(
     name="fulltext",
     priorities={
-        ExternalAPI.CROSSREF: 1,
-        ExternalAPI.UNPAYWALL: 2,
-        ExternalAPI.SCOPUS: 3,
+        ExternalAPI.OPENALEX: 1,
+        ExternalAPI.CROSSREF: 2,
+        ExternalAPI.UNPAYWALL: 3,
+        ExternalAPI.SCOPUS: 4,
     },
 )
 

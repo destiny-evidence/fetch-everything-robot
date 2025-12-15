@@ -2,20 +2,26 @@
 
 import asyncio
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from httpx import HTTPError
 from loguru import logger
 from pydantic import AnyUrl
 
 from fer.config import Settings
+from fer.data_models.openalex import get_openalex_api_config
 from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import (
     AsyncHTTPXRetryClient,
     FullTextStreamError,
+    RetrievedFullText,
     StudyCollection,
     stream_file,
 )
 from fer.utils import format_doi, validate_doi
+
+if TYPE_CHECKING:
+    from fer.data_models.generic import APIConfig
 
 
 class OpenAlexAPIError(Exception):
@@ -31,33 +37,37 @@ class OpenalexFetcher(BasePublisherFetcher):
 
     def __init__(self, settings: Settings, wait_time_seconds: float = 2.0) -> None:
         """
-        Init an OpenAlex fetcher instance.
+        Initialise an OpenAlex fetcher instance.
 
         Args:
             settings (Settings): The settings to use for the fetcher.
-            wait_time_seconds (float, optional): Wait time b/w requests.
+            wait_time_seconds (float, optional): Wait time between requests.
 
         """
         self.settings = settings
         self.wait_time_seconds = wait_time_seconds
-        # @harryjmoss below could come from api-config also...
-        self.base_url: str = (
-            "https://api.openalex.org/works/doi:"  # right now just for DOI
-        )
-        self.query_params: dict = {"mailto": settings.mailto}
-        self.headers: dict = {
-            "User-Agent": "destiny-project-ucl",
-            "Accept": "application/json",
-        }
+        self.api_config: APIConfig = get_openalex_api_config(settings)
+        self.base_url: AnyUrl = self.api_config.url
+        self.query_params: dict | None = self.api_config.query_params
+        self.headers: dict = self.api_config.headers
 
-    async def _get_work(self, doi: str) -> dict:
-        """Run a GET request from OA API to get one work by DOI."""
+    async def _get_work_doi(self, doi: str) -> dict:
+        """
+        Run a GET request from OA API to get one work by DOI.
+
+        Args:
+            doi (str): The DOI to look up.
+
+        Returns:
+            dict: The JSON response from the OA API.
+
+        """
         doi_fmtd = format_doi(doi)
         doi_valid = validate_doi(doi_fmtd)
 
         async with AsyncHTTPXRetryClient() as client:
             response = await client.get(
-                url=self.base_url + doi_valid,
+                url=f"{self.base_url!s}doi:{doi_valid}",
                 headers=self.headers,
                 params=self.query_params,
             )
@@ -66,7 +76,18 @@ class OpenalexFetcher(BasePublisherFetcher):
         return response.json()
 
     def _get_pdf_url(self, response_object: dict) -> AnyUrl | None:
-        """Retrieve best pdf URL if available."""
+        """
+        Extract the PDF URL from the OpenAlex response object.
+
+        Retrieves the best pdf URL, if available.
+
+        Args:
+            response_object (dict): The response object from OpenAlex API.
+
+        Returns:
+            AnyUrl | None: The PDF URL if found, else None.
+
+        """
         if "locations" not in response_object:
             return None
         locations = response_object["locations"]
@@ -99,8 +120,11 @@ class OpenalexFetcher(BasePublisherFetcher):
         return await stream_file(url=pdf_url, destination=filepath, headers=headers)
 
     async def fetch_many_full_texts(
-        self, study_collection: StudyCollection, output_directory: Path
-    ) -> dict[str, Path | None]:
+        self,
+        study_collection: StudyCollection,
+        output_directory: Path,
+        **kwargs: object,
+    ) -> list[RetrievedFullText]:
         """
         Fetch full text for a given StudyCollection and save them to output_directory.
 
@@ -110,33 +134,58 @@ class OpenalexFetcher(BasePublisherFetcher):
             output_directory (Path): The directory where the full text should be saved.
 
         Returns:
-            dict[str, Path | None]: A dictionary mapping DOIs to the paths
+            list[RetrievedFullText]: A list of RetrievedFullText instances
+                representing the saved PDF files.
 
         """
+        _ = kwargs
         output_directory.mkdir(parents=True, exist_ok=True)
-        output_doi_paths: dict[str, Path | None] = {}
+        output_items: list[RetrievedFullText] = []
         for study in study_collection.studies:
             try:
                 doi = study.doi.identifier.lower()
                 uid = study.uid
-                work = await self._get_work(doi)
+                work = await self._get_work_doi(doi)
                 pdf_url = self._get_pdf_url(work)
                 pdf_path: Path | None = None
                 if pdf_url is not None:
                     pdf_path = await self.download_one_pdf(
                         pdf_url=pdf_url, filepath=output_directory / f"{uid}.pdf"
                     )
+                    output_items.append(
+                        RetrievedFullText(
+                            doi=doi,
+                            uid=uid,
+                            pdf_path=pdf_path,
+                        )
+                    )
                 else:
-                    logger.warning(f"No pdf for doi {doi}.")
-                output_doi_paths[doi] = pdf_path
-
+                    warning_message = f"No PDF found for {doi=}."
+                    output_items.append(
+                        RetrievedFullText(
+                            doi=doi, uid=uid, pdf_path=None, error=warning_message
+                        )
+                    )
             except OpenAlexAPIError as openalex_error:
-                logger.error(
+                error_message = (
                     f"Openalex API error fetching data for {doi}: {openalex_error}"
                 )
+
+                logger.error(error_message)
+                output_items.append(
+                    RetrievedFullText(
+                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                    )
+                )
             except HTTPError as http_error:
-                logger.error(
+                error_message = (
                     f"HTTP error fetching Openalex data for {doi}: {http_error}"
+                )
+                logger.error(error_message)
+                output_items.append(
+                    RetrievedFullText(
+                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                    )
                 )
             except FullTextStreamError as fulltext_download_error:
                 error_message = (
@@ -144,10 +193,15 @@ class OpenalexFetcher(BasePublisherFetcher):
                     f" {fulltext_download_error}"
                 )
                 logger.error(error_message)
+                output_items.append(
+                    RetrievedFullText(
+                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                    )
+                )
 
             logger.debug(
                 f"Sleeping {self.wait_time_seconds} seconds before next request..."
             )
             await asyncio.sleep(self.wait_time_seconds)
 
-        return output_doi_paths
+        return output_items

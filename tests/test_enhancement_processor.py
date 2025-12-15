@@ -1,5 +1,4 @@
 import uuid
-from pathlib import Path
 
 import pytest
 from destiny_sdk.references import Reference
@@ -11,6 +10,7 @@ from fer.enhancement_processor import (
     FullTextEnhancementProcessor,
     MissingDOIError,
 )
+from fer.fetching.core import RetrievedFullText
 
 
 @pytest.mark.asyncio
@@ -63,71 +63,43 @@ async def test_process_batch_full_batch_failure(
 async def test_generate_fulltext_success(
     mocker,
     test_fulltext_enhancement_processor: FullTextEnhancementProcessor,
-    temporary_test_file: Path,
+    test_fetch_two_results_success: list[RetrievedFullText],
+    test_references: list[Reference],
 ):
-    test_two_references = [
-        Reference(
-            id=uuid.uuid4(),
-            identifiers=[
-                {"identifier": "10.1093/ajae/aaq063", "identifier_type": "doi"}
-            ],
-            enhancements=[],
-        ),
-        Reference(
-            id=uuid.uuid4(),
-            identifiers=[
-                {"identifier": "10.1093/ajae/aaq064", "identifier_type": "doi"}
-            ],
-            enhancements=[],
-        ),
-    ]
     fetch_mock = mocker.patch(
         "fer.fetching.fetchers.FullTextFetcher.fetch",
-        return_value={
-            str(test_two_references[0].identifiers[0].identifier): temporary_test_file,
-            str(test_two_references[1].identifiers[0].identifier): temporary_test_file,
-        },
+        return_value=test_fetch_two_results_success,
     )
 
     await test_fulltext_enhancement_processor.generate_fulltext(
-        references=test_two_references,
+        references=test_references,
     )
 
-    fetch_mock.assert_called_once()
+    assert (
+        fetch_mock.call_count == 1
+    ), "Expect that the fetcher is called once with success on the first API attempt"
 
 
 @pytest.mark.asyncio
 async def test_generate_fulltext_total_failure_no_fulltexts_found(
     mocker,
     test_fulltext_enhancement_processor,
+    test_fetch_two_results_full_error,
+    test_references,
 ):
-    test_two_references = [
-        Reference(
-            id=uuid.uuid4(),
-            identifiers=[
-                {"identifier": "10.1093/ajae/aaq063", "identifier_type": "doi"}
-            ],
-            enhancements=[],
-        ),
-        Reference(
-            id=uuid.uuid4(),
-            identifiers=[
-                {"identifier": "10.1093/ajae/aaq064", "identifier_type": "doi"}
-            ],
-            enhancements=[],
-        ),
-    ]
-
     fetch_mock = mocker.patch(
         "fer.fetching.fetchers.FullTextFetcher.fetch",
-        side_effect=[None, {"10.1093/ajae/aaq064": None}],
+        return_value=test_fetch_two_results_full_error,
     )
+
     with pytest.raises(BatchEnhancementGenerationError):
         await test_fulltext_enhancement_processor.generate_fulltext(
-            references=test_two_references,
+            references=test_references,
         )
 
-    fetch_mock.assert_called_once()
+    assert fetch_mock.call_count == len(
+        test_fulltext_enhancement_processor.available_api_configs
+    ), "Expect that all available APIs are tried."
 
 
 @pytest.mark.asyncio
@@ -161,55 +133,45 @@ async def test_generate_fulltext_total_failure_single_missing_doi(
 @pytest.mark.asyncio
 async def test_generate_fulltext_partial_success_empty_fulltexts_found_for_some_references(
     mocker,
-    temporary_test_file,
     test_fulltext_enhancement_processor,
+    test_references,
+    test_fetch_results_single_success,
+    test_fetch_results_single_failure,
 ):
-    test_two_references = [
-        Reference(
-            id=uuid.uuid4(),
-            identifiers=[
-                {"identifier": "10.1093/ajae/aaq063", "identifier_type": "doi"}
-            ],
-            enhancements=[],
-        ),
-        Reference(
-            id=uuid.uuid4(),
-            identifiers=[
-                {"identifier": "10.1093/ajae/aaq064", "identifier_type": "doi"}
-            ],
-            enhancements=[],
-        ),
-    ]
-    test_fetch_results = [
-        {str(test_two_references[0].identifiers[0].identifier): temporary_test_file},
-        {str(test_two_references[1].identifiers[0].identifier): None},
-    ]
-
     expected_results = [
         {
-            "doi": test_two_references[0].identifiers[0].identifier,
-            "fulltext_path": str(temporary_test_file),
+            "doi": test_references[0].identifiers[0].identifier,
+            "fulltext_path": str(test_fetch_results_single_success[0].pdf_path),
             "source": test_fulltext_enhancement_processor.available_api_configs[
                 0
             ].name.value.upper(),
         },
         {
-            "doi": test_two_references[1].identifiers[0].identifier,
+            "doi": test_references[1].identifiers[0].identifier,
             "fulltext_path": None,
             "source": None,
         },
     ]
 
+    n_available_api_configs = len(
+        test_fulltext_enhancement_processor.available_api_configs
+    )
+    expected_fetch_results_array = [test_fetch_results_single_success] + [
+        test_fetch_results_single_failure
+    ] * (n_available_api_configs - 1)
     fetch_mock = mocker.patch(
         "fer.fetching.fetchers.FullTextFetcher.fetch",
-        side_effect=test_fetch_results,
+        side_effect=expected_fetch_results_array,
     )
 
     results = await test_fulltext_enhancement_processor.generate_fulltext(
-        references=test_two_references,
+        references=test_references,
     )
 
-    fetch_mock.assert_called_once()
+    assert fetch_mock.call_count == n_available_api_configs, (
+        "Expect that the fetcher is called for each available API until all fulltexts"
+        " are either found or all APIs are exhausted."
+    )
 
     assert results == expected_results
 

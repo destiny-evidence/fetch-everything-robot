@@ -19,11 +19,11 @@ def test_external_priorities_dict() -> dict[ExternalAPI, int]:
             Dictionary of the configured external API priorities.
 
     """
-    # TODO @harryjmoss: Re-Enable when multiple API configs are supported
-    # https://github.com/destiny-evidence/fetch-everything-robot/issues/9
     return {
-        # ExternalAPI.OPENALEX: 1,
-        ExternalAPI.SCOPUS: 1,
+        ExternalAPI.OPENALEX: 1,
+        ExternalAPI.CROSSREF: 2,
+        ExternalAPI.UNPAYWALL: 3,
+        ExternalAPI.SCOPUS: 4,
     }
 
 
@@ -67,6 +67,6 @@ def invalid_api_config() -> APIConfig:
         headers={"Authorization": "Bearer fake_token", "api_key_placement": ""},
         unpack_strategy=FullTextUnpackStrategy(
             source=ExternalAPI.SCOPUS,
-            strategy=["data", "fulltext_xml"],
+            xml_strategy=["data", "fulltext_xml"],
         ),
     )

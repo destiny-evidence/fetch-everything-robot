@@ -12,12 +12,8 @@ from destiny_sdk.identifiers import DOIIdentifier
 from loguru import logger
 
 from fer.config import Settings
-from fer.data_models.generic import (
-    APIConfig,
-    FullTextUnpackStrategy,
-)
 from fer.fetching import BasePublisherFetcher
-from fer.fetching.core import StudyCollection
+from fer.fetching.core import RetrievedFullText, StudyCollection
 from fer.fetching.fetchers import FullTextFetcher, FullTextFetcherError
 from fer.utils import InvalidDOIError, validate_doi
 
@@ -126,16 +122,24 @@ class FullTextBatchFetcher:
         return valid_dois, invalid_dois
 
     async def get_many_fulltext_pdfs_cycling_apis(
-        self, input_study_collection: StudyCollection
-    ) -> list[dict[str, Path | None]]:
+        self,
+        input_study_collection: StudyCollection,
+        output_directory: Path | None = None,
+        *,
+        get_pdf: bool = True,
+        get_xml: bool = False,
+    ) -> list[dict[str, str | Path | None]]:
         """
         Get many full texts from a list of DOIs, cycling APIs in order of priority.
 
         Args:
             input_study_collection (StudyCollection): Input collection of studies.
+            output_directory (Path | None, optional): Directory to save full texts.
+            get_pdf (bool, optional): Whether to fetch PDF files. Defaults to True.
+            get_xml (bool, optional): Whether to fetch XML files. Defaults to False.
 
         Returns:
-            list[dict[str, Path | None]]: A list of dictionaries containing:
+            list[dict[str, str | Path | None]]: A list of dictionaries containing:
                 - 'doi': The DOI string.
                 - 'fulltext_path': Path to the downloaded full text PDF or None.
                 - 'source': The API source name or None.
@@ -152,7 +156,7 @@ class FullTextBatchFetcher:
             f"Valid references provided: {valid_references_provided} "
             f"of {len(input_study_collection.studies)} studies."
         )
-        retrieved_fulltexts = []
+        retrieved_fulltexts: list[dict] = []
 
         for api_name in self.all_api_configs["fulltext"]:
             if len(valid_dois) == 0:
@@ -160,14 +164,16 @@ class FullTextBatchFetcher:
                 break
             logger.info(f"Fetching full texts from API: {api_name}")
             api_count = 0
-            api_config: APIConfig = self.all_api_configs["fulltext"][api_name]
 
             try:
-                retrieved_responses: dict[
-                    str, Path | None
+                retrieved_responses: list[
+                    RetrievedFullText
                 ] = await self.full_text_fetcher.fetch(
                     publisher_name=api_name,
                     study_collection=input_study_collection,
+                    output_directory=output_directory,
+                    get_pdf=get_pdf,
+                    get_xml=get_xml,
                 )
             except FullTextFetcherError as fetcher_error:
                 error_message = (
@@ -178,12 +184,12 @@ class FullTextBatchFetcher:
 
             found_responses = False
             if retrieved_responses:
-                for doi, pdf_path in retrieved_responses.items():
-                    if pdf_path is not None:
+                for item in retrieved_responses:
+                    if item.pdf_path is not None:
                         found_responses = True
-                        doi_to_remove = doi
+                        doi_to_remove = item.doi
 
-                        logger.info(f"Full text found for {doi} from {api_name}.")
+                        logger.info(f"Full text found for {item.doi} from {api_name}.")
                         valid_dois.remove(self.process_doi(doi_to_remove))
                         logger.info(
                             f"Got full text for doi {doi_to_remove} from {api_name}. "
@@ -192,16 +198,13 @@ class FullTextBatchFetcher:
                         api_count += 1
                         retrieved_fulltexts.append(
                             {
-                                "doi": doi,
-                                "fulltext_path": str(pdf_path),
+                                "doi": item.doi,
+                                "fulltext_path": str(item.pdf_path),
                                 "source": api_name,
                             }
                         )
             if not found_responses:
-                error_message = (
-                    f"No full texts found in {api_name} with"
-                    f" query type {api_config.query_type.value}."
-                )
+                error_message = f"No full texts found in {api_name}."
                 logger.error(error_message)
 
             logger.debug(f"Found {api_count} full texts for api {api_name}.")
@@ -267,53 +270,3 @@ class FullTextBatchFetcher:
             # fallback: strip tags with regex
             cleaned = re.sub(r"<[^>]+>", "", full_text_xml)
             return cleaned.strip()
-
-    def unpack_one_full_text(
-        self,
-        response_obj: dict,
-        strategy: FullTextUnpackStrategy,
-    ) -> str:
-        """
-        Unpack plain text of the full text using an unpack strategy.
-
-        If our `FullTextUnpackStrategy` has field `clean_full_text_string`
-        set to `True`, we will run the `clean_full_text_string` method.
-
-        Args:
-            response_obj (dict): JSON response object from the API.
-            strategy (FullTextUnpackStrategy): Unpack strategy to use.
-
-        Returns:
-            str: The plain text extracted from the response object.
-
-        Raises:
-            FullTextUnpackError: If unpacking the full text fails.
-
-        """
-        raise NotImplementedError
-
-    @staticmethod
-    def _traverse(nested_full_text_dict: dict, path: list[str]) -> list | str | None:
-        """
-        Traverse a nested dictionary using a list of keys.
-
-        TODO @harryjmoss: Re-write for full text cases.
-        https://github.com/destiny-evidence/fetch-everything-robot/issues/9
-
-        Args:
-            nested_full_text_dict (dict): The nested dictionary to traverse.
-            path (list[str]): A list of keys representing the path to traverse.
-
-        Returns:
-            list | str | None: A list found in the response with corresponding key, or a
-            string if found in the case of individual DOIs and full texts.
-            Returns None if not found.
-
-        """
-        raise NotImplementedError
-
-    def unpack_many_full_texts(
-        self, response_obj: dict | list, strategy: FullTextUnpackStrategy
-    ) -> list[dict]:
-        """Unpack many full texts using strategy and doi_strategy."""
-        raise NotImplementedError

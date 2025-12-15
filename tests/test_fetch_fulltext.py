@@ -9,8 +9,6 @@ from fer.fetching.core import BaseAuthError
 from fer.fetching.fetchers import FullTextFetcher
 
 
-# TODO @harryjmoss: Re-Enable when multiple API configs are supported
-# https://github.com/destiny-evidence/fetch-everything-robot/issues/9
 @pytest.mark.parametrize(
     "expected_headers",
     [
@@ -20,7 +18,9 @@ from fer.fetching.fetchers import FullTextFetcher
                 "X-Inst-Token": "dummy_inst_token",
             }
         },
-        # {"OPENALEX": {"Accept": "application/json"}},
+        {"OPENALEX": {"Accept": "application/json"}},
+        {"CROSSREF": {"Accept": "application/json"}},
+        {"UNPAYWALL": {"Accept": "application/json"}},
     ],
 )
 def test_prepare_api_config_success(
@@ -54,26 +54,24 @@ def test_prepare_api_config_missing_key(
         assert value == {}
 
 
-@pytest.mark.parametrize(
-    "api_config_fixture",
-    [
-        {
-            "fulltext": "scopus_api_config_valid_batch",
-        },
-    ],
-)
 def test_full_text_fetcher_init_logs(
-    mocker, request, api_config_fixture, test_settings, test_publisher_dict
+    mocker, request, test_available_api_configs, test_settings, test_publisher_dict
 ):
-    api_config_fulltext = request.getfixturevalue(api_config_fixture["fulltext"])
     mock_logger = mocker.patch("fer.fetch_fulltext.logger")
-    all_api_configs = prepare_api_config([api_config_fulltext], test_settings)
+    all_api_configs = prepare_api_config(test_available_api_configs, test_settings)
     fetcher = FullTextBatchFetcher(test_settings, all_api_configs, test_publisher_dict)
     mock_logger.info.assert_any_call(
         "Available external APIs in descending order of priority:"
     )
-    for external_api_name in all_api_configs["fulltext"]:
-        assert external_api_name == api_config_fulltext.name.value.upper()
+    assert all(
+        external_api_name.upper() == api_config.name.value.upper()
+        for external_api_name, api_config in zip(
+            all_api_configs["fulltext"].keys(),
+            test_available_api_configs,
+            strict=False,
+        )
+    )
+
     assert fetcher.timeout == 60
 
 
@@ -159,33 +157,50 @@ def test_process_doi_tolower():
 @pytest.mark.asyncio
 async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_non_none_pdf_paths(
     mocker,
+    test_prepared_available_api_configs,
     test_settings,
     test_study_collection,
     test_publisher_dict,
-    scopus_api_config_valid_batch,
-    temporary_test_file,
+    test_fetch_results_single_success,
+    test_fetch_results_single_failure,
 ):
-    test_publisher_name = "test_publisher"
-    all_api_configs = {"fulltext": {test_publisher_name: scopus_api_config_valid_batch}}
+    n_available_api_configs = len(test_prepared_available_api_configs["fulltext"])
+    expected_fetch_results_array = [test_fetch_results_single_success] + [
+        test_fetch_results_single_failure
+    ] * (n_available_api_configs - 1)
 
-    doi1 = test_study_collection.studies[0].doi.identifier
-    doi2 = test_study_collection.studies[1].doi.identifier
-
-    expected_fulltext_found_result = {doi1: temporary_test_file}
-    expected_fulltext_not_found_result = {doi2: None}
+    unique_expected_successes = len(
+        [
+            result[0]
+            for result in expected_fetch_results_array
+            if result[0].pdf_path is not None
+        ]
+    )
+    expected_failure_array = [
+        result[0]
+        for result in expected_fetch_results_array
+        if result[0].pdf_path is None
+    ]
+    unique_expected_failures = len(
+        {result.doi: result for result in expected_failure_array}
+    )
     mock_fetch = mocker.patch(
         "fer.fetching.fetchers.FullTextFetcher.fetch",
-        side_effect=[
-            expected_fulltext_found_result,
-            expected_fulltext_not_found_result,
-        ],
+        side_effect=expected_fetch_results_array,
     )
 
-    fetcher = FullTextBatchFetcher(test_settings, all_api_configs, test_publisher_dict)
+    fetcher = FullTextBatchFetcher(
+        test_settings, test_prepared_available_api_configs, test_publisher_dict
+    )
 
     results = await fetcher.get_many_fulltext_pdfs_cycling_apis(test_study_collection)
 
-    mock_fetch.assert_called_once()
+    assert mock_fetch.call_count == len(
+        test_prepared_available_api_configs["fulltext"]
+    ), (
+        "Expect that the fetcher is called for each available API until all fulltexts"
+        " are either found or all APIs are exhausted."
+    )
 
     found_fulltext = [
         result for result in results if result["fulltext_path"] is not None
@@ -194,15 +209,17 @@ async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_non_none_pdf_paths(
         result for result in results if result["fulltext_path"] is None
     ]
 
-    assert len(found_fulltext) == len(expected_fulltext_found_result.keys())
-    assert len(not_found_fulltext) == len(expected_fulltext_not_found_result.keys())
+    assert len(found_fulltext) == unique_expected_successes
+    assert len(not_found_fulltext) == unique_expected_failures
 
     assert all(
-        found_result["fulltext_path"] == str(temporary_test_file)
+        found_result["fulltext_path"]
+        == str(test_fetch_results_single_success[0].pdf_path)
         for found_result in found_fulltext
     )
     assert all(
-        found_result["source"] == test_publisher_name for found_result in found_fulltext
+        found_result["source"] in test_prepared_available_api_configs["fulltext"]
+        for found_result in found_fulltext
     )
     assert all(
         not_found_result["fulltext_path"] is None

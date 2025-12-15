@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 import pytest
-from destiny_sdk.identifiers import DOIIdentifier
+from destiny_sdk.identifiers import DOIIdentifier, ExternalIdentifierType
 
 from fer.fetching.core import Study, StudyCollection
 
@@ -12,11 +12,15 @@ def test_study_collection() -> StudyCollection:
     studies = [
         Study(
             uid=uuid4(),
-            doi=DOIIdentifier(identifier="10.1000/xyz123", identifier_type="doi"),
+            doi=DOIIdentifier(
+                identifier="10.1000/xyz123", identifier_type=ExternalIdentifierType.DOI
+            ),
         ),
         Study(
             uid=uuid4(),
-            doi=DOIIdentifier(identifier="10.1000/abc456", identifier_type="doi"),
+            doi=DOIIdentifier(
+                identifier="10.1000/abc456", identifier_type=ExternalIdentifierType.DOI
+            ),
         ),
     ]
     return StudyCollection(studies=studies)
