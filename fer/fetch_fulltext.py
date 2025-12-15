@@ -124,6 +124,7 @@ class FullTextBatchFetcher:
     async def get_many_fulltext_pdfs_cycling_apis(
         self,
         input_study_collection: StudyCollection,
+        output_directory: Path | None = None,
         *,
         get_pdf: bool = True,
         get_xml: bool = False,
@@ -133,6 +134,7 @@ class FullTextBatchFetcher:
 
         Args:
             input_study_collection (StudyCollection): Input collection of studies.
+            output_directory (Path | None, optional): Directory to save full texts.
             get_pdf (bool, optional): Whether to fetch PDF files. Defaults to True.
             get_xml (bool, optional): Whether to fetch XML files. Defaults to False.
 
@@ -169,6 +171,7 @@ class FullTextBatchFetcher:
                 ] = await self.full_text_fetcher.fetch(
                     publisher_name=api_name,
                     study_collection=input_study_collection,
+                    output_directory=output_directory,
                     get_pdf=get_pdf,
                     get_xml=get_xml,
                 )
