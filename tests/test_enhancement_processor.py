@@ -75,12 +75,9 @@ async def test_generate_fulltext_success(
         references=test_references,
     )
 
-    (
-        fetch_mock.assert_called_once(),
-        (
-            "Expect that the fetcher is called once with success on the first API attempt"
-        ),
-    )
+    assert (
+        fetch_mock.call_count == 1
+    ), "Expect that the fetcher is called once with success on the first API attempt"
 
 
 @pytest.mark.asyncio
