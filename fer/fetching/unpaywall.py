@@ -60,7 +60,8 @@ class UnpaywallFetcher(BasePublisherFetcher):
         Validate the PDF URL.
 
         Args:
-            pdf_url (str): The PDF URL to validate.
+            doi (str): The DOI of the study.
+            data (str | dict): The data to validate as a URL.
 
         Returns:
             HttpUrl | None: The validated HttpUrl or None if invalid.
