@@ -34,7 +34,7 @@ def get_openalex_api_config(settings: Settings) -> APIConfig:
         name="openalex",
         url=openalex_url,
         require_api_key=True,
-        api_key_env_var_name="openalex_api_key",  # pragma: allowlist secret
+        api_key_env_var_name="openalex_key",  # pragma: allowlist secret
         api_key_placement="api_key",  # pragma: allowlist secret
         headers=openalex_headers,
         query_type=QueryType.BATCH,
