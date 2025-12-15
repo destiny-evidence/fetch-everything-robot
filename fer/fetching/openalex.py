@@ -67,7 +67,7 @@ class OpenalexFetcher(BasePublisherFetcher):
 
         async with AsyncHTTPXRetryClient() as client:
             response = await client.get(
-                url=str(self.base_url) + "doi:" + doi_valid,
+                url=f"{self.base_url!s}doi:{doi_valid}",
                 headers=self.headers,
                 params=self.query_params,
             )
