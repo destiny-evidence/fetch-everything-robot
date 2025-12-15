@@ -41,13 +41,13 @@ class FullTextUnpackStrategy(BaseModel):
     doi_strategy: list[str] | None = Field(
         default=None, description="Strategy for unpacking DOI from response. Optional."
     )
-    pdf_link_strategy: list[str] | list[list] | None = Field(
+    pdf_link_strategy: list[str] | None = Field(
         default=None,
         description="""A list of keys to sequentially
         pass to the json response object to retrieve
         PDF link. Optional.""",
     )
-    xml_strategy: list[str] | list[list] | None = Field(
+    xml_strategy: list[str] | None = Field(
         default=None,
         description="""A list of keys to sequentially
         pass to the json response object to retrieve
