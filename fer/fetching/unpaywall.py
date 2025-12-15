@@ -112,11 +112,11 @@ class UnpaywallFetcher(BasePublisherFetcher):
         Process a single study response from Unpaywall.
 
         Args:
-            study (Study): _description_
-            output_directory (Path): _description_
+            study (Study): The Study object to process.
+            output_directory (Path): The directory where the PDF should be saved.
 
         Returns:
-            RetrievedFullText: _description_
+            RetrievedFullText: The result of the PDF retrieval process.
 
         """
         doi = study.doi.identifier.lower()

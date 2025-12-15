@@ -116,8 +116,10 @@ class APIConfig(BaseModel):
             values["headers"] is not None
             and values["api_key_placement"] not in values["headers"]
         ):
-            error_message = f"api_key_placement '{values['api_key_placement']}'"
-            "must be in the values dict"
+            error_message = (
+                f"api_key_placement '{values['api_key_placement']}'"
+                " must be in the values dict"
+            )
             raise ValueError(error_message)
         return values
 
