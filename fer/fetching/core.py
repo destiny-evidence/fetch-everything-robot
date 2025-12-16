@@ -168,7 +168,7 @@ async def stream_file(
         return destination
 
     try:
-        client = httpx.AsyncClient()
+        client = httpx.AsyncClient(follow_redirects=True)
         async with client.stream("GET", str(url), headers=headers) as response:
             response.raise_for_status()
             with destination.open("wb") as destination_file:

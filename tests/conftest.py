@@ -234,7 +234,7 @@ class DummyPublisherFetcher(BasePublisherFetcher):
         async with httpx.AsyncClient() as client:
             response = await client.get("https://example.com/test")
         response.raise_for_status()
-        return await response.json()
+        return response.json()
 
 
 @pytest.fixture

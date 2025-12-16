@@ -156,6 +156,13 @@ class FullTextBatchFetcher:
             f"Valid references provided: {valid_references_provided} "
             f"of {len(input_study_collection.studies)} studies."
         )
+        valid_study_collection = StudyCollection(
+            studies=[
+                study
+                for study in input_study_collection.studies
+                if self.process_doi(study.doi) in valid_dois
+            ]
+        )
         retrieved_fulltexts: list[dict] = []
 
         for api_name in self.all_api_configs["fulltext"]:
@@ -170,7 +177,7 @@ class FullTextBatchFetcher:
                     RetrievedFullText
                 ] = await self.full_text_fetcher.fetch(
                     publisher_name=api_name,
-                    study_collection=input_study_collection,
+                    study_collection=valid_study_collection,
                     output_directory=output_directory,
                     get_pdf=get_pdf,
                     get_xml=get_xml,
@@ -187,10 +194,11 @@ class FullTextBatchFetcher:
                 for item in retrieved_responses:
                     if item.pdf_path is not None:
                         found_responses = True
-                        doi_to_remove = item.doi
+                        doi_to_remove = self.process_doi(item.doi)
 
                         logger.info(f"Full text found for {item.doi} from {api_name}.")
-                        valid_dois.remove(self.process_doi(doi_to_remove))
+                        valid_dois.remove(doi_to_remove)
+                        valid_study_collection.remove_study_by_doi(doi_to_remove)
                         logger.info(
                             f"Got full text for doi {doi_to_remove} from {api_name}. "
                             "Removing from master list."
@@ -205,7 +213,7 @@ class FullTextBatchFetcher:
                         )
             if not found_responses:
                 error_message = f"No full texts found in {api_name}."
-                logger.error(error_message)
+                logger.warning(error_message)
 
             logger.debug(f"Found {api_count} full texts for api {api_name}.")
             logger.info(f"Found {len(retrieved_fulltexts)} total from valid DOIs.")

@@ -23,7 +23,7 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_success_pdf_found(
     mock_response = mocker.MagicMock()
     mock_response.status_code = httpx.codes.OK
     mock_response.raise_for_status.return_value = None
-    mock_response.json = mocker.AsyncMock(return_value=test_data)
+    mock_response.json = mocker.MagicMock(return_value=test_data)
 
     mock_get = mocker.patch(
         "fer.fetching.unpaywall.AsyncHTTPXRetryClient.get",
@@ -65,7 +65,7 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_no_pdf_found_publisher(
     mock_response = mocker.MagicMock()
     mock_response.status_code = httpx.codes.OK
     mock_response.raise_for_status.return_value = None
-    mock_response.json = mocker.AsyncMock(return_value=test_data)
+    mock_response.json = mocker.MagicMock(return_value=test_data)
 
     mock_get = mocker.patch(
         "fer.fetching.unpaywall.AsyncHTTPXRetryClient.get",
@@ -109,7 +109,7 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_no_pdf_found_taylor_and_f
     mock_response = mocker.MagicMock()
     mock_response.status_code = httpx.codes.OK
     mock_response.raise_for_status.return_value = None
-    mock_response.json = mocker.AsyncMock(return_value=test_data)
+    mock_response.json = mocker.MagicMock(return_value=test_data)
 
     mock_get = mocker.patch(
         "fer.fetching.unpaywall.AsyncHTTPXRetryClient.get",
@@ -176,7 +176,7 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_fulltextstreamerror(
     mock_response = mocker.MagicMock()
     mock_response.status_code = httpx.codes.OK
     mock_response.raise_for_status.return_value = None
-    mock_response.json = mocker.AsyncMock(return_value=test_data)
+    mock_response.json = mocker.MagicMock(return_value=test_data)
 
     mock_get = mocker.patch(
         "fer.fetching.unpaywall.AsyncHTTPXRetryClient.get",
@@ -213,7 +213,7 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_no_best_oa_location(
     mock_response = mocker.MagicMock()
     mock_response.status_code = httpx.codes.OK
     mock_response.raise_for_status.return_value = None
-    mock_response.json = mocker.AsyncMock(return_value=test_data)
+    mock_response.json = mocker.MagicMock(return_value=test_data)
 
     mock_get = mocker.patch(
         "fer.fetching.unpaywall.AsyncHTTPXRetryClient.get",
@@ -314,7 +314,7 @@ async def test_process_single_study_response_pdf_found(
     mock_response = mocker.AsyncMock()
     mock_response.status_code = httpx.codes.OK
     mock_response.raise_for_status = mocker.MagicMock(return_value=None)
-    mock_response.json = mocker.AsyncMock(return_value=mock_response_data)
+    mock_response.json = mocker.MagicMock(return_value=mock_response_data)
 
     mocker.patch(
         "fer.fetching.unpaywall.AsyncHTTPXRetryClient.get", return_value=mock_response
@@ -349,7 +349,7 @@ async def test_process_single_study_response_fails_no_pdf_strategy(
     mock_response = mocker.AsyncMock()
     mock_response.status_code = httpx.codes.OK
     mock_response.raise_for_status = mocker.MagicMock(return_value=None)
-    mock_response.json = mocker.AsyncMock(return_value=mock_response_data)
+    mock_response.json = mocker.MagicMock(return_value=mock_response_data)
 
     mocker.patch(
         "fer.fetching.unpaywall.AsyncHTTPXRetryClient.get", return_value=mock_response
@@ -380,7 +380,7 @@ async def test_process_single_study_response_fails_no_pdf_url(
     mock_response = mocker.AsyncMock()
     mock_response.status_code = httpx.codes.OK
     mock_response.raise_for_status = mocker.MagicMock(return_value=None)
-    mock_response.json = mocker.AsyncMock(return_value=mock_response_data)
+    mock_response.json = mocker.MagicMock(return_value=mock_response_data)
 
     mocker.patch(
         "fer.fetching.unpaywall.AsyncHTTPXRetryClient.get", return_value=mock_response
@@ -420,7 +420,7 @@ async def test_process_single_study_response_fails_pdf_not_found_publisher_url(
     mock_response = mocker.AsyncMock()
     mock_response.status_code = httpx.codes.OK
     mock_response.raise_for_status = mocker.MagicMock(return_value=None)
-    mock_response.json = mocker.AsyncMock(return_value=mock_response_data)
+    mock_response.json = mocker.MagicMock(return_value=mock_response_data)
 
     mocker.patch(
         "fer.fetching.unpaywall.AsyncHTTPXRetryClient.get", return_value=mock_response
@@ -450,7 +450,7 @@ async def test_process_single_study_response_fails_no_output_file_path(
     mock_response = mocker.AsyncMock()
     mock_response.status_code = httpx.codes.OK
     mock_response.raise_for_status = mocker.MagicMock(return_value=None)
-    mock_response.json = mocker.AsyncMock(return_value=mock_response_data)
+    mock_response.json = mocker.MagicMock(return_value=mock_response_data)
 
     mocker.patch(
         "fer.fetching.unpaywall.AsyncHTTPXRetryClient.get", return_value=mock_response
