@@ -92,7 +92,7 @@ def process_incoming_dois(dois_list: list[str] | Path) -> list[str]:
     Process incoming DOIs from a list or a file.
 
     Args:
-        dois_list (list[str] | Path): List of DOIs or a Path to a file containing DOIs.
+        dois_list (Path): Path to a newline-separated file containing DOIs.
 
     Returns:
         list[str]: A list of processed DOIs.
