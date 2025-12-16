@@ -80,7 +80,7 @@ You can run the full-text fetching logic locally without connecting to a destiny
 
 as these are only used to configure robots.
 
-Crucially, you should set:
+As you're running locally, you should Bring Your Own Keys. Crucially, you should set:
 
 - `ELSEVIER_SCOPUS_KEY` to your Elsevier Scopus API key if you want to use the Scopus fetcher.
 - `ELSEVIER_SCOPUS_INST_TOKEN` to your Elsevier Scopus Institution Token if you want to use the Scopus fetcher _outside of an institutional network_. For example, running on a University VPN _usually_ does not require an Institution Token.
