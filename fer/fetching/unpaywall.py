@@ -127,7 +127,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
             async with AsyncHTTPXRetryClient() as client:
                 response = await client.get(url)
                 response.raise_for_status()
-                data = await response.json()
+                data = response.json()
                 pdf_url: AnyUrl | None = None
 
                 publisher = data.get("publisher", "")
@@ -135,7 +135,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
                 pdf_url = await self.retrieve_pdf_url(pdf_strategy, doi, data)
                 if pdf_url is None:
                     warning_message = f"Unpaywall PDF URL not found for {uid=}, {doi=}"
-                    logger.error(warning_message)
+                    logger.warning(warning_message)
                     return RetrievedFullText(
                         doi=doi,
                         uid=uid,

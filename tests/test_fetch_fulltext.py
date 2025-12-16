@@ -85,7 +85,7 @@ async def test_fetch_success(
     fetcher = FullTextFetcher(test_settings, publisher_dict=test_publisher_dict)
     mock_response = mocker.MagicMock()
     mock_response.raise_for_status.return_value = None
-    mock_response.json = mocker.AsyncMock(return_value={"foo": "bar"})
+    mock_response.json = mocker.MagicMock(return_value={"foo": "bar"})
 
     mock_get = mocker.patch("httpx.AsyncClient.get", return_value=mock_response)
     result = await fetcher.fetch(
