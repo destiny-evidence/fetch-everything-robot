@@ -1,7 +1,5 @@
 """Generation functions for single and batch fulltext enhancements."""
 
-from pathlib import Path
-
 import httpx
 from destiny_sdk.enhancements import (
     Enhancement,
@@ -118,7 +116,7 @@ class FullTextEnhancementProcessor:
     async def generate_fulltext(
         self,
         references: list[Reference],
-    ) -> list[dict[str, str | Path | None]]:
+    ) -> list[dict[str, str | None]]:
         """
         Generate a dictionary mapping DOIs to fulltext file paths.
 
@@ -126,7 +124,8 @@ class FullTextEnhancementProcessor:
             references (list[Reference]): A list of Reference objects.
 
         Returns:
-            list[dict]: A list of dictionaries representing the retrieved full texts.
+            list[dict[str, str | None]]: A list of dictionaries representing
+                the retrieved full texts.
 
         """
         try:
