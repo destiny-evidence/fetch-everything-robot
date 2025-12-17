@@ -1,5 +1,6 @@
 import pytest
 
+from fer.config import ExternalAPI
 from fer.enhancement_processor import FullTextEnhancementProcessor
 from fer.fetching.core import Study, StudyCollection
 from fer.local.run import (
@@ -55,6 +56,29 @@ def test_prepare_processor(test_settings):
     assert processor.settings == test_settings
 
 
+@pytest.mark.parametrize(
+    ("exclude_api", "expected_apis"),
+    [
+        (None, ["openalex", "crossref", "unpaywall", "scopus"]),
+        ([ExternalAPI.CROSSREF], ["openalex", "unpaywall", "scopus"]),
+        ([ExternalAPI.OPENALEX, ExternalAPI.SCOPUS], ["crossref", "unpaywall"]),
+    ],
+)
+def test_prepare_processor_excludes_apis_success(
+    test_settings, exclude_api, expected_apis
+):
+    processor = prepare_processor(test_settings, exclude_api=exclude_api)
+    assert isinstance(processor, FullTextEnhancementProcessor)
+    assert processor.settings == test_settings
+    assert [api.name.value for api in processor.available_api_configs] == expected_apis
+
+
+def test_prepare_processor_excludes_apis_exits_on_all_api_exclusion(test_settings):
+    excluded_apis = list(ExternalAPI)
+    with pytest.raises(SystemExit):
+        prepare_processor(test_settings, exclude_api=excluded_apis)
+
+
 def test_process_incoming_dois_from_file(test_doi_list, tmp_path):
     test_temp_dois_file = tmp_path / "test_dois.txt"
     test_temp_dois_file.write_text("\n".join(test_doi_list))
@@ -66,7 +90,7 @@ def test_process_incoming_dois_from_file(test_doi_list, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_main(mocker, tmp_path, test_doi_list):
+async def test_main_no_excluded_apis_success(mocker, tmp_path, test_doi_list):
     mock_fulltext_fetcher = mocker.AsyncMock()
     mock_fetch_return_value = [
         {"doi": doi, "fulltext_path": str(tmp_path / "file.pdf"), "source": "test"}
@@ -97,3 +121,44 @@ async def test_main(mocker, tmp_path, test_doi_list):
     expected_map_file_name = "retrieved_fulltexts_map.txt"
     assert expected_map_file_name in [f.name for f in test_output_directory.glob("*")]
     mock_fulltext_fetcher.get_many_fulltext_pdfs_cycling_apis.assert_awaited_once()
+
+
+@pytest.mark.parametrize(
+    ("excluded_api_list", "expected_api_list"),
+    [
+        ([ExternalAPI.CROSSREF], ["openalex", "unpaywall", "scopus"]),
+        ([ExternalAPI.OPENALEX, ExternalAPI.SCOPUS], ["crossref", "unpaywall"]),
+    ],
+)
+@pytest.mark.asyncio
+async def test_main_excluded_apis_success(
+    caplog, mocker, tmp_path, test_doi_list, excluded_api_list, expected_api_list
+):
+    mock_fetch_return_value = [
+        {"doi": doi, "fulltext_path": str(tmp_path / "file.pdf"), "source": "test"}
+        for doi in test_doi_list
+    ]
+    mocked_get_many_fulltexts = mocker.patch(
+        "fer.fetch_fulltext.FullTextBatchFetcher.get_many_fulltext_pdfs_cycling_apis",
+        new=mocker.AsyncMock(return_value=mock_fetch_return_value),
+    )
+
+    test_output_directory = tmp_path / "output"
+    test_output_directory.mkdir()
+
+    test_temp_dois_file = tmp_path / "test_dois.txt"
+    test_temp_dois_file.write_text("\n".join(test_doi_list))
+
+    with caplog.at_level("INFO"):
+        await main(
+            doi_list=test_temp_dois_file,
+            output_directory=test_output_directory,
+            exclude_api=excluded_api_list,
+        )
+    assert f"APIs enabled for fetching: {', '.join(expected_api_list)}" in caplog.text
+
+    expected_map_file_name = "retrieved_fulltexts_map.txt"
+    assert expected_map_file_name in [f.name for f in test_output_directory.glob("*")]
+    assert (
+        mocked_get_many_fulltexts.await_count == 1
+    ), "get_many_fulltext_pdfs_cycling_apis should be called once"

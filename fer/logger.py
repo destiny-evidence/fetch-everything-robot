@@ -17,7 +17,10 @@ def set_up_logger() -> loguru._logger.Logger:
 
     """
     settings = get_settings()
-    logger.remove(0)
+    try:
+        logger.remove(0)
+    except ValueError:
+        logger.debug("No existing logger handlers to remove.")
 
     if settings.env in {Environment.PRODUCTION, Environment.STAGING}:
         logger.add(sys.stderr, level="INFO")

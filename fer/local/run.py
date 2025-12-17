@@ -8,7 +8,7 @@ from uuid import uuid4
 from cyclopts import App
 from destiny_sdk.identifiers import DOIIdentifier
 
-from fer.config import Settings, get_settings
+from fer.config import ExternalAPI, Settings, get_settings
 from fer.data_models.crossref import get_crossref_api_config
 from fer.data_models.generic import APIConfig, prepare_api_config
 from fer.data_models.openalex import get_openalex_api_config
@@ -54,24 +54,40 @@ def generate_study_collection_from_dois(doi_list: list[str]) -> StudyCollection:
     )
 
 
-def prepare_processor(settings: Settings) -> FullTextEnhancementProcessor:
+def prepare_processor(
+    settings: Settings, exclude_api: list[ExternalAPI] | None = None
+) -> FullTextEnhancementProcessor:
     """
     Prepare a FullTextEnhancementProcessor instance.
 
     Args:
         settings (Settings): The settings to use for the processor.
+        exclude_api (list[ExternalAPI] | None): List of API names to exclude
+            from fetching.
 
     Returns:
         FullTextEnhancementProcessor: The prepared processor instance.
 
     """
     title: Final[str] = settings.robot_title
+    exclude_api_values = {api.value for api in exclude_api} if exclude_api else set()
     available_api_configs: list[APIConfig] = [
-        get_openalex_api_config(settings),
-        get_crossref_api_config(),
-        get_unpaywall_api_config(),
-        get_scopus_batch_api_config(),
+        config
+        for name, config in [
+            ("openalex", get_openalex_api_config(settings)),
+            ("crossref", get_crossref_api_config()),
+            ("unpaywall", get_unpaywall_api_config()),
+            ("scopus", get_scopus_batch_api_config()),
+        ]
+        if name not in exclude_api_values
     ]
+    if len(available_api_configs) == 0:
+        logger.error("No APIs available for fetching after applying exclusions.")
+        sys.exit(1)
+    logger.info(
+        "APIs enabled for fetching: {}",
+        ", ".join([config.name for config in available_api_configs]),
+    )
 
     global_api_config = prepare_api_config(
         api_configs=available_api_configs, settings=settings
@@ -105,18 +121,24 @@ def process_incoming_dois(dois_list: list[str] | Path) -> list[str]:
 
 
 @app.default
-async def main(doi_list: Path, output_directory: Path) -> None:
+async def main(
+    doi_list: Path,
+    output_directory: Path,
+    exclude_api: list[ExternalAPI] | None = None,
+) -> None:
     """
     Define the main entry point for local running.
 
     Args:
         doi_list (Path): Path to a newline-separated file containing DOIs.
         output_directory (Path): Path to the output directory.
+        exclude_api (list[ExternalAPI] | None): List of API names to exclude
+            from fetching. Defaults to None.
 
     """
     set_up_logger()
     settings = get_settings()
-    processor = prepare_processor(settings)
+    processor = prepare_processor(settings, exclude_api)
     extracted_dois = process_incoming_dois(doi_list)
     study_collection = generate_study_collection_from_dois(extracted_dois)
     output_directory.mkdir(parents=True, exist_ok=True)
@@ -126,7 +148,18 @@ async def main(doi_list: Path, output_directory: Path) -> None:
             input_study_collection=study_collection,
             output_directory=output_directory,
         )
-        logger.info(f"Successfully fetched {len(results)} full text PDFs.")
+        found_results = [
+            result for result in results if result["fulltext_path"] is not None
+        ]
+        not_found_results = [
+            result for result in results if result["fulltext_path"] is None
+        ]
+        logger.info(f"Successfully fetched {len(found_results)} full text PDFs.")
+        if len(not_found_results) > 0:
+            logger.warning(
+                f"Could not fetch {len(not_found_results)} full text PDFs."
+                " See results map for details."
+            )
     except ZeroFullTextsGeneratedError as zero_fulltexts_error:
         logger.error(f"No full texts were generated: {zero_fulltexts_error}")
         sys.exit(1)
