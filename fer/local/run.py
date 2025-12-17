@@ -105,7 +105,7 @@ def prepare_processor(
 
 def process_incoming_dois(dois_list: Path) -> list[str]:
     """
-    Process incoming DOIs from a list or a file.
+    Process incoming DOIs from an input file.
 
     Args:
         dois_list (Path): Path to a newline-separated file containing DOIs.
