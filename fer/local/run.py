@@ -114,9 +114,8 @@ def process_incoming_dois(dois_list: Path) -> list[str]:
         list[str]: A list of processed DOIs.
 
     """
-    if isinstance(dois_list, Path):
-        with dois_list.open("r") as input_file:
-            doi_found = [line.strip() for line in input_file if line.strip()]
+    with dois_list.open("r") as input_file:
+        doi_found = [line.strip() for line in input_file if line.strip()]
     if len(doi_found) == 0:
         error_message = f"No DOIs found in the provided file: {dois_list}. Exiting."
         logger.error(error_message)
