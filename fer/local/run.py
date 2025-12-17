@@ -103,7 +103,7 @@ def prepare_processor(
     )
 
 
-def process_incoming_dois(dois_list: list[str] | Path) -> list[str]:
+def process_incoming_dois(dois_list: Path) -> list[str]:
     """
     Process incoming DOIs from a list or a file.
 
@@ -115,9 +115,13 @@ def process_incoming_dois(dois_list: list[str] | Path) -> list[str]:
 
     """
     if isinstance(dois_list, Path):
-        with dois_list.open("r") as f:
-            return [line.strip() for line in f if line.strip()]
-    return dois_list
+        with dois_list.open("r") as input_file:
+            doi_found = [line.strip() for line in input_file if line.strip()]
+    if len(doi_found) == 0:
+        error_message = f"No DOIs found in the provided file: {dois_list}. Exiting."
+        logger.error(error_message)
+        sys.exit(1)
+    return doi_found
 
 
 @app.default
@@ -168,7 +172,7 @@ async def main(
         for result in results:
             doi = result["doi"]
             filename = (
-                result["fulltext_path"].split("/")[-1]
+                Path(result["fulltext_path"]).name
                 if result["fulltext_path"]
                 else "None"
             )

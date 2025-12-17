@@ -89,6 +89,14 @@ def test_process_incoming_dois_from_file(test_doi_list, tmp_path):
     assert processed_dois == test_doi_list
 
 
+def test_process_incoming_dois_from_file_empty_file(tmp_path):
+    test_temp_dois_file = tmp_path / "test_dois.txt"
+    test_temp_dois_file.write_text("")
+
+    with pytest.raises(SystemExit):
+        process_incoming_dois(test_temp_dois_file)
+
+
 @pytest.mark.asyncio
 async def test_main_no_excluded_apis_success(mocker, tmp_path, test_doi_list):
     mock_fulltext_fetcher = mocker.AsyncMock()

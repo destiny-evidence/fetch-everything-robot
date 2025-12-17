@@ -91,7 +91,7 @@ Install the dependencies as shown in the [Setup](#setup) section.
 Then run the full-text fetching script with:
 
 ```sh
-fetch-fulltext path/to/input_dois.txt path/to/output_directory/
+fetch-everything path/to/input_dois.txt path/to/output_directory/
 ```
 
 Where `input_dois.txt` is a text file with one DOI per line, and `output_directory/` is the directory where fetched full texts will be saved.
