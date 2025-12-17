@@ -18,7 +18,7 @@ authors = [
 ]
 dependencies = [
     "aiohttp>=3.13.0",
-    "cyclopts>=4.3.0",
+    "cyclopts>=4.4.0",
     "defusedxml>=0.7.1",
     "destiny-sdk >=0.4.0,<0.5.0",
     "habanero>=2.3.0",
@@ -27,7 +27,6 @@ dependencies = [
     "pydantic-settings>=2.7.1,<3",
     "pydantic[email]>=2.0,<3.0",
     "toml>=0.10.2",
-    "typer>=0.19.2",
 ]
 description = "Robot for adding full-text and other more fully featured enhancements to items in the destiny repo from alternate sources."
 name = "fetch-everything-robot"
