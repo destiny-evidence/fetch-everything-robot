@@ -30,7 +30,7 @@ def test_generate_study_collection_from_dois_success(mocker, test_doi_list):
     assert isinstance(study_collection, StudyCollection)
     assert len(study_collection.studies) == len(test_doi_list)
 
-    for study, doi in zip(study_collection.studies, test_doi_list, strict=False):
+    for study, doi in zip(study_collection.studies, test_doi_list, strict=True):
         assert isinstance(study, Study)
         assert study.doi.identifier == doi
         assert str(study.uid) == mock_uuid
