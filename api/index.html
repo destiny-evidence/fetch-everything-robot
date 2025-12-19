@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
     
     
       
@@ -31,7 +31,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -1733,6 +1733,84 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#fer.local" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        local
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="local">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fer.local.run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="run">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fer.local.run.generate_study_collection_from_dois" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        generate_study_collection_from_dois
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fer.local.run.main" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        main
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fer.local.run.prepare_processor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        prepare_processor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fer.local.run.process_incoming_dois" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        process_incoming_dois
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#fer.logger" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3376,6 +3454,84 @@
         
       </ul>
     </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fer.local" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        local
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="local">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fer.local.run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="run">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fer.local.run.generate_study_collection_from_dois" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        generate_study_collection_from_dois
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fer.local.run.main" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        main
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fer.local.run.prepare_processor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        prepare_processor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fer.local.run.process_incoming_dois" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        process_incoming_dois
+      
+    </span>
+  </a>
   
 </li>
         
@@ -6022,10 +6178,10 @@ this will be omitted from the overall API config.</p>
         <span class="k">for</span> <span class="n">api</span> <span class="ow">in</span> <span class="n">external_api</span><span class="o">.</span><span class="n">priorities</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;checking if </span><span class="si">{</span><span class="n">api</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> in list of available apis...&quot;</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">api</span><span class="o">.</span><span class="n">value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">api_config_map</span><span class="p">:</span>
-                <span class="n">error_message</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">warning_message</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">api</span><span class="o">.</span><span class="n">name</span><span class="si">=}</span><span class="s2"> </span><span class="si">{</span><span class="n">api</span><span class="o">.</span><span class="n">value</span><span class="si">=}</span><span class="s2"> not in available api configs, skipping.&quot;</span>
                 <span class="p">)</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error_message</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">warning_message</span><span class="p">)</span>
                 <span class="k">continue</span>
             <span class="n">target_config</span> <span class="o">=</span> <span class="n">api_config_map</span><span class="p">[</span><span class="n">api</span><span class="o">.</span><span class="n">value</span><span class="p">]</span>
             <span class="k">try</span><span class="p">:</span>
@@ -6819,8 +6975,8 @@ this will be omitted from the overall API config.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/enhancement_processor.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">27</span>
-<span class="normal">28</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">BatchEnhancementGenerationError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">25</span>
+<span class="normal">26</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">BatchEnhancementGenerationError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom exception for errors during batch enhancement generation.&quot;&quot;&quot;</span>
 </code></pre></div></td></tr></table></div>
               </details>
@@ -6855,7 +7011,9 @@ this will be omitted from the overall API config.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/enhancement_processor.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 31</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
 <span class="normal"> 32</span>
 <span class="normal"> 33</span>
 <span class="normal"> 34</span>
@@ -7081,8 +7239,7 @@ this will be omitted from the overall API config.</p>
 <span class="normal">254</span>
 <span class="normal">255</span>
 <span class="normal">256</span>
-<span class="normal">257</span>
-<span class="normal">258</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">FullTextEnhancementProcessor</span><span class="p">:</span>
+<span class="normal">257</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">FullTextEnhancementProcessor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Handles the processing of full text enhancement requests.&quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
@@ -7172,7 +7329,7 @@ this will be omitted from the overall API config.</p>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">generate_fulltext</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">references</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Reference</span><span class="p">],</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Generate a dictionary mapping DOIs to fulltext file paths.</span>
 
@@ -7180,7 +7337,8 @@ this will be omitted from the overall API config.</p>
 <span class="sd">            references (list[Reference]): A list of Reference objects.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            list[dict]: A list of dictionaries representing the retrieved full texts.</span>
+<span class="sd">            list[dict[str, str | None]]: A list of dictionaries representing</span>
+<span class="sd">                the retrieved full texts.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">try</span><span class="p">:</span>
@@ -7439,7 +7597,9 @@ publisher fetchers.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/enhancement_processor.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">34</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
 <span class="normal">35</span>
 <span class="normal">36</span>
 <span class="normal">37</span>
@@ -7466,9 +7626,7 @@ publisher fetchers.</p>
 <span class="normal">58</span>
 <span class="normal">59</span>
 <span class="normal">60</span>
-<span class="normal">61</span>
-<span class="normal">62</span>
-<span class="normal">63</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">61</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">settings</span><span class="p">:</span> <span class="n">Settings</span><span class="p">,</span>
     <span class="n">robot_version</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -7583,7 +7741,8 @@ this may be done in the background, depending on API config).</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/enhancement_processor.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">150</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">149</span>
+<span class="normal">150</span>
 <span class="normal">151</span>
 <span class="normal">152</span>
 <span class="normal">153</span>
@@ -7603,8 +7762,7 @@ this may be done in the background, depending on API config).</p>
 <span class="normal">167</span>
 <span class="normal">168</span>
 <span class="normal">169</span>
-<span class="normal">170</span>
-<span class="normal">171</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">create_fulltext_enhancement</span><span class="p">(</span>
+<span class="normal">170</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">create_fulltext_enhancement</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">references</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Reference</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Enhancement</span><span class="p">]:</span>
@@ -7706,7 +7864,8 @@ this may be done in the background, depending on API config).</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/enhancement_processor.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">173</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">172</span>
+<span class="normal">173</span>
 <span class="normal">174</span>
 <span class="normal">175</span>
 <span class="normal">176</span>
@@ -7725,8 +7884,7 @@ this may be done in the background, depending on API config).</p>
 <span class="normal">189</span>
 <span class="normal">190</span>
 <span class="normal">191</span>
-<span class="normal">192</span>
-<span class="normal">193</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">download_references</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reference_storage_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Reference</span><span class="p">]:</span>
+<span class="normal">192</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">download_references</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reference_storage_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Reference</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Download references from a given URL.</span>
 
@@ -7813,11 +7971,12 @@ this may be done in the background, depending on API config).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a> | None]]</code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None]]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>list[dict]: A list of dictionaries representing the retrieved full texts.</p>
+                <p>list[dict[str, str | None]]: A list of dictionaries representing
+the retrieved full texts.</p>
               </div>
             </td>
           </tr>
@@ -7827,7 +7986,9 @@ this may be done in the background, depending on API config).</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/enhancement_processor.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">118</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
 <span class="normal">119</span>
 <span class="normal">120</span>
 <span class="normal">121</span>
@@ -7856,11 +8017,10 @@ this may be done in the background, depending on API config).</p>
 <span class="normal">144</span>
 <span class="normal">145</span>
 <span class="normal">146</span>
-<span class="normal">147</span>
-<span class="normal">148</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">generate_fulltext</span><span class="p">(</span>
+<span class="normal">147</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">generate_fulltext</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">references</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Reference</span><span class="p">],</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Generate a dictionary mapping DOIs to fulltext file paths.</span>
 
@@ -7868,7 +8028,8 @@ this may be done in the background, depending on API config).</p>
 <span class="sd">        references (list[Reference]): A list of Reference objects.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        list[dict]: A list of dictionaries representing the retrieved full texts.</span>
+<span class="sd">        list[dict[str, str | None]]: A list of dictionaries representing</span>
+<span class="sd">            the retrieved full texts.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
@@ -7968,7 +8129,9 @@ this may be done in the background, depending on API config).</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/enhancement_processor.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 98</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
 <span class="normal"> 99</span>
 <span class="normal">100</span>
 <span class="normal">101</span>
@@ -7984,9 +8147,7 @@ this may be done in the background, depending on API config).</p>
 <span class="normal">111</span>
 <span class="normal">112</span>
 <span class="normal">113</span>
-<span class="normal">114</span>
-<span class="normal">115</span>
-<span class="normal">116</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="normal">114</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_study_collection_from_references</span><span class="p">(</span>
     <span class="n">references</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Reference</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyCollection</span><span class="p">:</span>
@@ -8108,7 +8269,9 @@ this may be done in the background, depending on API config).</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/enhancement_processor.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">65</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
 <span class="normal">66</span>
 <span class="normal">67</span>
 <span class="normal">68</span>
@@ -8137,9 +8300,7 @@ this may be done in the background, depending on API config).</p>
 <span class="normal">91</span>
 <span class="normal">92</span>
 <span class="normal">93</span>
-<span class="normal">94</span>
-<span class="normal">95</span>
-<span class="normal">96</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="normal">94</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_study_or_raise_error</span><span class="p">(</span><span class="n">reference</span><span class="p">:</span> <span class="n">Reference</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Study</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Convert a Reference object to a Study, raising an error if DOI is missing.</span>
@@ -8251,7 +8412,8 @@ this may be done in the background, depending on API config).</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/enhancement_processor.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">224</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">223</span>
+<span class="normal">224</span>
 <span class="normal">225</span>
 <span class="normal">226</span>
 <span class="normal">227</span>
@@ -8284,8 +8446,7 @@ this may be done in the background, depending on API config).</p>
 <span class="normal">254</span>
 <span class="normal">255</span>
 <span class="normal">256</span>
-<span class="normal">257</span>
-<span class="normal">258</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">process_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RobotEnhancementBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Enhancement</span><span class="p">]:</span>
+<span class="normal">257</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">process_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RobotEnhancementBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Enhancement</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Process a batch by downloading references and creating enhancements.</span>
 
@@ -8393,7 +8554,8 @@ this may be done in the background, depending on API config).</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/enhancement_processor.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">195</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">194</span>
+<span class="normal">195</span>
 <span class="normal">196</span>
 <span class="normal">197</span>
 <span class="normal">198</span>
@@ -8419,8 +8581,7 @@ this may be done in the background, depending on API config).</p>
 <span class="normal">218</span>
 <span class="normal">219</span>
 <span class="normal">220</span>
-<span class="normal">221</span>
-<span class="normal">222</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">upload_enhancements</span><span class="p">(</span>
+<span class="normal">221</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">upload_enhancements</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">enhancements</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Enhancement</span><span class="p">],</span>
     <span class="n">result_storage_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -8490,8 +8651,8 @@ this may be done in the background, depending on API config).</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/enhancement_processor.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">23</span>
-<span class="normal">24</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">MissingDOIError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">21</span>
+<span class="normal">22</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">MissingDOIError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom exception for missing DOI in reference.&quot;&quot;&quot;</span>
 </code></pre></div></td></tr></table></div>
               </details>
@@ -8927,7 +9088,7 @@ Will unpack and, if required, clean full text.</p>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">get_pdf</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">get_xml</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Get many full texts from a list of DOIs, cycling APIs in order of priority.</span>
 
@@ -8938,7 +9099,7 @@ Will unpack and, if required, clean full text.</p>
 <span class="sd">            get_xml (bool, optional): Whether to fetch XML files. Defaults to False.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            list[dict[str, str | Path | None]]: A list of dictionaries containing:</span>
+<span class="sd">            list[dict[str, str | None]]: A list of dictionaries containing:</span>
 <span class="sd">                - &#39;doi&#39;: The DOI string.</span>
 <span class="sd">                - &#39;fulltext_path&#39;: Path to the downloaded full text PDF or None.</span>
 <span class="sd">                - &#39;source&#39;: The API source name or None.</span>
@@ -9514,11 +9675,11 @@ and newlines)</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a> | None]]</code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None]]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>list[dict[str, str | Path | None]]: A list of dictionaries containing:
+                <p>list[dict[str, str | None]]: A list of dictionaries containing:
 - 'doi': The DOI string.
 - 'fulltext_path': Path to the downloaded full text PDF or None.
 - 'source': The API source name or None.</p>
@@ -9656,7 +9817,7 @@ and newlines)</p>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">get_pdf</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">get_xml</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get many full texts from a list of DOIs, cycling APIs in order of priority.</span>
 
@@ -9667,7 +9828,7 @@ and newlines)</p>
 <span class="sd">        get_xml (bool, optional): Whether to fetch XML files. Defaults to False.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        list[dict[str, str | Path | None]]: A list of dictionaries containing:</span>
+<span class="sd">        list[dict[str, str | None]]: A list of dictionaries containing:</span>
 <span class="sd">            - &#39;doi&#39;: The DOI string.</span>
 <span class="sd">            - &#39;fulltext_path&#39;: Path to the downloaded full text PDF or None.</span>
 <span class="sd">            - &#39;source&#39;: The API source name or None.</span>
@@ -17657,6 +17818,707 @@ use to extract the PDF URL from the response data dictionary.</p>
 
 
 
+<h2 id="fer.local" class="doc doc-heading">
+            <code>local</code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+        <p>Module representing local fetching logic.</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h3 id="fer.local.run" class="doc doc-heading">
+            <code>run</code>
+
+
+</h3>
+
+    <div class="doc doc-contents ">
+
+        <p>Define local run configurations.</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="fer.local.run.generate_study_collection_from_dois" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">generate_study_collection_from_dois</span><span class="p">(</span><span class="n">doi_list</span><span class="p">)</span></code>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Generate a StudyCollection from a list of DOIs.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>doi_list</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List of DOIs to generate the StudyCollection from.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>StudyCollection</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="StudyCollection (fer.fetching.core.StudyCollection)" href="#fer.fetching.core.StudyCollection">StudyCollection</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A collection of Study objects created from the DOIs.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>fer/local/run.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">generate_study_collection_from_dois</span><span class="p">(</span><span class="n">doi_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">StudyCollection</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate a StudyCollection from a list of DOIs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        doi_list (list[str]): List of DOIs to generate the StudyCollection from.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        StudyCollection: A collection of Study objects created from the DOIs.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">validated_dois</span> <span class="o">=</span> <span class="p">[</span><span class="n">validate_doi</span><span class="p">(</span><span class="n">doi</span><span class="p">)</span> <span class="k">for</span> <span class="n">doi</span> <span class="ow">in</span> <span class="n">doi_list</span><span class="p">]</span>
+        <span class="n">doi_identifiers</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">DOIIdentifier</span><span class="p">(</span><span class="n">identifier</span><span class="o">=</span><span class="n">doi</span><span class="p">)</span> <span class="k">for</span> <span class="n">doi</span> <span class="ow">in</span> <span class="n">validated_dois</span> <span class="k">if</span> <span class="n">doi</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">]</span>
+    <span class="k">except</span> <span class="n">InvalidDOIError</span> <span class="k">as</span> <span class="n">invalid_doi_error</span><span class="p">:</span>
+        <span class="n">error_message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Invalid DOI encountered: </span><span class="si">{</span><span class="n">invalid_doi_error</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error_message</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">StudyCollection</span><span class="p">(</span>
+        <span class="n">studies</span><span class="o">=</span><span class="p">[</span><span class="n">Study</span><span class="p">(</span><span class="n">doi</span><span class="o">=</span><span class="n">doi</span><span class="p">,</span> <span class="n">uid</span><span class="o">=</span><span class="n">uuid4</span><span class="p">())</span> <span class="k">for</span> <span class="n">doi</span> <span class="ow">in</span> <span class="n">doi_identifiers</span><span class="p">]</span>
+    <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="fer.local.run.main" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">main</span><span class="p">(</span><span class="n">doi_list</span><span class="p">,</span> <span class="n">output_directory</span><span class="p">,</span> <span class="n">exclude_api</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Define the main entry point for local running.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>doi_list</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to a newline-separated file containing DOIs.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_directory</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to the output directory.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>exclude_api</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="ExternalAPI (fer.config.ExternalAPI)" href="#fer.config.ExternalAPI">ExternalAPI</a>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List of API names to exclude
+from fetching. Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>fer/local/run.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@app</span><span class="o">.</span><span class="n">default</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span>
+    <span class="n">doi_list</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">output_directory</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">exclude_api</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ExternalAPI</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Define the main entry point for local running.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        doi_list (Path): Path to a newline-separated file containing DOIs.</span>
+<span class="sd">        output_directory (Path): Path to the output directory.</span>
+<span class="sd">        exclude_api (list[ExternalAPI] | None): List of API names to exclude</span>
+<span class="sd">            from fetching. Defaults to None.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">set_up_logger</span><span class="p">()</span>
+    <span class="n">settings</span> <span class="o">=</span> <span class="n">get_settings</span><span class="p">()</span>
+    <span class="n">processor</span> <span class="o">=</span> <span class="n">prepare_processor</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">exclude_api</span><span class="p">)</span>
+    <span class="n">extracted_dois</span> <span class="o">=</span> <span class="n">process_incoming_dois</span><span class="p">(</span><span class="n">doi_list</span><span class="p">)</span>
+    <span class="n">study_collection</span> <span class="o">=</span> <span class="n">generate_study_collection_from_dois</span><span class="p">(</span><span class="n">extracted_dois</span><span class="p">)</span>
+    <span class="n">output_directory</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="k">await</span> <span class="n">processor</span><span class="o">.</span><span class="n">fulltext_fetcher</span><span class="o">.</span><span class="n">get_many_fulltext_pdfs_cycling_apis</span><span class="p">(</span>
+            <span class="n">input_study_collection</span><span class="o">=</span><span class="n">study_collection</span><span class="p">,</span>
+            <span class="n">output_directory</span><span class="o">=</span><span class="n">output_directory</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">found_results</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">result</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span> <span class="k">if</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;fulltext_path&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">]</span>
+        <span class="n">not_found_results</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">result</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span> <span class="k">if</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;fulltext_path&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="p">]</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Successfully fetched </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">found_results</span><span class="p">)</span><span class="si">}</span><span class="s2"> full text PDFs.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">not_found_results</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Could not fetch </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">not_found_results</span><span class="p">)</span><span class="si">}</span><span class="s2"> full text PDFs.&quot;</span>
+                <span class="s2">&quot; See results map for details.&quot;</span>
+            <span class="p">)</span>
+    <span class="k">except</span> <span class="n">ZeroFullTextsGeneratedError</span> <span class="k">as</span> <span class="n">zero_fulltexts_error</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No full texts were generated: </span><span class="si">{</span><span class="n">zero_fulltexts_error</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">results_map_file</span> <span class="o">=</span> <span class="n">output_directory</span> <span class="o">/</span> <span class="s2">&quot;retrieved_fulltexts_map.txt&quot;</span>
+    <span class="k">with</span> <span class="n">results_map_file</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+            <span class="n">doi</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;doi&quot;</span><span class="p">]</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">Path</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;fulltext_path&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">name</span>
+                <span class="k">if</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;fulltext_path&quot;</span><span class="p">]</span>
+                <span class="k">else</span> <span class="s2">&quot;None&quot;</span>
+            <span class="p">)</span>
+            <span class="n">source</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">]</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">doi</span><span class="si">}</span><span class="se">\t</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="se">\t</span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Results map written to </span><span class="si">{</span><span class="n">results_map_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="fer.local.run.prepare_processor" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">prepare_processor</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">exclude_api</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Prepare a FullTextEnhancementProcessor instance.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>settings</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="Settings (fer.config.Settings)" href="#fer.config.Settings">Settings</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The settings to use for the processor.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>exclude_api</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="ExternalAPI (fer.config.ExternalAPI)" href="#fer.config.ExternalAPI">ExternalAPI</a>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List of API names to exclude
+from fetching.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>FullTextEnhancementProcessor</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="FullTextEnhancementProcessor (fer.enhancement_processor.FullTextEnhancementProcessor)" href="#fer.enhancement_processor.FullTextEnhancementProcessor">FullTextEnhancementProcessor</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The prepared processor instance.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>fer/local/run.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">prepare_processor</span><span class="p">(</span>
+    <span class="n">settings</span><span class="p">:</span> <span class="n">Settings</span><span class="p">,</span> <span class="n">exclude_api</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ExternalAPI</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FullTextEnhancementProcessor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Prepare a FullTextEnhancementProcessor instance.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        settings (Settings): The settings to use for the processor.</span>
+<span class="sd">        exclude_api (list[ExternalAPI] | None): List of API names to exclude</span>
+<span class="sd">            from fetching.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        FullTextEnhancementProcessor: The prepared processor instance.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">title</span><span class="p">:</span> <span class="n">Final</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">robot_title</span>
+    <span class="n">exclude_api_values</span> <span class="o">=</span> <span class="p">{</span><span class="n">api</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">api</span> <span class="ow">in</span> <span class="n">exclude_api</span><span class="p">}</span> <span class="k">if</span> <span class="n">exclude_api</span> <span class="k">else</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">available_api_configs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">APIConfig</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">config</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">config</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="p">(</span><span class="s2">&quot;openalex&quot;</span><span class="p">,</span> <span class="n">get_openalex_api_config</span><span class="p">(</span><span class="n">settings</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s2">&quot;crossref&quot;</span><span class="p">,</span> <span class="n">get_crossref_api_config</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;unpaywall&quot;</span><span class="p">,</span> <span class="n">get_unpaywall_api_config</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s2">&quot;scopus&quot;</span><span class="p">,</span> <span class="n">get_scopus_batch_api_config</span><span class="p">()),</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">exclude_api_values</span>
+    <span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">available_api_configs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;No APIs available for fetching after applying exclusions.&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="s2">&quot;APIs enabled for fetching: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">config</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">available_api_configs</span><span class="p">]),</span>
+    <span class="p">)</span>
+
+    <span class="n">global_api_config</span> <span class="o">=</span> <span class="n">prepare_api_config</span><span class="p">(</span>
+        <span class="n">api_configs</span><span class="o">=</span><span class="n">available_api_configs</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="n">settings</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">FullTextEnhancementProcessor</span><span class="p">(</span>
+        <span class="n">settings</span><span class="o">=</span><span class="n">settings</span><span class="p">,</span>
+        <span class="n">robot_version</span><span class="o">=</span><span class="n">get_version_number</span><span class="p">(),</span>
+        <span class="n">source_name</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+        <span class="n">global_api_config</span><span class="o">=</span><span class="n">global_api_config</span><span class="p">,</span>
+        <span class="n">available_api_configs</span><span class="o">=</span><span class="n">available_api_configs</span><span class="p">,</span>
+        <span class="n">publisher_dict</span><span class="o">=</span><span class="n">get_publisher_fetcher_registry</span><span class="p">(</span><span class="n">settings</span><span class="p">),</span>
+    <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="fer.local.run.process_incoming_dois" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">process_incoming_dois</span><span class="p">(</span><span class="n">doi_list_file</span><span class="p">)</span></code>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Process incoming DOIs from an input file.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>doi_list_file</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to a newline-separated file containing DOIs.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>list[str]: A list of processed DOIs.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>fer/local/run.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_incoming_dois</span><span class="p">(</span><span class="n">doi_list_file</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Process incoming DOIs from an input file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        doi_list_file (Path): Path to a newline-separated file containing DOIs.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list[str]: A list of processed DOIs.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">doi_list_file</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">input_file</span><span class="p">:</span>
+        <span class="n">doi_found</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">input_file</span> <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">doi_found</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">error_message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;No DOIs found in the provided file: </span><span class="si">{</span><span class="n">doi_list_file</span><span class="si">}</span><span class="s2">. Exiting.&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error_message</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">doi_found</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
 <h2 id="fer.logger" class="doc doc-heading">
             <code>logger</code>
 
@@ -17744,7 +18606,10 @@ use to extract the PDF URL from the response data dictionary.</p>
 <span class="normal">26</span>
 <span class="normal">27</span>
 <span class="normal">28</span>
-<span class="normal">29</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">set_up_logger</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">loguru</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">Logger</span><span class="p">:</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">set_up_logger</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">loguru</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">Logger</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Set up the logger based on the application settings.</span>
 
@@ -17753,7 +18618,10 @@ use to extract the PDF URL from the response data dictionary.</p>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">settings</span> <span class="o">=</span> <span class="n">get_settings</span><span class="p">()</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;No existing logger handlers to remove.&quot;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">settings</span><span class="o">.</span><span class="n">env</span> <span class="ow">in</span> <span class="p">{</span><span class="n">Environment</span><span class="o">.</span><span class="n">PRODUCTION</span><span class="p">,</span> <span class="n">Environment</span><span class="o">.</span><span class="n">STAGING</span><span class="p">}:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">&quot;INFO&quot;</span><span class="p">)</span>
@@ -19226,10 +20094,10 @@ and return the cleaned, validated DOI string.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.action.edit"], "search": "../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.action.edit"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>
