@@ -290,10 +290,10 @@ def prepare_api_config(
         for api in external_api.priorities:
             logger.debug(f"checking if {api.name} in list of available apis...")
             if api.value not in api_config_map:
-                error_message = (
+                warning_message = (
                     f"{api.name=} {api.value=} not in available api configs, skipping."
                 )
-                logger.error(error_message)
+                logger.warning(warning_message)
                 continue
             target_config = api_config_map[api.value]
             try:

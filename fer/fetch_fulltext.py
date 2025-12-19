@@ -128,7 +128,7 @@ class FullTextBatchFetcher:
         *,
         get_pdf: bool = True,
         get_xml: bool = False,
-    ) -> list[dict[str, str | Path | None]]:
+    ) -> list[dict[str, str | None]]:
         """
         Get many full texts from a list of DOIs, cycling APIs in order of priority.
 
@@ -139,7 +139,7 @@ class FullTextBatchFetcher:
             get_xml (bool, optional): Whether to fetch XML files. Defaults to False.
 
         Returns:
-            list[dict[str, str | Path | None]]: A list of dictionaries containing:
+            list[dict[str, str | None]]: A list of dictionaries containing:
                 - 'doi': The DOI string.
                 - 'fulltext_path': Path to the downloaded full text PDF or None.
                 - 'source': The API source name or None.

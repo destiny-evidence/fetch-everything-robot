@@ -67,7 +67,47 @@ Import modules from the `fer` package. For example:
 from fer.fetching.crossref import CrossrefFetcher
 ```
 
-## Application
+## Running full-text fetching locally
+
+You can run the full-text fetching logic locally without connecting to a destiny repository instance. This is a separate workflow from running the robot itself, and can be considered a standalone tool. You will need `.env` file in the root directory of the project with environment variables found in `.env.example`. Dummy variables can be used for:
+
+- `DESTINY_REPOSITORY_URL`
+- `ROBOT_ID`
+- `ROBOT_SECRET`
+- `ENV`
+- `POLL_INTERVAL_SECONDS`
+- `BATCH_SIZE`
+
+as these are only used to configure robots.
+
+As you're running locally, you should Bring Your Own Keys. Crucially, you should set:
+
+- `ELSEVIER_SCOPUS_KEY` to your Elsevier Scopus API key if you want to use the Scopus fetcher.
+- `ELSEVIER_SCOPUS_INST_TOKEN` to your Elsevier Scopus Institution Token if you want to use the Scopus fetcher _outside of an institutional network_. For example, running on a University VPN _usually_ does not require an Institution Token.
+- `OPENALEX_KEY` to your OpenAlex API key if you want to use the OpenAlex fetcher.
+
+Install the dependencies as shown in the [Setup](#setup) section.
+
+Then run the full-text fetching script with:
+
+```sh
+fetch-everything path/to/input_dois.txt path/to/output_directory/
+```
+
+Where `input_dois.txt` is a text file with one DOI per line, and `output_directory/` is the directory where fetched full texts will be saved.
+
+By default this will attempt to fetch PDFs from the following configured APIs, in this order:
+
+- OpenAlex
+- Crossref
+- Unpaywall
+- Scopus
+
+Resulting PDFs will be written to the output directory provided. Filenames are assigned based on a generated unique identifier (uuid4) to avoid collisions. A mapping of DOI to file name is provided in `retrieved_fulltexts_map.txt` in the output directory after a successful run.
+
+## Running the application _as a robot_
+
+To run the application locally _as a robot_ that connects to an instance of the destiny repository, you will need to set up a `.env` file in the root directory of the project with environment variables found in `.env.example`.
 
 Run the application locally with:
 
