@@ -103,21 +103,21 @@ def prepare_processor(
     )
 
 
-def process_incoming_dois(dois_list: Path) -> list[str]:
+def process_incoming_dois(doi_list_file: Path) -> list[str]:
     """
     Process incoming DOIs from an input file.
 
     Args:
-        dois_list (Path): Path to a newline-separated file containing DOIs.
+        doi_list_file (Path): Path to a newline-separated file containing DOIs.
 
     Returns:
         list[str]: A list of processed DOIs.
 
     """
-    with dois_list.open("r") as input_file:
+    with doi_list_file.open("r") as input_file:
         doi_found = [line.strip() for line in input_file if line.strip()]
     if len(doi_found) == 0:
-        error_message = f"No DOIs found in the provided file: {dois_list}. Exiting."
+        error_message = f"No DOIs found in the provided file: {doi_list_file}. Exiting."
         logger.error(error_message)
         sys.exit(1)
     return doi_found
