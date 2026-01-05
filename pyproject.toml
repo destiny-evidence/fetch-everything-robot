@@ -124,7 +124,7 @@ lint.pep8-naming.classmethod-decorators = ["classmethod"]
 
 [tool.setuptools]
 package-dir = {"" = "."}
-packages = {find = {exclude = ["tests*"]}}
+packages = {find = {include = ["fer*"]}}
 
 [tool.tomlsort]
 all = true
