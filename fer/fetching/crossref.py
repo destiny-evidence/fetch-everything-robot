@@ -184,9 +184,7 @@ class CrossrefFetcher(BasePublisherFetcher):
                         logger.info(f"Crossref download success for {uid}: {url}")
                         await asyncio.sleep(self.wait_time_seconds)
                 else:
-                    error_message = (
-                        f"No valid PDF found via CrossRef for {doi=}, {uid=}"
-                    )
+                    error_message = f"No valid PDF found via CrossRef for {doi=}:{uid=}"
                     logger.warning(error_message)
                     output_items.append(
                         RetrievedFullText(
