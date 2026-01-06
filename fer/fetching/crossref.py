@@ -4,6 +4,7 @@ import asyncio
 from pathlib import Path
 
 from habanero import Crossref, RequestError
+from httpx import HTTPError, TimeoutException
 from loguru import logger
 from pydantic import AnyUrl
 
@@ -21,7 +22,9 @@ from fer.fetching.core import (
 class CrossrefFetcher(BasePublisherFetcher):
     """Define a concrete fetcher for CrossRef full texts."""
 
-    def __init__(self, settings: Settings, wait_time_seconds: int = 2) -> None:
+    def __init__(
+        self, settings: Settings, wait_time_seconds: int = 2, timeout_seconds: int = 180
+    ) -> None:
         """
         Initialise a CrossrefFetcher.
 
@@ -29,11 +32,14 @@ class CrossrefFetcher(BasePublisherFetcher):
             settings (Settings): The settings object to use for the fetcher.
             wait_time_seconds (int, optional):
                 The number of seconds to wait between requests. Defaults to 2.
+            timeout_seconds (int): Number of seconds to define a timeout in
+                habanero Crossref requests. Defaults to 180 (3 minutes).
 
         """
         self.settings = settings
         self.api_config = get_crossref_api_config()
         self.wait_time_seconds = wait_time_seconds
+        self.timeout_seconds = timeout_seconds
 
     def get_url_from_pdf_content_type(self, crossref_response: dict) -> dict:
         """
@@ -147,7 +153,10 @@ class CrossrefFetcher(BasePublisherFetcher):
         """
         _ = kwargs
         output_directory.mkdir(parents=True, exist_ok=True)
-        crossref = Crossref(mailto=self.settings.mailto)
+        crossref = Crossref(
+            mailto=self.settings.mailto,
+            timeout=self.timeout_seconds,
+        )
         found_pdfs = set()
         output_items: list[RetrievedFullText] = []
         for study in study_collection.studies:
@@ -175,9 +184,7 @@ class CrossrefFetcher(BasePublisherFetcher):
                         logger.info(f"Crossref download success for {uid}: {url}")
                         await asyncio.sleep(self.wait_time_seconds)
                 else:
-                    error_message = (
-                        f"No valid PDF found via CrossRef for {doi=}, {uid=}"
-                    )
+                    error_message = f"No valid PDF found via CrossRef for {doi=}:{uid=}"
                     logger.warning(error_message)
                     output_items.append(
                         RetrievedFullText(
@@ -186,7 +193,18 @@ class CrossrefFetcher(BasePublisherFetcher):
                     )
             except RequestError as request_error:
                 error_message = (
-                    f"CrossRef request error for {uid=}, {doi=} - {request_error}"
+                    f"CrossRef request error for {uid=}:{doi=}" f" - {request_error}"
+                )
+                logger.error(error_message)
+                output_items.append(
+                    RetrievedFullText(
+                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                    )
+                )
+            except TimeoutException as timeout_error:
+                error_message = (
+                    f"Timeout error during CrossRef fetch for {uid=}:{doi=}"
+                    f" - {timeout_error}"
                 )
                 logger.error(error_message)
                 output_items.append(
@@ -196,8 +214,19 @@ class CrossrefFetcher(BasePublisherFetcher):
                 )
             except FullTextStreamError as fulltext_download_error:
                 error_message = (
-                    f"Error streaming CrossRef data {uid}:{doi}"
+                    f"Error streaming CrossRef data {uid=}:{doi=}"
                     f" - {fulltext_download_error}"
+                )
+                logger.error(error_message)
+                output_items.append(
+                    RetrievedFullText(
+                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                    )
+                )
+            except HTTPError as http_error:
+                error_message = (
+                    f"HTTP error during CrossRef fetch for {uid=}:{doi=}"
+                    f" - {http_error}"
                 )
                 logger.error(error_message)
                 output_items.append(
