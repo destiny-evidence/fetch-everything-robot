@@ -1,3 +1,4 @@
+import httpx
 import pytest
 from habanero import RequestError
 
@@ -194,3 +195,61 @@ async def test_fetch_many_full_texts_fails_request_error(
     patched_url_get_call.assert_not_called()
     patched_pdf_url_is_valid.assert_not_called()
     patched_stream_file.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("timeout_exception"),
+    [
+        httpx.ReadTimeout,
+        httpx.ConnectTimeout,
+    ],
+)
+async def test_crossref_works_timeout_error(
+    httpx_mock,
+    caplog,
+    timeout_exception,
+    test_settings,
+    test_study_collection,
+    tmp_path,
+):
+    uids = [str(study.uid) for study in test_study_collection.studies]
+    dois = [study.doi.identifier for study in test_study_collection.studies]
+
+    fetcher = CrossrefFetcher(settings=test_settings)
+    httpx_mock.add_exception(timeout_exception("Simulated timeout"), is_reusable=True)
+
+    with caplog.at_level("ERROR"):
+        result = await fetcher.fetch_many_full_texts(
+            study_collection=test_study_collection, output_directory=tmp_path
+        )
+
+    assert "Timeout error during CrossRef fetch" in caplog.text
+    assert all(uid in caplog.text for uid in uids)
+    assert all(doi in caplog.text for doi in dois)
+    assert all(item.pdf_path is None for item in result)
+    assert all(str(item.uid) in uids and item.doi for item in result)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("http_exception"),
+    [httpx.HTTPError, httpx.NetworkError, httpx.RequestError, httpx.TransportError],
+)
+async def test_crossref_works_generic_http_error(
+    httpx_mock, caplog, http_exception, test_settings, test_study_collection, tmp_path
+):
+    uids = [str(study.uid) for study in test_study_collection.studies]
+    dois = [study.doi.identifier for study in test_study_collection.studies]
+    fetcher = CrossrefFetcher(settings=test_settings)
+    httpx_mock.add_exception(http_exception("Test HTTP exception"), is_reusable=True)
+    with caplog.at_level("ERROR"):
+        result = await fetcher.fetch_many_full_texts(
+            study_collection=test_study_collection, output_directory=tmp_path
+        )
+
+    assert "HTTP error during CrossRef fetch" in caplog.text
+    assert all(uid in caplog.text for uid in uids)
+    assert all(doi in caplog.text for doi in dois)
+    assert all(item.pdf_path is None for item in result)
+    assert all(str(item.uid) in uids and item.doi for item in result)

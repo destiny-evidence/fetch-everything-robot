@@ -4,6 +4,7 @@ import asyncio
 from pathlib import Path
 
 from habanero import Crossref, RequestError
+from httpx import HTTPError, TimeoutException
 from loguru import logger
 from pydantic import AnyUrl
 
@@ -194,7 +195,18 @@ class CrossrefFetcher(BasePublisherFetcher):
                     )
             except RequestError as request_error:
                 error_message = (
-                    f"CrossRef request error for {uid=}, {doi=} - {request_error}"
+                    f"CrossRef request error for {uid=}:{doi=}" f" - {request_error}"
+                )
+                logger.error(error_message)
+                output_items.append(
+                    RetrievedFullText(
+                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                    )
+                )
+            except TimeoutException as timeout_error:
+                error_message = (
+                    f"Timeout error during CrossRef fetch for {uid=}:{doi=}"
+                    f" - {timeout_error}"
                 )
                 logger.error(error_message)
                 output_items.append(
@@ -204,8 +216,19 @@ class CrossrefFetcher(BasePublisherFetcher):
                 )
             except FullTextStreamError as fulltext_download_error:
                 error_message = (
-                    f"Error streaming CrossRef data {uid}:{doi}"
+                    f"Error streaming CrossRef data {uid=}:{doi=}"
                     f" - {fulltext_download_error}"
+                )
+                logger.error(error_message)
+                output_items.append(
+                    RetrievedFullText(
+                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                    )
+                )
+            except HTTPError as http_error:
+                error_message = (
+                    f"HTTP error during CrossRef fetch for {uid=}:{doi=}"
+                    f" - {http_error}"
                 )
                 logger.error(error_message)
                 output_items.append(
