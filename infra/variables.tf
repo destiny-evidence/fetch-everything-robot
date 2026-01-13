@@ -38,6 +38,15 @@ variable "container_registry_resource_group_name" {
   description = "Name of the container registry resource group."
 }
 
+variable "key_vault_name" {
+  description = "Name of the Key Vault where fetch everything robot images are pushed."
+
+}
+
+variable "key_vault_resource_group_name" {
+  description = "Name of the Key Vault resource group."
+}
+
 variable "environment" {
   description = "Environment for the Fetch Everything Robot, should be either development, staging or production."
   default     = "development"

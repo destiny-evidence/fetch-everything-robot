@@ -3,6 +3,11 @@ data "azurerm_container_registry" "destiny_shared_infra" {
   resource_group_name = var.container_registry_resource_group_name
 }
 
+data "azurerm_key_vault" = "destiny_data_ingest_shared_kv" {
+  name                = var.key_vault_name
+  resource_group_name = var.key_vault_resource_group_name
+}
+
 # This might exist for you if your robot has already been deployed.
 # In this case, you can use a data resource instead https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/resource_group
 resource "azurerm_resource_group" "robot_resource_group" {
@@ -17,11 +22,65 @@ resource "azurerm_resource_group" "robot_resource_group" {
   }
 }
 
+
+
 # Create a user assigned identity for our robot. This is the identity used when authenticating.
 resource "azurerm_user_assigned_identity" "fetch_everything_robot" {
   location            = azurerm_resource_group.robot_resource_group.location
   name                = var.app_name
   resource_group_name = azurerm_resource_group.robot_resource_group.name
+}
+
+resource "azurerm_role_assignment" "fetch_everything_robot_role_assignment" {
+  scope                = data.azurerm_key_vault.destiny_data_ingest_shared_kv.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_user_assigned_identity.fetch_everything_robot.principal_id
+}
+
+resource "azurerm_network_security_group" "incremental_updater_nsg" {
+  name                = "nsg-${var.app_name}-${var.environment}"
+  location            = azurerm_resource_group.incremental_updater_resource_group.location
+  resource_group_name = azurerm_resource_group.incremental_updater_resource_group.name
+  tags = {
+    "Created by"  = var.owner_name
+    "Environment" = var.environment_description
+    "Owner"       = var.owner_email
+  }
+}
+
+resource "azurerm_virtual_network" "incremental_updater_vnet" {
+  name                = "vnet-${var.app_name}-${var.environment}"
+  location            = azurerm_resource_group.incremental_updater_resource_group.location
+  resource_group_name = azurerm_resource_group.incremental_updater_resource_group.name
+  address_space       = ["10.0.0.0/21"]
+
+  tags = {
+    "Created by"  = var.owner_name
+    "Environment" = var.environment_description
+    "Owner"       = var.owner_email
+  }
+}
+
+resource "azurerm_subnet" "incremental_updater_subnet" {
+  name                 = "subnet-${var.app_name}-${var.environment}"
+  resource_group_name  = azurerm_resource_group.incremental_updater_resource_group.name
+  virtual_network_name = azurerm_virtual_network.incremental_updater_vnet.name
+  address_prefixes     = ["10.0.0.0/21"]
+
+  delegation {
+    name = "containerappenv"
+    service_delegation {
+      name = "Microsoft.App/environments"
+      actions = [
+        "Microsoft.Network/virtualNetworks/subnets/action"
+      ]
+    }
+  }
+}
+
+resource "azurerm_subnet_network_security_group_association" "incremental_updater_subnet_nsg_association" {
+  subnet_id                 = azurerm_subnet.incremental_updater_subnet.id
+  network_security_group_id = azurerm_network_security_group.incremental_updater_nsg.id
 }
 
 # This creates a container app to run the fetch everything robot in
@@ -34,6 +93,7 @@ module "container_app_fetch_everything_robot" {
   container_registry_login_server = data.azurerm_container_registry.destiny_shared_infra.login_server
   resource_group_name             = azurerm_resource_group.robot_resource_group.name
   region                          = azurerm_resource_group.robot_resource_group.location
+  infrastructure_subnet_id       = azurerm_subnet.incremental_updater_subnet.id
 
   # We're the api url for the destiny repository here, which the fetch everything robot will use to authenticate against.
   # The necessaary `AZURE_CLIENT_ID` environment variable is set by the container app module.
