@@ -37,10 +37,10 @@ resource "azurerm_role_assignment" "fetch_everything_robot_role_assignment" {
   principal_id         = azurerm_user_assigned_identity.fetch_everything_robot.principal_id
 }
 
-resource "azurerm_network_security_group" "incremental_updater_nsg" {
+resource "azurerm_network_security_group" "fetch_everything_robot_nsg" {
   name                = "nsg-${var.app_name}-${var.environment}"
-  location            = azurerm_resource_group.incremental_updater_resource_group.location
-  resource_group_name = azurerm_resource_group.incremental_updater_resource_group.name
+  location            = azurerm_resource_group.robot_resource_group.location
+  resource_group_name = azurerm_resource_group.robot_resource_group.name
   tags = {
     "Created by"  = var.owner_name
     "Environment" = var.environment_description
@@ -48,10 +48,10 @@ resource "azurerm_network_security_group" "incremental_updater_nsg" {
   }
 }
 
-resource "azurerm_virtual_network" "incremental_updater_vnet" {
+resource "azurerm_virtual_network" "fetch_everything_robot_vnet" {
   name                = "vnet-${var.app_name}-${var.environment}"
-  location            = azurerm_resource_group.incremental_updater_resource_group.location
-  resource_group_name = azurerm_resource_group.incremental_updater_resource_group.name
+  location            = azurerm_resource_group.robot_resource_group.location
+  resource_group_name = azurerm_resource_group.robot_resource_group.name
   address_space       = ["10.0.0.0/21"]
 
   tags = {
@@ -61,10 +61,10 @@ resource "azurerm_virtual_network" "incremental_updater_vnet" {
   }
 }
 
-resource "azurerm_subnet" "incremental_updater_subnet" {
+resource "azurerm_subnet" "fetch_everything_robot_subnet" {
   name                 = "subnet-${var.app_name}-${var.environment}"
-  resource_group_name  = azurerm_resource_group.incremental_updater_resource_group.name
-  virtual_network_name = azurerm_virtual_network.incremental_updater_vnet.name
+  resource_group_name  = azurerm_resource_group.robot_resource_group.name
+  virtual_network_name = azurerm_virtual_network.fetch_everything_robot_vnet.name
   address_prefixes     = ["10.0.0.0/21"]
 
   delegation {
@@ -78,9 +78,9 @@ resource "azurerm_subnet" "incremental_updater_subnet" {
   }
 }
 
-resource "azurerm_subnet_network_security_group_association" "incremental_updater_subnet_nsg_association" {
-  subnet_id                 = azurerm_subnet.incremental_updater_subnet.id
-  network_security_group_id = azurerm_network_security_group.incremental_updater_nsg.id
+resource "azurerm_subnet_network_security_group_association" "fetch_everything_robot_subnet_nsg_association" {
+  subnet_id                 = azurerm_subnet.fetch_everything_robot_subnet.id
+  network_security_group_id = azurerm_network_security_group.fetch_everything_robot_nsg.id
 }
 
 # This creates a container app to run the fetch everything robot in
@@ -93,7 +93,7 @@ module "container_app_fetch_everything_robot" {
   container_registry_login_server = data.azurerm_container_registry.destiny_shared_infra.login_server
   resource_group_name             = azurerm_resource_group.robot_resource_group.name
   region                          = azurerm_resource_group.robot_resource_group.location
-  infrastructure_subnet_id       = azurerm_subnet.incremental_updater_subnet.id
+  infrastructure_subnet_id       = azurerm_subnet.fetch_everything_robot_subnet.id
 
   # We're the api url for the destiny repository here, which the fetch everything robot will use to authenticate against.
   # The necessaary `AZURE_CLIENT_ID` environment variable is set by the container app module.
