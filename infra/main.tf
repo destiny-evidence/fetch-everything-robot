@@ -3,7 +3,7 @@ data "azurerm_container_registry" "destiny_shared_infra" {
   resource_group_name = var.container_registry_resource_group_name
 }
 
-data "azurerm_key_vault" = "destiny_data_ingest_shared_kv" {
+data "azurerm_key_vault" "destiny_data_ingest_shared_kv" {
   name                = var.key_vault_name
   resource_group_name = var.key_vault_resource_group_name
 }
@@ -15,14 +15,12 @@ resource "azurerm_resource_group" "robot_resource_group" {
   location = "swedencentral"
   tags = {
     "Budget Code" = "destiny-evidence"
-    "Created by" = "${var.owner_name}"
-    "Owner" = "${var.owner_email}"
-    "Environment" = "${var.environment_description}"
-    "Region" = "${var.region_friendly_name}"
+    "Created by" = var.owner_name
+    "Owner" = var.owner_email
+    "Environment" = var.environment_description
+    "Region" = var.region_friendly_name
   }
 }
-
-
 
 # Create a user assigned identity for our robot. This is the identity used when authenticating.
 resource "azurerm_user_assigned_identity" "fetch_everything_robot" {
