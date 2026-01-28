@@ -1,6 +1,5 @@
 """Define fetchers to retrieve full-text articles from various sources."""
 
-import tempfile
 from pathlib import Path
 
 from fer.config import Settings
@@ -49,7 +48,7 @@ class FullTextFetcher:
         self,
         publisher_name: str,
         study_collection: DOIStudyCollection | OpenAlexStudyCollection,
-        output_directory: Path | None = None,
+        output_directory: Path,
         *,
         get_pdf: bool = True,
         get_xml: bool = False,
@@ -61,8 +60,7 @@ class FullTextFetcher:
             publisher_name (str): The name of the publisher.
             study_collection (DOIStudyCollection | OpenAlexStudyCollection):
                 A collection of studies.
-            output_directory (Path | None, optional): The directory to save the
-                fetched articles. Defaults to None.
+            output_directory (Path): The directory to save the fetched articles.
             get_pdf (bool, optional): Whether to fetch PDF files. Defaults to True.
             get_xml (bool, optional): Whether to fetch XML files. Defaults to False.
 
@@ -75,8 +73,6 @@ class FullTextFetcher:
         if not fetcher:
             error_message = f"Unknown publisher: {publisher_name}"
             raise FullTextFetcherError(error_message)
-        if output_directory is None:
-            output_directory = Path(tempfile.TemporaryDirectory(delete=False).name)
         try:
             if isinstance(fetcher, OpenalexFetcher):
                 return await fetcher.fetch_many_full_texts(

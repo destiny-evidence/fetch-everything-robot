@@ -66,6 +66,7 @@ async def test_generate_fulltext_success(
     test_fulltext_enhancement_processor: FullTextEnhancementProcessor,
     test_fetch_two_results_success: list[RetrievedFullText],
     test_references: list[Reference],
+    tmp_path,
 ):
     fetch_mock = mocker.patch(
         "fer.fetching.fetchers.FullTextFetcher.fetch",
@@ -74,6 +75,7 @@ async def test_generate_fulltext_success(
 
     await test_fulltext_enhancement_processor.generate_fulltext(
         references=test_references,
+        output_directory=tmp_path,
     )
 
     assert (
@@ -87,6 +89,7 @@ async def test_generate_fulltext_total_failure_no_fulltexts_found(
     test_fulltext_enhancement_processor,
     test_fetch_two_results_full_error,
     test_references,
+    tmp_path,
 ):
     fetch_mock = mocker.patch(
         "fer.fetching.fetchers.FullTextFetcher.fetch",
@@ -96,6 +99,7 @@ async def test_generate_fulltext_total_failure_no_fulltexts_found(
     with pytest.raises(BatchEnhancementGenerationError):
         await test_fulltext_enhancement_processor.generate_fulltext(
             references=test_references,
+            output_directory=tmp_path,
         )
 
     assert fetch_mock.call_count == len(
@@ -107,6 +111,7 @@ async def test_generate_fulltext_total_failure_no_fulltexts_found(
 async def test_generate_fulltext_total_failure_single_missing_doi(
     mocker,
     test_fulltext_enhancement_processor,
+    tmp_path,
 ):
     test_good_reference_id = uuid.uuid4()
     test_bad_reference_id = uuid.uuid4()
@@ -128,6 +133,7 @@ async def test_generate_fulltext_total_failure_single_missing_doi(
     with pytest.raises(BatchEnhancementGenerationError):
         await test_fulltext_enhancement_processor.generate_fulltext(
             references=test_two_references,
+            output_directory=tmp_path,
         )
 
 
@@ -138,6 +144,7 @@ async def test_generate_fulltext_partial_success_empty_fulltexts_found_for_some_
     test_references,
     test_fetch_results_single_success,
     test_fetch_results_single_failure,
+    tmp_path,
 ):
     expected_results = [
         FullTextResult(
@@ -171,6 +178,7 @@ async def test_generate_fulltext_partial_success_empty_fulltexts_found_for_some_
 
     results = await test_fulltext_enhancement_processor.generate_fulltext(
         references=test_references,
+        output_directory=tmp_path,
     )
 
     assert fetch_mock.call_count == n_available_api_configs, (
