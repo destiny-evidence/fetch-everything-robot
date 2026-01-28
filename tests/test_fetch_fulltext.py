@@ -81,6 +81,7 @@ async def test_fetch_success(
     test_settings,
     test_publisher_dict,
     test_study_collection,
+    tmp_path,
 ):
     fetcher = FullTextFetcher(test_settings, publisher_dict=test_publisher_dict)
     mock_response = mocker.MagicMock()
@@ -89,7 +90,7 @@ async def test_fetch_success(
 
     mock_get = mocker.patch("httpx2.AsyncClient.get", return_value=mock_response)
     result = await fetcher.fetch(
-        "test_publisher", test_study_collection, output_directory=None
+        "test_publisher", test_study_collection, output_directory=tmp_path
     )
     assert result == {"foo": "bar"}
     mock_get.assert_called_once()
@@ -97,7 +98,7 @@ async def test_fetch_success(
 
 @pytest.mark.asyncio
 async def test_fetch_http_error(
-    mocker, test_settings, test_publisher_dict, test_study_collection
+    mocker, test_settings, test_publisher_dict, test_study_collection, tmp_path
 ):
     fetcher = FullTextFetcher(
         test_settings,
@@ -110,7 +111,7 @@ async def test_fetch_http_error(
         pytest.raises(httpx2.HTTPError),
     ):
         await fetcher.fetch(
-            "test_publisher", test_study_collection, output_directory=None
+            "test_publisher", test_study_collection, output_directory=tmp_path
         )
 
 
@@ -163,6 +164,7 @@ async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_non_none_fulltext_p
     test_publisher_dict,
     test_fetch_results_single_success,
     test_fetch_results_single_failure,
+    tmp_path,
 ):
     n_available_api_configs = len(test_prepared_available_api_configs["fulltext"])
     expected_fetch_results_array = [test_fetch_results_single_success] + [
@@ -193,7 +195,10 @@ async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_non_none_fulltext_p
         test_settings, test_prepared_available_api_configs, test_publisher_dict
     )
 
-    results = await fetcher.get_many_fulltext_pdfs_cycling_apis(test_study_collection)
+    results = await fetcher.get_many_fulltext_pdfs_cycling_apis(
+        test_study_collection,
+        output_directory=tmp_path,
+    )
 
     assert mock_fetch.call_count == len(
         test_prepared_available_api_configs["fulltext"]
@@ -235,6 +240,7 @@ async def test_get_many_fulltext_pdfs_cycling_apis_error_with_individual_api(
     scopus_api_config_valid_batch,
     temporary_test_file,
     caplog,
+    tmp_path,
 ):
     test_publisher_name = "test_publisher"
     all_api_configs = {"fulltext": {test_publisher_name: scopus_api_config_valid_batch}}
@@ -247,6 +253,9 @@ async def test_get_many_fulltext_pdfs_cycling_apis_error_with_individual_api(
     fetcher = FullTextBatchFetcher(test_settings, all_api_configs, test_publisher_dict)
 
     with caplog.at_level("INFO"), pytest.raises(ZeroFullTextsGeneratedError):
-        await fetcher.get_many_fulltext_pdfs_cycling_apis(test_study_collection)
+        await fetcher.get_many_fulltext_pdfs_cycling_apis(
+            test_study_collection,
+            output_directory=tmp_path,
+        )
 
     assert "Authentication error for publisher" in caplog.text

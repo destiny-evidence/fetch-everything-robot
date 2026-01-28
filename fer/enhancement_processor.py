@@ -1,15 +1,24 @@
 """Generation functions for single and batch fulltext enhancements."""
 
+import tempfile
+import uuid
+from functools import reduce
+from pathlib import Path
+
 import httpx2
 from destiny_sdk.enhancements import (
     Enhancement,
+    FullTextEnhancement,
 )
 from destiny_sdk.identifiers import DOIIdentifier
 from destiny_sdk.references import Reference
 from destiny_sdk.robots import (
+    LinkedRobotError,
     RobotEnhancementBatch,
 )
+from destiny_sdk.visibility import Visibility
 from loguru import logger
+from pydantic import HttpUrl
 
 from fer.config import Settings
 from fer.data_models.generic import APIConfig
@@ -20,6 +29,7 @@ from fer.fetch_fulltext import (
 )
 from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import DOIStudy, DOIStudyCollection
+from fer.utils import get_version_number
 
 
 class MissingDOIError(Exception):
@@ -120,6 +130,7 @@ class FullTextEnhancementProcessor:
     async def generate_fulltext(
         self,
         references: list[Reference],
+        output_directory: Path,
     ) -> list[FullTextResult]:
         """
         Generate a list of FullTextResult objects.
@@ -133,6 +144,11 @@ class FullTextEnhancementProcessor:
         """
         try:
             study_collection = self.get_study_collection_from_references(references)
+            debug_message = (
+                f"DOIs extracted: "
+                f"{[study.doi.identifier for study in study_collection.studies]}"
+            )
+            logger.debug(debug_message)
         except MissingDOIError as missing_doi_error:
             error_message = (
                 "One or more references are missing DOI identifiers: "
@@ -142,6 +158,7 @@ class FullTextEnhancementProcessor:
         try:
             return await self.fulltext_fetcher.get_many_fulltext_pdfs_cycling_apis(
                 input_study_collection=study_collection,
+                output_directory=output_directory,
             )
         except ZeroFullTextsGeneratedError as zero_full_texts_error:
             error_message = "No full texts were retrieved from any API."
@@ -159,10 +176,6 @@ class FullTextEnhancementProcessor:
         This operates on a batch of references as a default,
         but that could be a batch of one.
 
-        This leverages the `get_many_fulltext_pdfs_cycling_apis` method,
-        rather than strictly looping over individual requests (although
-        this may be done in the background, depending on API config).
-
         Args:
             references (list[Reference]): A list of reference objects.
 
@@ -170,7 +183,205 @@ class FullTextEnhancementProcessor:
             list[Enhancement]: The generated batch of enhancements.
 
         """
-        raise NotImplementedError
+        try:
+            with tempfile.TemporaryDirectory() as temp_directory:
+                generated_fulltexts: list[
+                    FullTextResult
+                ] = await self.generate_fulltext(
+                    references,
+                    output_directory=Path(temp_directory),
+                )
+
+                found_results: list[FullTextResult] = [
+                    result
+                    for result in generated_fulltexts
+                    if result.fulltext_path is not None
+                ]
+                not_found_results: list[FullTextResult] = [
+                    result
+                    for result in generated_fulltexts
+                    if result.fulltext_path is None
+                ]
+                logger.info(
+                    f"Successfully fetched {len(found_results)} full text PDFs."
+                )
+
+                if len(not_found_results) > 0:
+                    warning_message = (
+                        f"Failed to fetch {len(not_found_results)} full text PDFs. "
+                        f"DOIs: {[result.doi for result in not_found_results]}"
+                    )
+                    logger.warning(warning_message)
+
+                enhancement_dict_list = [
+                    {
+                        result.uid: {
+                            "doi": result.doi,
+                            "openalex_id": result.openalex_id,
+                            "fulltext_path": result.fulltext_path,
+                            "source": result.source,
+                        }
+                    }
+                    for result in generated_fulltexts
+                ]
+                enhancements_map: dict[str, dict] = reduce(
+                    lambda dict_a, dict_b: {**dict_a, **dict_b},
+                    enhancement_dict_list,
+                    {},
+                )
+
+                fulltext_enhancements = (
+                    await self.generate_fulltext_enhancement_batch_request(
+                        references=references,
+                        full_text_results_map=enhancements_map,
+                        available_api_configs=self.available_api_configs,
+                        app_title=self.source_name,
+                    )
+                )
+
+        except BatchEnhancementGenerationError as batch_error:
+            error_message = (
+                "Error generating full texts for enhancement creation: "
+                f"{batch_error}"
+            )
+            raise BatchEnhancementGenerationError(error_message) from batch_error
+        return fulltext_enhancements
+
+    async def generate_fulltext_enhancement_batch_request(
+        self,
+        references: list[Reference],
+        full_text_results_map: dict[str, dict],
+        available_api_configs: list[APIConfig],
+        app_title: str,
+    ) -> list[Enhancement | LinkedRobotError]:
+        """
+        Generate a batch of full text enhancements.
+
+        Full text enhancements are in the form of PDFs, stored
+        temporarily on disk, to be later uploaded to blob storage.
+
+        The enhancement itself must point to the SAS URL of the uploaded
+        PDF.
+
+        Full text enhancements are linked to the reference via the reference ID.
+
+        Args:
+            references (list[Reference]): A list of DESTINY `Reference` objects.
+            full_text_results_map (dict[str, dict]):
+                A map of generated full text results.
+            available_api_configs (list[APIConfig]):
+                A list of available API configurations.
+            app_title (str): The title of the application.
+
+        Returns:
+            list[Enhancement | LinkedRobotError]:
+                A list of generated enhancements or linked robot errors.
+
+        Raises:
+            BatchEnhancementGenerationError:
+                If there is an error during enhancement generation.
+
+        """
+        enhancements_out = []
+        version_number = get_version_number()
+
+        successful_enhancements = 0
+        for reference in references:
+            enhancement = full_text_results_map.get(reference.id)
+            if not enhancement:
+                error_message = (
+                    f"Enhancement generation error for {reference.id}."
+                    " Reference ID is missing in the enhancements map."
+                )
+                logger.error(error_message)
+                raise BatchEnhancementGenerationError(error_message)
+            fulltext_path = enhancement.get("fulltext_path", None)
+            if not fulltext_path:
+                sources = {
+                    config.name.value.split("_")[0].upper()
+                    for config in available_api_configs
+                }
+                error_message = (
+                    f"Full text enhancement generation error for {reference.id} "
+                    f"from source {sources}."
+                )
+                logger.warning(error_message)
+                linked_robot_error = LinkedRobotError(
+                    message=error_message,
+                    reference_id=reference.id,
+                )
+                enhancements_out.append(linked_robot_error)
+                continue
+            enhancement_source = enhancement.get("source", app_title)
+            if not enhancement_source:
+                enhancement_source_short = "UNKNOWN"
+            if enhancement_source:
+                enhancement_source_short = enhancement_source.split("_")[0].upper()
+
+            visibility_level = Visibility.HIDDEN
+
+            # REMOVE this is the hook into the blob storage componentry
+            fulltext_url = self.generate_file_url(fulltext_path, self.settings)
+
+            if not fulltext_url:
+                error_message = (
+                    f"Failed to generate file URL for {reference.id} "
+                    f"from source {enhancement_source_short}."
+                )
+                logger.warning(error_message)
+                linked_robot_error = LinkedRobotError(
+                    message=error_message,
+                    reference_id=reference.id,
+                )
+                enhancements_out.append(linked_robot_error)
+                continue
+
+            full_text_enhancement_content = FullTextEnhancement(
+                file_url=fulltext_url,
+                source=enhancement_source_short,
+                visibility=visibility_level,
+            )
+            enhancements_out.append(
+                Enhancement(
+                    reference_id=reference.id,
+                    source=app_title,
+                    visibility=visibility_level,
+                    robot_version=version_number,
+                    content_version=f"{uuid.uuid4()}",
+                    content=full_text_enhancement_content,
+                )
+            )
+            successful_enhancements += 1
+
+        progress_message = (
+            f"Successfully generated enhancements for "
+            f"{successful_enhancements}/{len(references)} references."
+        )
+        logger.info(progress_message)
+        return enhancements_out
+
+    async def generate_file_url(
+        self, file_path: str, settings: Settings
+    ) -> HttpUrl | None:
+        """
+        Generate a file URL for the given file path.
+
+        Uploads the file to blob storage and returns the SAS URL for the uploaded file.
+
+        Args:
+            file_path (str): The path to the file.
+            settings (Settings): The application settings.
+
+        Returns:
+            HttpUrl | None: The generated file URL or None if the upload fails.
+
+        """
+        not_implemented_message = (
+            "File URL generation is not implemented. "
+            "This method should handle uploading the file to blob storage "
+            "and returning the SAS URL for the uploaded file."
+        )
+        raise NotImplementedError(not_implemented_message)
 
     async def download_references(self, reference_storage_url: str) -> list[Reference]:
         """
@@ -210,6 +421,9 @@ class FullTextEnhancementProcessor:
         file_content = b""
         for enhancement in enhancements:
             file_content += (enhancement.to_jsonl() + "\n").encode("utf-8")
+
+        # Some work in here needed to upload the PDF to blob storage
+        # and have a file path field pointing to it
 
         async with httpx2.AsyncClient() as client:
             response = await client.put(
