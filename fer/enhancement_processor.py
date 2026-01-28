@@ -27,6 +27,7 @@ from fer.fetch_fulltext import (
 )
 from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import DOIStudy, DOIStudyCollection
+from fer.utils import get_version_number
 
 
 class FullTextRetrievalResultSet(BaseModel):
@@ -544,6 +545,9 @@ class FullTextEnhancementProcessor:
         file_content = b""
         for enhancement in enhancements:
             file_content += (enhancement.to_jsonl() + "\n").encode("utf-8")
+
+        # Some work in here needed to upload the PDF to blob storage
+        # and have a file path field pointing to it
 
         async with httpx2.AsyncClient() as client:
             response = await client.put(
