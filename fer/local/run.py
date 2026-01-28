@@ -6,7 +6,6 @@ from typing import Final
 from uuid import uuid4
 
 from cyclopts import App
-from destiny_sdk.identifiers import DOIIdentifier
 
 from fer.config import ExternalAPI, Settings, get_settings
 from fer.data_models.crossref import get_crossref_api_config
@@ -41,16 +40,14 @@ def generate_study_collection_from_dois(doi_list: list[str]) -> StudyCollection:
 
     """
     try:
-        validated_dois = [validate_doi(doi) for doi in doi_list]
-        doi_identifiers = [
-            DOIIdentifier(identifier=doi) for doi in validated_dois if doi is not None
-        ]
+        validated_doi_identifiers = [validate_doi(doi) for doi in doi_list]
+
     except InvalidDOIError as invalid_doi_error:
         error_message = f"Invalid DOI encountered: {invalid_doi_error}"
         logger.error(error_message)
         sys.exit(1)
     return StudyCollection(
-        studies=[Study(doi=doi, uid=uuid4()) for doi in doi_identifiers]
+        studies=[Study(doi=doi, uid=uuid4()) for doi in validated_doi_identifiers]
     )
 
 

@@ -82,7 +82,7 @@ class FullTextBatchFetcher:
             return doi.identifier.lower()
         try:
             doi_string = validate_doi(doi)
-            return doi_string.lower()
+            return doi_string.identifier.lower()
         except InvalidDOIError as invalid_doi_error:
             logger.error(
                 f"Invalid DOI {doi} provided."

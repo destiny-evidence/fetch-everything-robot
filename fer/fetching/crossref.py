@@ -107,10 +107,19 @@ class CrossrefFetcher(BasePublisherFetcher):
             bool: True if the PDF URL is valid, False otherwise.
 
         """
-        return "pdf" in content_info.get("content_type", "").lower() and all(
-            keyword not in content_info.get("url", "").lower()
-            for keyword in ["elsevier", "wiley", "tandfonline"]
+        content_type = content_info.get("content_type", "")
+        content_url = content_info.get("url", "")
+
+        is_pdf_type = "pdf" in str(content_type).lower() if content_type else False
+        contains_restricted_keyword = (
+            any(
+                keyword in str(content_url).lower()
+                for keyword in ["elsevier", "wiley", "tandfonline"]
+            )
+            if content_url
+            else False
         )
+        return is_pdf_type and not contains_restricted_keyword
 
     async def download_one_pdf(
         self,
