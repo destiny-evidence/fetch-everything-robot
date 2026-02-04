@@ -50,16 +50,16 @@ def format_doi(doi_candidate: str) -> str:
     return doi_candidate
 
 
-def validate_doi(doi_string: str) -> DOIIdentifier:
+def validate_doi(doi_string: str) -> str:
     """
     Validate a DOI string against the DESTINY DOI Identifier model
-    and return the cleaned, validated DOI identifier.
+    and return the cleaned, validated DOI identifier as a string.
 
     Args:
         doi_string (str): The DOI string to validate.
 
     Returns:
-        DOIIdentifier: The validated DOI identifier.
+        str: The validated DOI identifier as a string.
 
     """
     if not isinstance(doi_string, str):
@@ -70,7 +70,7 @@ def validate_doi(doi_string: str) -> DOIIdentifier:
         formatted_doi = format_doi(doi_string)
         return DOIIdentifier(
             identifier=formatted_doi, identifier_type=ExternalIdentifierType.DOI
-        )
+        ).identifier
     except ValidationError as invalid_doi_error:
         error_message = f"Invalid DOI: {doi_string}. Error: {invalid_doi_error}"
         logger.error(error_message)
