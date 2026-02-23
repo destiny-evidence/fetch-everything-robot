@@ -124,6 +124,10 @@ class Settings(BaseSettings):
         default=None, description="api key for openalex api."
     )
 
+    scopus_proxy_url: str | None = Field(
+        default=None, description="proxy url to pass scopus requests through."
+    )
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

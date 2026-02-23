@@ -5,6 +5,7 @@ from pathlib import Path
 from uuid import UUID
 
 import httpx
+from httpx_socks import AsyncProxyTransport
 from destiny_sdk.identifiers import DOIIdentifier
 from loguru import logger
 from pydantic import AnyUrl, BaseModel, Field, model_validator
@@ -85,6 +86,7 @@ class AsyncHTTPXRetryClient(httpx.AsyncClient):
         self,
         timeout_seconds: int = 360,
         max_retries: int = 3,
+        proxy_url=None
     ) -> None:
         """
         Initialise the HTTPXRetryClient.
@@ -94,9 +96,13 @@ class AsyncHTTPXRetryClient(httpx.AsyncClient):
             max_retries (int): Maximum number of retries for transient errors.
 
         """
+        if proxy_url is None:
+            transport = httpx.AsyncHTTPTransport(retries=max_retries)
+        else:
+            transport = AsyncProxyTransport.from_url("socks5://127.0.0.1:1080", retries=3)
         super().__init__(
             timeout=httpx.Timeout(timeout_seconds),
-            transport=httpx.AsyncHTTPTransport(retries=max_retries),
+            transport=transport,
         )
         self.max_retries = max_retries
 

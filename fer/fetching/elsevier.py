@@ -159,9 +159,9 @@ class ElsevierFetcher(BasePublisherFetcher):
             doi = study.doi.identifier.lower()
             uid = study.uid
             url = f"{self.base_url}{doi}/"
-
+            
             try:
-                async with AsyncHTTPXRetryClient() as client:
+                async with AsyncHTTPXRetryClient(proxy_url=self.settings.scopus_proxy_url) as client:
                     response = await client.get(url, headers=headers)
                     response.raise_for_status()
                     if response.status_code == httpx.codes.OK:
