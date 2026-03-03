@@ -99,9 +99,7 @@ class AsyncHTTPXRetryClient(httpx.AsyncClient):
         if proxy_url is None:
             transport = httpx.AsyncHTTPTransport(retries=max_retries)
         else:
-            transport = AsyncProxyTransport.from_url(
-                "socks5://127.0.0.1:1080", retries=3
-            )
+            transport = AsyncProxyTransport.from_url(proxy_url, retries=max_retries)
         super().__init__(
             timeout=httpx.Timeout(timeout_seconds),
             transport=transport,
