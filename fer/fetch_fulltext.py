@@ -166,7 +166,7 @@ class FullTextBatchFetcher:
         retrieved_fulltexts: list[dict] = []
 
         if output_directory is not None:
-            for study in valid_study_collection.studies:
+            for study in list(valid_study_collection.studies):
                 pdf_path = output_directory / f"{study.uid}.pdf"
                 if pdf_path.exists():
                     logger.info(
