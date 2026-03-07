@@ -3,7 +3,7 @@
 import sys
 from pathlib import Path
 from typing import Final
-from uuid import uuid4
+from uuid import UUID, uuid5
 
 from cyclopts import App
 from destiny_sdk.identifiers import DOIIdentifier
@@ -28,6 +28,8 @@ app = App(
     version=get_version_number(),
 )
 
+DOI_NAMESPACE = UUID("12345678-1234-5678-1234-567812345678")
+
 
 def generate_study_collection_from_dois(doi_list: list[str]) -> StudyCollection:
     """
@@ -50,7 +52,10 @@ def generate_study_collection_from_dois(doi_list: list[str]) -> StudyCollection:
         logger.error(error_message)
         sys.exit(1)
     return StudyCollection(
-        studies=[Study(doi=doi, uid=uuid4()) for doi in validated_doi_identifiers]
+        studies=[
+            Study(doi=doi, uid=uuid5(DOI_NAMESPACE, doi.identifier))
+            for doi in validated_doi_identifiers
+        ]
     )
 
 
