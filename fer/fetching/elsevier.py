@@ -5,6 +5,7 @@ from pathlib import Path
 import httpx
 from loguru import logger
 from pydantic import AnyUrl, BaseModel
+from python_socks import ProxyConnectionError
 
 from fer.config import Settings
 from fer.data_models.scopus import ScopusAPIConfig, get_scopus_batch_api_config
@@ -161,7 +162,9 @@ class ElsevierFetcher(BasePublisherFetcher):
             url = f"{self.base_url}{doi}/"
 
             try:
-                async with AsyncHTTPXRetryClient() as client:
+                async with AsyncHTTPXRetryClient(
+                    proxy_url=self.settings.scopus_proxy_url
+                ) as client:
                     response = await client.get(url, headers=headers)
                     response.raise_for_status()
                     if response.status_code == httpx.codes.OK:
@@ -175,6 +178,7 @@ class ElsevierFetcher(BasePublisherFetcher):
                                     doi=doi,
                                     uid=uid,
                                     pdf_path=output_file_path,
+                                    error=None,
                                 )
                             )
                         logger.info(f"Elsevier content saved {uid}: {file_path}")
@@ -211,4 +215,14 @@ class ElsevierFetcher(BasePublisherFetcher):
                         doi=doi, uid=uid, pdf_path=None, error=error_message
                     )
                 )
+
+            except ProxyConnectionError as e:
+                error_message = f"Proxy connection failed for {doi}, {uid}: {e}"
+                logger.error(error_message)
+                output_items.append(
+                    RetrievedFullText(
+                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                    )
+                )
+
         return output_items

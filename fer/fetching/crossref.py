@@ -107,7 +107,7 @@ class CrossrefFetcher(BasePublisherFetcher):
             bool: True if the PDF URL is valid, False otherwise.
 
         """
-        return "pdf" in content_info.get("content_type", "").lower() and all(
+        return "pdf" in (content_info.get("content_type", "") or "").lower() and all(
             keyword not in content_info.get("url", "").lower()
             for keyword in ["elsevier", "wiley", "tandfonline"]
         )
