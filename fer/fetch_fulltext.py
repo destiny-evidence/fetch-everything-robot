@@ -165,6 +165,24 @@ class FullTextBatchFetcher:
         )
         retrieved_fulltexts: list[dict] = []
 
+        if output_directory is not None:
+            for study in list(valid_study_collection.studies):
+                pdf_path = output_directory / f"{study.uid}.pdf"
+                if pdf_path.exists():
+                    logger.info(
+                        f"File already exists, skipping DOI {study.doi.identifier}"
+                    )
+                    retrieved_fulltexts.append(
+                        {
+                            "doi": study.doi.identifier,
+                            "fulltext_path": str(pdf_path),
+                            "source": "Already downloaded",
+                        }
+                    )
+                    doi_to_remove = self.process_doi(study.doi.identifier)
+                    valid_dois.remove(doi_to_remove)
+                    valid_study_collection.remove_study_by_doi(doi_to_remove)
+
         for api_name in self.all_api_configs["fulltext"]:
             if len(valid_dois) == 0:
                 logger.info("All full texts retrieved, breaking API cycle.")

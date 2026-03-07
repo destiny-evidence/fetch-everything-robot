@@ -1,15 +1,18 @@
+from uuid import uuid5
+
 import pytest
 
 from fer.config import ExternalAPI
 from fer.enhancement_processor import FullTextEnhancementProcessor
 from fer.fetching.core import Study, StudyCollection
 from fer.local.run import (
+    DOI_NAMESPACE,
     generate_study_collection_from_dois,
     main,
     prepare_processor,
     process_incoming_dois,
 )
-from fer.utils import InvalidDOIError
+from fer.utils import InvalidDOIError, validate_doi
 
 
 @pytest.fixture
@@ -22,18 +25,16 @@ def test_doi_list():
 
 
 def test_generate_study_collection_from_dois_success(mocker, test_doi_list):
-    mock_uuid = "123e4567-e89b-12d3-a456-426614174000"
-    mocker.patch("fer.local.run.uuid4", return_value=mock_uuid)
-
     study_collection = generate_study_collection_from_dois(test_doi_list)
 
     assert isinstance(study_collection, StudyCollection)
     assert len(study_collection.studies) == len(test_doi_list)
 
     for study, doi in zip(study_collection.studies, test_doi_list, strict=True):
+        expected_uuid = uuid5(DOI_NAMESPACE, validate_doi(doi))
         assert isinstance(study, Study)
         assert study.doi.identifier == doi
-        assert str(study.uid) == mock_uuid
+        assert study.uid == expected_uuid
 
 
 def test_generate_study_collection_from_dois_validation_failure(
