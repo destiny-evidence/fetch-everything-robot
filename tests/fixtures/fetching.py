@@ -1,15 +1,19 @@
+from io import BytesIO
 from pathlib import Path
 
 import pytest
 import pytest_asyncio
+from pypdf import PdfWriter
 
 from fer.fetching.core import RetrievedFullText
 
 
 async def fake_stream_file(url: str, destination: Path, **kwargs) -> Path:
-    _url = url
-    valid_pdf_content = b"test"
-    destination.write_bytes(valid_pdf_content)
+    writer = PdfWriter()
+    writer.add_blank_page(width=72, height=72)
+    buffer = BytesIO()
+    writer.write(buffer)
+    destination.write_bytes(buffer.getvalue())
     return destination
 
 
