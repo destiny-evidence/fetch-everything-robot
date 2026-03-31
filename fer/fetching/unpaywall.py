@@ -139,7 +139,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
                     return RetrievedFullText(
                         doi=doi,
                         uid=uid,
-                        pdf_path=None,
+                        fulltext_path=None,
                         error=warning_message,
                     )
 
@@ -167,12 +167,13 @@ class UnpaywallFetcher(BasePublisherFetcher):
                         return RetrievedFullText(
                             doi=doi,
                             uid=uid,
-                            pdf_path=output_file_path,
+                            fulltext_path=output_file_path,
+                            file_format="pdf",
                         )
                     return RetrievedFullText(
                         doi=doi,
                         uid=uid,
-                        pdf_path=None,
+                        fulltext_path=None,
                         error="Unpaywall PDF download failed.",
                     )
 
@@ -184,7 +185,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
                     f" {taylor_and_francis_in_url=}"
                 )
                 return RetrievedFullText(
-                    doi=doi, uid=uid, pdf_path=None, error=warning_message
+                    doi=doi, uid=uid, fulltext_path=None, error=warning_message
                 )
 
         except httpx.HTTPError as http_error:
@@ -193,7 +194,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
             )
             logger.error(error_message)
             return RetrievedFullText(
-                doi=doi, uid=uid, pdf_path=None, error=error_message
+                doi=doi, uid=uid, fulltext_path=None, error=error_message
             )
         except FullTextStreamError as fulltext_download_error:
             error_message = (
@@ -202,7 +203,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
             )
             logger.error(error_message)
             return RetrievedFullText(
-                doi=doi, uid=uid, pdf_path=None, error=error_message
+                doi=doi, uid=uid, fulltext_path=None, error=error_message
             )
 
     async def fetch_many_full_texts(
@@ -231,7 +232,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
         for study in study_collection.studies:
             result = await self.process_single_study_response(study, output_directory)
             output_items.append(result)
-            if result.pdf_path is not None:
+            if result.fulltext_path is not None:
                 found_pdfs.append(result.uid)
 
         logger.info(f"{len(found_pdfs)} full texts found via Unpaywall")

@@ -29,6 +29,7 @@ pytest_plugins = [
     "tests.fixtures.generic",
     "tests.fixtures.studies",
     "tests.fixtures.fetching",
+    "tests.fixtures.works",
 ]
 
 

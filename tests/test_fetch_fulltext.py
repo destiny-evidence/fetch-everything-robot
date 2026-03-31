@@ -155,7 +155,7 @@ def test_process_doi_tolower():
 
 
 @pytest.mark.asyncio
-async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_non_none_pdf_paths(
+async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_non_none_fulltext_paths(
     mocker,
     test_prepared_available_api_configs,
     test_settings,
@@ -173,13 +173,13 @@ async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_non_none_pdf_paths(
         [
             result[0]
             for result in expected_fetch_results_array
-            if result[0].pdf_path is not None
+            if result[0].fulltext_path is not None
         ]
     )
     expected_failure_array = [
         result[0]
         for result in expected_fetch_results_array
-        if result[0].pdf_path is None
+        if result[0].fulltext_path is None
     ]
     unique_expected_failures = len(
         {result.doi: result for result in expected_failure_array}
@@ -214,7 +214,7 @@ async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_non_none_pdf_paths(
 
     assert all(
         found_result["fulltext_path"]
-        == str(test_fetch_results_single_success[0].pdf_path)
+        == str(test_fetch_results_single_success[0].fulltext_path)
         for found_result in found_fulltext
     )
     assert all(

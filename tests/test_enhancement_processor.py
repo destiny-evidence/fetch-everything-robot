@@ -141,7 +141,7 @@ async def test_generate_fulltext_partial_success_empty_fulltexts_found_for_some_
     expected_results = [
         {
             "doi": test_references[0].identifiers[0].identifier,
-            "fulltext_path": str(test_fetch_results_single_success[0].pdf_path),
+            "fulltext_path": str(test_fetch_results_single_success[0].fulltext_path),
             "source": test_fulltext_enhancement_processor.available_api_configs[
                 0
             ].name.value.upper(),

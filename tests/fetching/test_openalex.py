@@ -133,7 +133,7 @@ async def test_fetch_many_full_texts_success(
         for result, study in zip(results, test_study_collection.studies, strict=False)
     )
     assert all(
-        result.pdf_path == tmp_path / f"{study.uid}.pdf"
+        result.fulltext_path == tmp_path / f"{study.uid}.pdf"
         for result, study in zip(results, test_study_collection.studies, strict=False)
     )
 
@@ -166,8 +166,135 @@ async def test_fetch_many_full_texts_no_pdf(
         for result, study in zip(results, test_study_collection.studies, strict=False)
     )
     assert all(
-        result.pdf_path is None for result in results
+        result.fulltext_path is None for result in results
     ), "PDF path should be None when no PDF URL is available"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("is_open_access", "expected_oa_status"),
+    [
+        ("true", True),
+        ("false", False),
+    ],
+)
+async def test_fetch_many_full_texts_success_updates_open_access_status(
+    mocker,
+    fetcher,
+    test_study_collection,
+    tmp_path,
+    is_open_access,
+    expected_oa_status,
+    openalex_work_dict,
+):
+    """Test fetch_many_full_texts handles missing PDF URLs gracefully."""
+    test_uuids = [study.uid for study in test_study_collection.studies]
+
+    test_openalex_work = openalex_work_dict.copy()
+    test_openalex_work.get("open_access", {}).update({"is_oa": is_open_access})
+
+    mock_get_work = mocker.patch.object(
+        fetcher, "_get_work_doi", new_callable=mocker.AsyncMock
+    )
+    mock_get_work.side_effect = [
+        test_openalex_work for _ in test_study_collection.studies
+    ]
+
+    mock_get_pdf_url = mocker.patch.object(fetcher, "_get_pdf_url")
+
+    mock_download = mocker.patch.object(
+        fetcher, "download_one_pdf", new_callable=mocker.AsyncMock
+    )
+
+    mock_get_pdf_url.side_effect = [
+        "http://example.com/file_one.pdf",
+        "http://example.com/file_two.pdf",
+    ]
+    mock_download.side_effect = [
+        tmp_path / f"{test_uuids[0]}.pdf",
+        tmp_path / f"{test_uuids[1]}.pdf",
+    ]
+
+    mock_get_pdf_url = mocker.patch.object(fetcher, "_get_pdf_url")
+    mocker.patch("asyncio.sleep", new_callable=mocker.AsyncMock)
+    mock_get_pdf_url.side_effect = [None, None]
+
+    assert all(
+        study.is_open_access is None for study in test_study_collection.studies
+    ), "Initial open access status should be None before population via OpenAlex"
+
+    results = await fetcher.fetch_many_full_texts(test_study_collection, tmp_path)
+
+    assert all(
+        result.doi == study.doi.identifier.lower()
+        for result, study in zip(results, test_study_collection.studies, strict=False)
+    )
+    assert all(
+        result.uid == study.uid
+        for result, study in zip(results, test_study_collection.studies, strict=False)
+    )
+    assert all(
+        result.fulltext_path is None for result in results
+    ), "PDF path should be None when no PDF URL is available"
+
+    assert all(
+        study.is_open_access == expected_oa_status
+        for study in test_study_collection.studies
+    ), "Open access status should be updated based on work data even when no PDF URL is available"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("is_open_access", "expected_oa_status"),
+    [
+        ("true", True),
+        ("false", False),
+    ],
+)
+async def test_fetch_many_full_texts_no_pdf_updates_open_access_status(
+    mocker,
+    fetcher,
+    test_study_collection,
+    tmp_path,
+    is_open_access,
+    expected_oa_status,
+    openalex_work_dict,
+):
+    """Test fetch_many_full_texts handles missing PDF URLs gracefully."""
+    test_openalex_work = openalex_work_dict.copy()
+    test_openalex_work.get("open_access", {}).update({"is_oa": is_open_access})
+
+    mock_get_work = mocker.patch.object(
+        fetcher, "_get_work_doi", new_callable=mocker.AsyncMock
+    )
+    mock_get_work.side_effect = [test_openalex_work, test_openalex_work]
+
+    mock_get_pdf_url = mocker.patch.object(fetcher, "_get_pdf_url")
+    mocker.patch("asyncio.sleep", new_callable=mocker.AsyncMock)
+    mock_get_pdf_url.side_effect = [None, None]
+
+    assert all(
+        study.is_open_access is None for study in test_study_collection.studies
+    ), "Initial open access status should be None before population via OpenAlex"
+
+    results = await fetcher.fetch_many_full_texts(test_study_collection, tmp_path)
+
+    assert all(
+        result.doi == study.doi.identifier.lower()
+        for result, study in zip(results, test_study_collection.studies, strict=False)
+    )
+    assert all(
+        result.uid == study.uid
+        for result, study in zip(results, test_study_collection.studies, strict=False)
+    )
+    assert all(
+        result.fulltext_path is None for result in results
+    ), "PDF path should be None when no PDF URL is available"
+
+    assert all(
+        study.is_open_access == expected_oa_status
+        for study in test_study_collection.studies
+    ), "Open access status should be updated based on work data even when no PDF URL is available"
 
 
 @pytest.mark.asyncio
@@ -185,7 +312,7 @@ async def test_fetch_many_full_texts_http_error(
     results = await fetcher.fetch_many_full_texts(test_study_collection, tmp_path)
 
     assert all(
-        result.pdf_path is None for result in results
+        result.fulltext_path is None for result in results
     ), "PDF path should be None when HTTP error occurs"
     assert all(
         result.error is not None for result in results
@@ -212,7 +339,7 @@ async def test_fetch_many_full_texts_stream_error(
     results = await fetcher.fetch_many_full_texts(test_study_collection, tmp_path)
 
     assert all(
-        result.pdf_path is None for result in results
+        result.fulltext_path is None for result in results
     ), "PDF path should be None when stream error occurs"
     assert all(
         result.error is not None for result in results

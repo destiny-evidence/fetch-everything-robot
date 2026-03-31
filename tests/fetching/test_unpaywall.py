@@ -330,7 +330,7 @@ async def test_process_single_study_response_pdf_found(
 
     assert retrieved_fulltext.doi == test_doi
     assert retrieved_fulltext.uid == test_uid
-    assert retrieved_fulltext.pdf_path == tmp_path / "dummy.pdf"
+    assert retrieved_fulltext.fulltext_path == tmp_path / "dummy.pdf"
 
 
 @pytest.mark.asyncio
@@ -361,7 +361,7 @@ async def test_process_single_study_response_fails_no_pdf_strategy(
 
     assert retrieved_fulltext.doi == test_doi
     assert retrieved_fulltext.uid == test_uid
-    assert retrieved_fulltext.pdf_path is None
+    assert retrieved_fulltext.fulltext_path is None
 
 
 @pytest.mark.asyncio
@@ -392,7 +392,7 @@ async def test_process_single_study_response_fails_no_pdf_url(
 
     assert retrieved_fulltext.doi == test_doi
     assert retrieved_fulltext.uid == test_uid
-    assert retrieved_fulltext.pdf_path is None
+    assert retrieved_fulltext.fulltext_path is None
 
 
 @pytest.mark.parametrize(
@@ -432,7 +432,7 @@ async def test_process_single_study_response_fails_pdf_not_found_publisher_url(
 
     assert retrieved_fulltext.doi == test_doi
     assert retrieved_fulltext.uid == test_uid
-    assert retrieved_fulltext.pdf_path is None
+    assert retrieved_fulltext.fulltext_path is None
 
 
 @pytest.mark.asyncio
@@ -464,7 +464,7 @@ async def test_process_single_study_response_fails_no_output_file_path(
 
     assert retrieved_fulltext.doi == test_doi
     assert retrieved_fulltext.uid == test_uid
-    assert retrieved_fulltext.pdf_path is None
+    assert retrieved_fulltext.fulltext_path is None
 
 
 @pytest.mark.asyncio
@@ -488,7 +488,7 @@ async def test_process_single_study_response_fails_http_error(
 
     assert retrieved_fulltext.doi == test_doi
     assert retrieved_fulltext.uid == test_uid
-    assert retrieved_fulltext.pdf_path is None
+    assert retrieved_fulltext.fulltext_path is None
 
 
 @pytest.mark.asyncio
@@ -512,4 +512,4 @@ async def test_process_single_study_response_fails_full_text_stream_error(
 
     assert retrieved_fulltext.doi == test_doi
     assert retrieved_fulltext.uid == test_uid
-    assert retrieved_fulltext.pdf_path is None
+    assert retrieved_fulltext.fulltext_path is None

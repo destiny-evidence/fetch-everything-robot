@@ -1,6 +1,7 @@
 """Openalex Fetcher module."""
 
 import asyncio
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -75,6 +76,26 @@ class OpenalexFetcher(BasePublisherFetcher):
 
         return response.json()
 
+    def _get_oa_status(self, response_object: dict) -> bool:
+        """
+        Extract the open access status from the OpenAlex response object.
+
+        Args:
+            response_object (dict): The JSON response object from OpenAlex API.
+
+        Returns:
+            bool: The open access status of the work.
+
+        """
+        if "open_access" not in response_object:
+            return False
+        oa_info = response_object.get("open_access", {})
+        return (
+            json.loads(oa_info.get("is_oa", False))
+            if isinstance(oa_info.get("is_oa"), str)
+            else oa_info.get("is_oa", False)
+        )
+
     def _get_pdf_url(self, response_object: dict) -> AnyUrl | None:
         """
         Extract the PDF URL from the OpenAlex response object.
@@ -146,6 +167,7 @@ class OpenalexFetcher(BasePublisherFetcher):
                 doi = study.doi.identifier.lower()
                 uid = study.uid
                 work = await self._get_work_doi(doi)
+                study.is_open_access = self._get_oa_status(work)
                 pdf_url = self._get_pdf_url(work)
                 pdf_path: Path | None = None
                 if pdf_url is not None:
@@ -156,14 +178,15 @@ class OpenalexFetcher(BasePublisherFetcher):
                         RetrievedFullText(
                             doi=doi,
                             uid=uid,
-                            pdf_path=pdf_path,
+                            fulltext_path=pdf_path,
+                            file_format="pdf",
                         )
                     )
                 else:
                     warning_message = f"No PDF found for {doi=}."
                     output_items.append(
                         RetrievedFullText(
-                            doi=doi, uid=uid, pdf_path=None, error=warning_message
+                            doi=doi, uid=uid, fulltext_path=None, error=warning_message
                         )
                     )
             except OpenAlexAPIError as openalex_error:
@@ -174,7 +197,7 @@ class OpenalexFetcher(BasePublisherFetcher):
                 logger.error(error_message)
                 output_items.append(
                     RetrievedFullText(
-                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                        doi=doi, uid=uid, fulltext_path=None, error=error_message
                     )
                 )
             except HTTPError as http_error:
@@ -184,7 +207,7 @@ class OpenalexFetcher(BasePublisherFetcher):
                 logger.error(error_message)
                 output_items.append(
                     RetrievedFullText(
-                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                        doi=doi, uid=uid, fulltext_path=None, error=error_message
                     )
                 )
             except FullTextStreamError as fulltext_download_error:
@@ -195,7 +218,7 @@ class OpenalexFetcher(BasePublisherFetcher):
                 logger.error(error_message)
                 output_items.append(
                     RetrievedFullText(
-                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                        doi=doi, uid=uid, fulltext_path=None, error=error_message
                     )
                 )
 

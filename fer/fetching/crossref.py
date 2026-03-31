@@ -186,7 +186,8 @@ class CrossrefFetcher(BasePublisherFetcher):
                                 RetrievedFullText(
                                     doi=doi,
                                     uid=uid,
-                                    pdf_path=output_file_path,
+                                    fulltext_path=output_file_path,
+                                    file_format="pdf",
                                 )
                             )
                         found_pdfs.add(uid)
@@ -197,7 +198,7 @@ class CrossrefFetcher(BasePublisherFetcher):
                     logger.warning(error_message)
                     output_items.append(
                         RetrievedFullText(
-                            doi=doi, uid=uid, pdf_path=None, error=error_message
+                            doi=doi, uid=uid, fulltext_path=None, error=error_message
                         )
                     )
             except RequestError as request_error:
@@ -207,7 +208,7 @@ class CrossrefFetcher(BasePublisherFetcher):
                 logger.error(error_message)
                 output_items.append(
                     RetrievedFullText(
-                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                        doi=doi, uid=uid, fulltext_path=None, error=error_message
                     )
                 )
             except TimeoutException as timeout_error:
@@ -218,7 +219,7 @@ class CrossrefFetcher(BasePublisherFetcher):
                 logger.error(error_message)
                 output_items.append(
                     RetrievedFullText(
-                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                        doi=doi, uid=uid, fulltext_path=None, error=error_message
                     )
                 )
             except FullTextStreamError as fulltext_download_error:
@@ -229,7 +230,7 @@ class CrossrefFetcher(BasePublisherFetcher):
                 logger.error(error_message)
                 output_items.append(
                     RetrievedFullText(
-                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                        doi=doi, uid=uid, fulltext_path=None, error=error_message
                     )
                 )
             except HTTPError as http_error:
@@ -240,7 +241,7 @@ class CrossrefFetcher(BasePublisherFetcher):
                 logger.error(error_message)
                 output_items.append(
                     RetrievedFullText(
-                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                        doi=doi, uid=uid, fulltext_path=None, error=error_message
                     )
                 )
 
