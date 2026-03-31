@@ -5,6 +5,8 @@ from pathlib import Path
 import httpx
 from loguru import logger
 from pydantic import AnyUrl, BaseModel
+from pypdf import PdfReader
+from pypdf.errors import PyPdfError
 from python_socks import ProxyConnectionError
 
 from fer.config import Settings
@@ -45,6 +47,34 @@ class ElsevierFetcher(BasePublisherFetcher):
         self.settings = settings
         self.api_config: ScopusAPIConfig = get_scopus_batch_api_config()
         self.base_url = "https://api.elsevier.com/content/article/doi/"
+
+    @staticmethod
+    def _is_single_page_pdf(path: Path) -> bool:
+        """
+        Check if a PDF file is a single page.
+
+        Args:
+            path (Path): The path to the PDF file.
+
+        Returns:
+            bool: True if the PDF is a single page, False otherwise.
+
+        """
+        try:
+            with path.open("rb") as file:
+                reader = PdfReader(file)
+                return len(reader.pages) == 1 if reader.pages is not None else False
+        except PyPdfError as pdf_error:
+            error_message = f"Error reading PDF file {path}: {pdf_error}"
+            logger.error(error_message)
+            return False
+        except FileNotFoundError as file_not_found_error:
+            error_message = (
+                f"File not found when processing PDF file {path}:"
+                f" {file_not_found_error}"
+            )
+            logger.warning(error_message)
+            return False
 
     async def download_one_pdf(
         self,
@@ -117,7 +147,7 @@ class ElsevierFetcher(BasePublisherFetcher):
             headers["Accept"] = "application/pdf"
             file_extension = ".pdf"
         elif get_xml and not get_pdf:
-            headers["Accept"] = "application/xml"
+            headers["Accept"] = "text/xml"
             file_extension = ".xml"
         else:
             headers["Accept"] = "application/json"
