@@ -167,15 +167,22 @@ class FullTextBatchFetcher:
 
         if output_directory is not None:
             for study in list(valid_study_collection.studies):
-                pdf_path = output_directory / f"{study.uid}.pdf"
-                if pdf_path.exists():
+                fulltext_path = next(
+                    (
+                        output_directory / f"{study.uid}{ext}"
+                        for ext in [".pdf", ".xml"]
+                        if (output_directory / f"{study.uid}.{ext}").exists()
+                    ),
+                    None,
+                )
+                if fulltext_path is not None:
                     logger.info(
                         f"File already exists, skipping DOI {study.doi.identifier}"
                     )
                     retrieved_fulltexts.append(
                         {
                             "doi": study.doi.identifier,
-                            "fulltext_path": str(pdf_path),
+                            "fulltext_path": str(fulltext_path),
                             "source": "Already downloaded",
                         }
                     )
@@ -210,7 +217,7 @@ class FullTextBatchFetcher:
             found_responses = False
             if retrieved_responses:
                 for item in retrieved_responses:
-                    if item.pdf_path is not None:
+                    if item.fulltext_path is not None:
                         found_responses = True
                         doi_to_remove = self.process_doi(item.doi)
 
@@ -225,7 +232,7 @@ class FullTextBatchFetcher:
                         retrieved_fulltexts.append(
                             {
                                 "doi": item.doi,
-                                "fulltext_path": str(item.pdf_path),
+                                "fulltext_path": str(item.fulltext_path),
                                 "source": api_name,
                             }
                         )

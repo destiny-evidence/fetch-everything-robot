@@ -240,7 +240,7 @@ async def test_crossref_works_timeout_error(
     assert "Timeout error during CrossRef fetch" in caplog.text
     assert all(uid in caplog.text for uid in uids)
     assert all(doi in caplog.text for doi in dois)
-    assert all(item.pdf_path is None for item in result)
+    assert all(item.fulltext_path is None for item in result)
     assert all(str(item.uid) in uids and item.doi for item in result)
 
 
@@ -264,5 +264,5 @@ async def test_crossref_works_generic_http_error(
     assert "HTTP error during CrossRef fetch" in caplog.text
     assert all(uid in caplog.text for uid in uids)
     assert all(doi in caplog.text for doi in dois)
-    assert all(item.pdf_path is None for item in result)
+    assert all(item.fulltext_path is None for item in result)
     assert all(str(item.uid) in uids and item.doi for item in result)
