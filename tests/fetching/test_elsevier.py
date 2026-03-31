@@ -2,9 +2,10 @@ import httpx
 import pytest
 from pypdf import PdfWriter
 from pypdf.errors import PyPdfError
+from python_socks import ProxyConnectionError
 
 from fer.fetching.core import FullTextStreamError
-from fer.fetching.elsevier import ElsevierFetcher
+from fer.fetching.elsevier import ElsevierFetcher, ElsevierRequestConfig
 
 
 @pytest.mark.asyncio
@@ -172,3 +173,105 @@ def test_is_single_page_pdf_is_false_file_not_found(caplog, tmp_path):
     with caplog.at_level("WARNING"):
         assert ElsevierFetcher._is_single_page_pdf(missing) is False
     assert str(missing) in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_fetch_one_fulltext_returns_retrieved_full_text_on_success(
+    mocker, test_settings, tmp_path, test_study_collection
+):
+    study = test_study_collection.studies[0]
+    request_config = ElsevierRequestConfig(
+        headers={"Accept": "application/pdf"}, file_extension=".pdf"
+    )
+    mocker.patch(
+        "fer.fetching.elsevier.stream_file", return_value=tmp_path / f"{study.uid}.pdf"
+    )
+    mock_response = mocker.MagicMock()
+    mock_response.status_code = httpx.codes.OK
+    mock_response.raise_for_status.return_value = None
+    mocker.patch(
+        "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
+        new=mocker.AsyncMock(return_value=mock_response),
+    )
+
+    fetcher = ElsevierFetcher(settings=test_settings)
+    result = await fetcher._fetch_one_fulltext(study, tmp_path, request_config)
+
+    assert result.pdf_path == tmp_path / f"{study.uid}.pdf"
+    assert result.error is None
+
+
+@pytest.mark.asyncio
+async def test_fetch_one_fulltext_http_error(
+    mocker, test_settings, tmp_path, test_study_collection
+):
+    study = test_study_collection.studies[0]
+    request_config = ElsevierRequestConfig(
+        headers={"Accept": "application/pdf"}, file_extension=".pdf"
+    )
+    mock_response = mocker.MagicMock()
+    mock_response.raise_for_status.side_effect = httpx.HTTPError("a test http error")
+    mocker.patch(
+        "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
+        new=mocker.AsyncMock(return_value=mock_response),
+    )
+
+    result = await ElsevierFetcher(settings=test_settings)._fetch_one_fulltext(
+        study, tmp_path, request_config
+    )
+
+    assert result.pdf_path is None
+    assert "HTTP error" in result.error
+
+
+@pytest.mark.asyncio
+async def test_fetch_one_fulltext_proxy_connection_error(
+    mocker, test_settings, tmp_path, test_study_collection
+):
+    study = test_study_collection.studies[0]
+    request_config = ElsevierRequestConfig(
+        headers={"Accept": "application/pdf"}, file_extension=".pdf"
+    )
+    mock_response = mocker.MagicMock()
+    mock_response.raise_for_status.side_effect = ProxyConnectionError(
+        "a test proxy connection error"
+    )
+    mocker.patch(
+        "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
+        new=mocker.AsyncMock(return_value=mock_response),
+    )
+
+    result = await ElsevierFetcher(settings=test_settings)._fetch_one_fulltext(
+        study, tmp_path, request_config
+    )
+
+    assert result.pdf_path is None
+    assert "proxy connection error" in result.error
+
+
+@pytest.mark.asyncio
+async def test_fetch_one_fulltext_stream_error(
+    mocker, test_settings, tmp_path, test_study_collection
+):
+    study = test_study_collection.studies[0]
+    request_config = ElsevierRequestConfig(
+        headers={"Accept": "application/pdf"}, file_extension=".pdf"
+    )
+    mocker.patch(
+        "fer.fetching.elsevier.stream_file",
+        side_effect=FullTextStreamError("a test stream error"),
+    )
+    mock_response = mocker.MagicMock()
+    mock_response.status_code = httpx.codes.OK
+    mock_response.raise_for_status.return_value = None
+    mocker.patch(
+        "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
+        new=mocker.AsyncMock(return_value=mock_response),
+    )
+
+    result = await ElsevierFetcher(settings=test_settings)._fetch_one_fulltext(
+        study, tmp_path, request_config
+    )
+
+    assert result.pdf_path is None
+    assert "Full text download error" in result.error
