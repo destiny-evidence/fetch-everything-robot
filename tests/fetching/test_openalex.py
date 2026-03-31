@@ -133,7 +133,7 @@ async def test_fetch_many_full_texts_success(
         for result, study in zip(results, test_study_collection.studies, strict=False)
     )
     assert all(
-        result.pdf_path == tmp_path / f"{study.uid}.pdf"
+        result.fulltext_path == tmp_path / f"{study.uid}.pdf"
         for result, study in zip(results, test_study_collection.studies, strict=False)
     )
 
@@ -166,7 +166,7 @@ async def test_fetch_many_full_texts_no_pdf(
         for result, study in zip(results, test_study_collection.studies, strict=False)
     )
     assert all(
-        result.pdf_path is None for result in results
+        result.fulltext_path is None for result in results
     ), "PDF path should be None when no PDF URL is available"
 
 
@@ -185,7 +185,7 @@ async def test_fetch_many_full_texts_http_error(
     results = await fetcher.fetch_many_full_texts(test_study_collection, tmp_path)
 
     assert all(
-        result.pdf_path is None for result in results
+        result.fulltext_path is None for result in results
     ), "PDF path should be None when HTTP error occurs"
     assert all(
         result.error is not None for result in results
@@ -212,7 +212,7 @@ async def test_fetch_many_full_texts_stream_error(
     results = await fetcher.fetch_many_full_texts(test_study_collection, tmp_path)
 
     assert all(
-        result.pdf_path is None for result in results
+        result.fulltext_path is None for result in results
     ), "PDF path should be None when stream error occurs"
     assert all(
         result.error is not None for result in results

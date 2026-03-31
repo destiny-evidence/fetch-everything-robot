@@ -9,13 +9,13 @@ def test_fetch_two_results_full_error(test_references) -> list[RetrievedFullText
         RetrievedFullText(
             doi=str(test_references[0].identifiers[0].identifier),
             uid=test_references[0].id,
-            pdf_path=None,
+            fulltext_path=None,
             error="A test error occurred.",
         ),
         RetrievedFullText(
             doi=str(test_references[1].identifiers[0].identifier),
             uid=test_references[1].id,
-            pdf_path=None,
+            fulltext_path=None,
             error="A second test error occurred.",
         ),
     ]
@@ -29,12 +29,12 @@ def test_fetch_two_results_success(
         RetrievedFullText(
             doi=str(test_references[0].identifiers[0].identifier),
             uid=test_references[0].id,
-            pdf_path=tmp_path / "test1.pdf",
+            fulltext_path=tmp_path / "test1.pdf",
         ),
         RetrievedFullText(
             doi=str(test_references[1].identifiers[0].identifier),
             uid=test_references[1].id,
-            pdf_path=tmp_path / "test2.pdf",
+            fulltext_path=tmp_path / "test2.pdf",
         ),
     ]
 
@@ -47,7 +47,7 @@ def test_fetch_results_single_success(
         RetrievedFullText(
             doi=str(test_references[0].identifiers[0].identifier),
             uid=test_references[0].id,
-            pdf_path=tmp_path / "test1.pdf",
+            fulltext_path=tmp_path / "test1.pdf",
         )
     ]
 
@@ -58,7 +58,7 @@ def test_fetch_results_single_failure(test_references) -> list[RetrievedFullText
         RetrievedFullText(
             doi=str(test_references[1].identifiers[0].identifier),
             uid=test_references[1].id,
-            pdf_path=None,
+            fulltext_path=None,
             error="A test error occurred.",
         )
     ]

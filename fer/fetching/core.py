@@ -2,6 +2,7 @@
 
 import tempfile
 from pathlib import Path
+from typing import Literal
 from uuid import UUID
 
 import httpx
@@ -54,27 +55,30 @@ class RetrievedFullText(BaseModel):
 
     doi: str = Field(..., description="The DOI of the study.")
     uid: UUID = Field(..., description="The unique identifier of the study.")
-    pdf_path: Path | None = Field(
-        None, description="The path to the retrieved PDF file."
+    fulltext_path: Path | None = Field(
+        None, description="The path to the retrieved full text file, if it exists."
+    )
+    file_format: Literal["pdf", "xml"] | None = Field(
+        None, description="The file format of the retrieved full text file."
     )
     error: str | None = Field(
         None, description="An error message if the retrieval failed."
     )
 
     @model_validator(mode="after")
-    def check_pdf_path_or_error(self) -> "RetrievedFullText":
+    def check_fulltext_path_or_error(self) -> "RetrievedFullText":
         """
-        Validate that either pdf_path or error is set.
+        Validate that either fulltext_path or error is set.
 
         Raises:
-            ValueError: If neither pdf_path nor error is set.
+            ValueError: If neither fulltext_path nor error is set.
 
         """
-        if self.pdf_path is None and self.error is None:
-            error_message = "Either pdf_path or error must be set."
+        if self.fulltext_path is None and self.error is None:
+            error_message = "Either fulltext_path or error must be set."
             raise ValueError(error_message)
-        if self.pdf_path is not None and self.error is not None:
-            error_message = "Only one of pdf_path or error can be set."
+        if self.fulltext_path is not None and self.error is not None:
+            error_message = "Only one of fulltext_path or error can be set."
             raise ValueError(error_message)
         return self
 
