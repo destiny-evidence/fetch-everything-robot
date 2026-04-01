@@ -32,6 +32,12 @@ pytest_plugins = [
 ]
 
 
+@pytest.fixture(scope="session", autouse=True)
+def anyio_backend() -> tuple[str, dict]:
+    """Specify the anyio backend for async tests."""
+    return "asyncio", {"use_uvloop": True}
+
+
 @pytest.fixture
 def temporary_test_file(tmp_path):
     file_path = tmp_path / "temporary_test_file.txt"

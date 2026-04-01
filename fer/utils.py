@@ -70,7 +70,7 @@ def validate_doi(doi_string: str) -> str:
         formatted_doi = format_doi(doi_string)
         return DOIIdentifier(
             identifier=formatted_doi, identifier_type=ExternalIdentifierType.DOI
-        ).identifier
+        ).identifier.lower()
     except ValidationError as invalid_doi_error:
         error_message = f"Invalid DOI: {doi_string}. Error: {invalid_doi_error}"
         logger.error(error_message)
