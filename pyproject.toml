@@ -151,3 +151,8 @@ extras = [
     "docs",
 ]
 gh.python."3.13" = ["py313"]
+
+[tool.uv]
+exclude-dependencies = [
+    "ecdsa", # Required until https://github.com/mpdavis/python-jose/issues/390 is resolved
+]
