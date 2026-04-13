@@ -121,7 +121,7 @@ class CrossrefFetcher(BasePublisherFetcher):
         )
         return is_pdf_type and not contains_restricted_keyword
 
-    async def download_one_pdf(
+    async def download_one_pdf_by_url(
         self,
         pdf_url: AnyUrl,
         filepath: Path,
@@ -202,7 +202,7 @@ class CrossrefFetcher(BasePublisherFetcher):
                     )
             except RequestError as request_error:
                 error_message = (
-                    f"CrossRef request error for {uid=}:{doi=}" f" - {request_error}"
+                    f"CrossRef request error for {uid=}:{doi=} - {request_error}"
                 )
                 logger.error(error_message)
                 output_items.append(
@@ -234,8 +234,7 @@ class CrossrefFetcher(BasePublisherFetcher):
                 )
             except HTTPError as http_error:
                 error_message = (
-                    f"HTTP error during CrossRef fetch for {uid=}:{doi=}"
-                    f" - {http_error}"
+                    f"HTTP error during CrossRef fetch for {uid=}:{doi=} - {http_error}"
                 )
                 logger.error(error_message)
                 output_items.append(

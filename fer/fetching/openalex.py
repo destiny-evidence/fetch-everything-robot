@@ -1,11 +1,18 @@
 """Openalex Fetcher module."""
 
 import asyncio
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from httpx import HTTPError
 from loguru import logger
+from openalex_cli.downloader import (
+    DownloadConfig,
+    DownloadOrchestrator,
+    ProgressTracker,
+)
+from openalex_cli.utils import ContentFormat, StorageType
 from pydantic import AnyUrl
 
 from fer.config import Settings
@@ -16,7 +23,6 @@ from fer.fetching.core import (
     FullTextStreamError,
     RetrievedFullText,
     StudyCollection,
-    stream_file,
 )
 from fer.utils import format_doi, validate_doi
 
@@ -46,10 +52,32 @@ class OpenalexFetcher(BasePublisherFetcher):
         """
         self.settings = settings
         self.wait_time_seconds = wait_time_seconds
-        self.api_config: APIConfig = get_openalex_api_config(settings)
-        self.base_url: AnyUrl = self.api_config.url
-        self.query_params: dict | None = self.api_config.query_params
-        self.headers: dict = self.api_config.headers
+        self.openalex_cli_download_config = DownloadConfig(
+            api_key=settings.openalex_key.get_secret_value(),
+            output_path="",  # need to set later!
+            storage_type=StorageType.LOCAL,
+            filter_str="",
+            content_format=ContentFormat.PDF,
+            workers=30,
+        )
+        # self.api_config: APIConfig = get_openalex_api_config(settings)
+        # self.base_url: AnyUrl = self.api_config.url
+        # self.query_params: dict | None = self.api_config.query_params
+        # self.headers: dict = self.api_config.headers
+
+    def _format_validate_doi(self, doi: str) -> str:
+        """
+        Ensure DOI is correctly formatted & validated.
+
+        Args:
+            doi (str): Our Study's DOI.
+
+        Returns:
+            str: Formatted & validated DOI.
+
+        """
+        doi_fmtd = format_doi(doi)
+        return validate_doi(doi_fmtd)
 
     async def _get_work_doi(self, doi: str) -> dict:
         """
@@ -62,8 +90,7 @@ class OpenalexFetcher(BasePublisherFetcher):
             dict: The JSON response from the OA API.
 
         """
-        doi_fmtd = format_doi(doi)
-        doi_valid = validate_doi(doi_fmtd)
+        doi_valid = self._format_validate_doi(doi)
 
         async with AsyncHTTPXRetryClient() as client:
             response = await client.get(
@@ -98,14 +125,14 @@ class OpenalexFetcher(BasePublisherFetcher):
                 break
         return pdf_url
 
-    async def download_one_pdf(
+    async def download_one_pdf_by_id(
         self,
-        pdf_url: AnyUrl,
+        pdf_id: str,
         filepath: Path,
         headers: dict | None = None,
     ) -> Path | None:
         """
-        Download one PDF from Openalex.
+        Download one PDF from Openalex using an id. Currently DOI.
 
         Args:
             pdf_url (AnyUrl): The URL of the PDF to download.
@@ -117,7 +144,20 @@ class OpenalexFetcher(BasePublisherFetcher):
             Path | None: The path to the downloaded PDF or None if download failed.
 
         """
-        return await stream_file(url=pdf_url, destination=filepath, headers=headers)
+        filter_param = f"works.doi:{pdf_id}"
+        dl_config_copy = replace(  # nice dataclass feature
+            self.openalex_cli_download_config,
+            fresh=True,
+            output_path=str(filepath),
+            filter_str=filter_param,
+        )
+
+        orchestrator = DownloadOrchestrator(config=dl_config_copy)
+        progress = ProgressTracker(output_dir=str(filepath))
+        orchestrator.run(progress_tracker=progress)
+
+        # no need from stream_file, this is already implemented in openalex-cli
+        # return await stream_file(url=pdf_url, destination=filepath, headers=headers)
 
     async def fetch_many_full_texts(
         self,
