@@ -43,10 +43,10 @@ def generate_study_collection_from_dois(doi_list: list[str]) -> StudyCollection:
 
     """
     try:
-        validated_dois = [validate_doi(doi) for doi in doi_list]
-        doi_identifiers = [
-            DOIIdentifier(identifier=doi) for doi in validated_dois if doi is not None
+        validated_doi_identifiers = [
+            DOIIdentifier(identifier=validate_doi(doi)) for doi in doi_list
         ]
+
     except InvalidDOIError as invalid_doi_error:
         error_message = f"Invalid DOI encountered: {invalid_doi_error}"
         logger.error(error_message)
@@ -54,7 +54,7 @@ def generate_study_collection_from_dois(doi_list: list[str]) -> StudyCollection:
     return StudyCollection(
         studies=[
             Study(doi=doi, uid=uuid5(DOI_NAMESPACE, doi.identifier))
-            for doi in doi_identifiers
+            for doi in validated_doi_identifiers
         ]
     )
 

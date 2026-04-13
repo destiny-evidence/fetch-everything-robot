@@ -70,17 +70,30 @@ def test_pdf_url_is_valid_success(test_settings):
         "url": "http://example.com/article.pdf",
     }
 
-    assert fetcher.pdf_url_is_valid(content_info) is True
+    assert (
+        fetcher.pdf_url_is_valid(content_info) is True
+    ), "Expected True for valid PDF URL"
 
 
-def test_pdf_url_is_valid_invalid_content_type(test_settings):
+@pytest.mark.parametrize(
+    ("invalid_content_type"),
+    [
+        "text/plain",
+        "text/html",
+        None,
+        "",
+    ],
+)
+def test_pdf_url_is_valid_invalid_content_type(test_settings, invalid_content_type):
     fetcher = CrossrefFetcher(settings=test_settings)
     content_info = {
-        "content_type": "text/html",
+        "content_type": invalid_content_type,
         "url": "http://example.com/article.html",
     }
 
-    assert fetcher.pdf_url_is_valid(content_info) is False
+    assert (
+        fetcher.pdf_url_is_valid(content_info) is False
+    ), "Expected False for invalid content type"
 
 
 @pytest.mark.parametrize(
