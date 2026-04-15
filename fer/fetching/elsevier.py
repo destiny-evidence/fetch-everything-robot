@@ -154,6 +154,16 @@ class ElsevierFetcher(BasePublisherFetcher):
         elif get_xml and not get_pdf:
             headers["Accept"] = "text/xml"
             file_extension = ".xml"
+        elif get_xml and get_pdf:
+            logger.warning(
+                "Both get_pdf and get_xml are True. Defaulting to PDF content."
+            )
+            headers["Accept"] = "application/pdf"
+        elif not get_xml and not get_pdf:
+            logger.warning(
+                "Both get_pdf and get_xml are False. Defaulting to PDF content."
+            )
+            headers["Accept"] = "application/pdf"
         else:
             headers["Accept"] = "application/json"
 
@@ -189,7 +199,11 @@ class ElsevierFetcher(BasePublisherFetcher):
             RetrievedFullText: The retrieved fulltext content.
 
         """
-        is_single_page_pdf = self._is_single_page_pdf(output_file_path)
+        is_single_page_pdf = (
+            self._is_single_page_pdf(output_file_path)
+            if (output_file_path and output_file_path.exists())
+            else False
+        )
 
         if not is_single_page_pdf and not is_incomplete_pdf:
             logger.info(f"Elsevier content saved {uid}: {output_file_path}")
@@ -241,7 +255,12 @@ class ElsevierFetcher(BasePublisherFetcher):
                 f"{doi=}: {elsevier_request_error}"
             )
             logger.error(error_message)
-            raise
+            return RetrievedFullText(
+                doi=doi,
+                uid=uid,
+                fulltext_path=None,
+                error=error_message,
+            )
 
         if response.status_code == httpx.codes.OK:
             xml_file_path = output_file_path.with_suffix(".xml")
@@ -336,29 +355,10 @@ class ElsevierFetcher(BasePublisherFetcher):
         doi = study.doi.identifier.lower()
         uid = study.uid
         url = f"{self.base_url}{doi}/"
-        try:
-            response = await self._elsevier_request(
-                url=url,
-                elsevier_request_config=elsevier_request_config,
-                doi=doi,
-                uid=uid,
-            )
-        except (
-            httpx.HTTPError,
-            ProxyConnectionError,
-        ) as elsevier_request_error:
-            error_message = (
-                f"Elsevier request error for {doi=}: {elsevier_request_error}"
-            )
-            logger.error(error_message)
-            return RetrievedFullText(
-                doi=doi, uid=uid, fulltext_path=None, error=error_message
-            )
+        file_path = output_directory / f"{uid}{elsevier_request_config.file_extension}"
+        if elsevier_request_config.file_extension == ".pdf":
+            logger.info(f"Attempting to fetch PDF full text for {uid=}, {doi=}")
 
-        if response.status_code == httpx.codes.OK:
-            file_path = (
-                output_directory / f"{uid}{elsevier_request_config.file_extension}"
-            )
             is_incomplete_pdf: bool = False
             try:
                 await self.download_one_pdf(
@@ -380,7 +380,6 @@ class ElsevierFetcher(BasePublisherFetcher):
                 return RetrievedFullText(
                     doi=doi, uid=uid, fulltext_path=None, error=error_message
                 )
-
             return await self.get_final_fulltext_content(
                 url=str(url),
                 output_file_path=file_path,
@@ -388,6 +387,36 @@ class ElsevierFetcher(BasePublisherFetcher):
                 uid=uid,
                 is_incomplete_pdf=is_incomplete_pdf,
             )
+        try:
+            response = await self._elsevier_request(
+                url=url,
+                elsevier_request_config=elsevier_request_config,
+                doi=doi,
+                uid=uid,
+            )
+        except (
+            httpx.HTTPError,
+            ProxyConnectionError,
+        ) as elsevier_request_error:
+            error_message = (
+                f"Elsevier request error for {doi=}: {elsevier_request_error}"
+            )
+            logger.error(error_message)
+            return RetrievedFullText(
+                doi=doi, uid=uid, fulltext_path=None, error=error_message
+            )
+
+        if response.status_code == httpx.codes.OK:
+            file_path.write_bytes(response.content)
+            logger.info(f"Elsevier content saved {uid}: {file_path}")
+            return RetrievedFullText(
+                doi=doi,
+                uid=uid,
+                fulltext_path=file_path,
+                file_format="xml",
+                error=None,
+            )
+
         warning_message = (
             f"Unexpected successful status code for {uid=}, {doi=}."
             f" Status Code: {response.status_code}"
