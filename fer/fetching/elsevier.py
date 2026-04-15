@@ -18,6 +18,7 @@ from fer.fetching.core import (
     AsyncHTTPXRetryClient,
     BaseAuthError,
     FullTextStreamError,
+    IncompleteFullTextError,
     RetrievedFullText,
     Study,
     StudyCollection,
@@ -91,6 +92,7 @@ class ElsevierFetcher(BasePublisherFetcher):
         Args:
             pdf_url (AnyUrl): The URL of the PDF to download.
             filepath (Path): Output file path.
+            headers (dict | None): Optional headers to include in the download request.
 
         Returns:
             Path | None: The path to the downloaded PDF or None if download failed.
@@ -161,7 +163,13 @@ class ElsevierFetcher(BasePublisherFetcher):
         )
 
     async def get_final_fulltext_content(
-        self, url: str, output_file_path: Path, doi: str, uid: UUID
+        self,
+        url: str,
+        output_file_path: Path,
+        doi: str,
+        uid: UUID,
+        *,
+        is_incomplete_pdf: bool = False,
     ) -> RetrievedFullText:
         """
         Produce the correct format fulltext content.
@@ -175,6 +183,7 @@ class ElsevierFetcher(BasePublisherFetcher):
             output_file_path (Path): The path to the downloaded fulltext file.
             doi (str): The DOI of the study.
             uid (UUID): The unique identifier of the study.
+            is_incomplete_pdf (bool): Whether the downloaded PDF is incomplete.
 
         Returns:
             RetrievedFullText: The retrieved fulltext content.
@@ -182,8 +191,21 @@ class ElsevierFetcher(BasePublisherFetcher):
         """
         is_single_page_pdf = self._is_single_page_pdf(output_file_path)
 
-        if not is_single_page_pdf:
+        if not is_single_page_pdf and not is_incomplete_pdf:
             logger.info(f"Elsevier content saved {uid}: {output_file_path}")
+            return RetrievedFullText(
+                doi=doi,
+                uid=uid,
+                fulltext_path=output_file_path,
+                file_format="pdf",
+                error=None,
+            )
+        if is_single_page_pdf and not is_incomplete_pdf:
+            logger.info(
+                f"Downloaded PDF for {uid} is single page. "
+                "Can indicate closed access, "
+                "but elsevier reports entire PDF downloaded."
+            )
             return RetrievedFullText(
                 doi=doi,
                 uid=uid,
@@ -193,8 +215,8 @@ class ElsevierFetcher(BasePublisherFetcher):
             )
 
         warning_message = (
-            f"Downloaded PDF for {uid} appears to be a single page."
-            " which may indicate closed access."
+            f"Downloaded PDF for {uid} appears to be a single page and elsevier"
+            " reports an incomplete download, which may indicate closed access."
             f" Removing single page PDF at {output_file_path}."
             f" Fetching XML fulltext instead for {uid=} {doi=}."
         )
@@ -214,8 +236,9 @@ class ElsevierFetcher(BasePublisherFetcher):
             ProxyConnectionError,
         ) as elsevier_request_error:
             error_message = (
-                "Elsevier request error when fetching XML after single page PDF"
-                f" for {doi=}: {elsevier_request_error}"
+                "Elsevier request error when fetching XML after PDF fetch"
+                " found closed access for "
+                f"{doi=}: {elsevier_request_error}"
             )
             logger.error(error_message)
             raise
@@ -265,8 +288,7 @@ class ElsevierFetcher(BasePublisherFetcher):
             uid (UUID): The unique identifier of the study.
 
         Returns:
-            httpx.Response: The HTTP response or a RetrievedFullText instance
-                in case of an error.
+            httpx.Response: The HTTP response from the Elsevier API.
 
         """
         try:
@@ -337,10 +359,18 @@ class ElsevierFetcher(BasePublisherFetcher):
             file_path = (
                 output_directory / f"{uid}{elsevier_request_config.file_extension}"
             )
+            is_incomplete_pdf: bool = False
             try:
-                output_file_path = await self.download_one_pdf(
-                    AnyUrl(url), file_path, headers=elsevier_request_config.headers
+                await self.download_one_pdf(
+                    AnyUrl(url),
+                    file_path,
+                    headers=elsevier_request_config.headers,
                 )
+
+            except IncompleteFullTextError:
+                logger.warning(f"Incomplete full text downloaded for {doi=}, {uid=}")
+                is_incomplete_pdf = True
+
             except FullTextStreamError as fulltext_download_error:
                 error_message = (
                     f"Full text download error for Elsevier DOI {doi}:"
@@ -351,11 +381,13 @@ class ElsevierFetcher(BasePublisherFetcher):
                     doi=doi, uid=uid, fulltext_path=None, error=error_message
                 )
 
-            if output_file_path:
-                return await self.get_final_fulltext_content(
-                    url=url, output_file_path=output_file_path, doi=doi, uid=uid
-                )
-
+            return await self.get_final_fulltext_content(
+                url=str(url),
+                output_file_path=file_path,
+                doi=doi,
+                uid=uid,
+                is_incomplete_pdf=is_incomplete_pdf,
+            )
         warning_message = (
             f"Unexpected successful status code for {uid=}, {doi=}."
             f" Status Code: {response.status_code}"

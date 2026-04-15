@@ -171,7 +171,7 @@ class FullTextBatchFetcher:
                     (
                         output_directory / f"{study.uid}{ext}"
                         for ext in [".pdf", ".xml"]
-                        if (output_directory / f"{study.uid}.{ext}").exists()
+                        if (output_directory / f"{study.uid}{ext}").exists()
                     ),
                     None,
                 )
