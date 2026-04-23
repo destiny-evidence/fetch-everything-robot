@@ -2,6 +2,7 @@
 
 import tempfile
 from pathlib import Path
+from typing import Literal
 from uuid import UUID
 
 import httpx
@@ -54,27 +55,39 @@ class RetrievedFullText(BaseModel):
 
     doi: str = Field(..., description="The DOI of the study.")
     uid: UUID = Field(..., description="The unique identifier of the study.")
-    pdf_path: Path | None = Field(
-        None, description="The path to the retrieved PDF file."
+    fulltext_path: Path | None = Field(
+        None, description="The path to the retrieved full text file, if it exists."
+    )
+    file_format: Literal["pdf", "xml"] | None = Field(
+        None, description="The file format of the retrieved full text file."
     )
     error: str | None = Field(
         None, description="An error message if the retrieval failed."
     )
 
     @model_validator(mode="after")
-    def check_pdf_path_or_error(self) -> "RetrievedFullText":
+    def check_fulltext_path_or_error(self) -> "RetrievedFullText":
         """
-        Validate that either pdf_path or error is set.
+        Validate that either fulltext_path or error is set.
+
+        If a full text is returned and saved to file(as XML or PDF),
+        the path should exist. If retrieval fails, this file is not
+        created, the path does not exist and an error message should be set instead.
 
         Raises:
-            ValueError: If neither pdf_path nor error is set.
+            ValueError: If neither fulltext_path nor error is set.
 
         """
-        if self.pdf_path is None and self.error is None:
-            error_message = "Either pdf_path or error must be set."
+        if self.fulltext_path is None and self.error is None:
+            error_message = "Either fulltext_path or error must be set."
             raise ValueError(error_message)
-        if self.pdf_path is not None and self.error is not None:
-            error_message = "Only one of pdf_path or error can be set."
+        if self.fulltext_path is not None and self.error is not None:
+            error_message = "Only one of fulltext_path or error can be set."
+            raise ValueError(error_message)
+        if self.error is None and (
+            self.fulltext_path is not None and not self.fulltext_path.exists()
+        ):
+            error_message = f"Full text path does not exist: {self.fulltext_path}"
             raise ValueError(error_message)
         return self
 

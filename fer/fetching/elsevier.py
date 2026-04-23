@@ -1,10 +1,14 @@
 """Elsevier Fetcher Module."""
 
 from pathlib import Path
+from typing import Literal
+from uuid import UUID
 
 import httpx
 from loguru import logger
 from pydantic import AnyUrl, BaseModel
+from pypdf import PdfReader
+from pypdf.errors import PyPdfError
 from python_socks import ProxyConnectionError
 
 from fer.config import Settings
@@ -15,6 +19,7 @@ from fer.fetching.core import (
     BaseAuthError,
     FullTextStreamError,
     RetrievedFullText,
+    Study,
     StudyCollection,
     stream_file,
 )
@@ -28,7 +33,7 @@ class ElsevierRequestConfig(BaseModel):
     """Configuration for Elsevier API requests."""
 
     headers: dict[str, str]
-    file_extension: str
+    file_extension: Literal[".pdf", ".xml"]
 
 
 class ElsevierFetcher(BasePublisherFetcher):
@@ -45,6 +50,34 @@ class ElsevierFetcher(BasePublisherFetcher):
         self.settings = settings
         self.api_config: ScopusAPIConfig = get_scopus_batch_api_config()
         self.base_url = "https://api.elsevier.com/content/article/doi/"
+
+    @staticmethod
+    def _is_single_page_pdf(path: Path) -> bool:
+        """
+        Check if a PDF file is a single page.
+
+        Args:
+            path (Path): The path to the PDF file.
+
+        Returns:
+            bool: True if the PDF is a single page, False otherwise.
+
+        """
+        try:
+            with path.open("rb") as file:
+                reader = PdfReader(file)
+                return len(reader.pages) == 1 if reader.pages is not None else False
+        except PyPdfError as pdf_error:
+            error_message = f"Error reading PDF file {path}: {pdf_error}"
+            logger.error(error_message)
+            return False
+        except FileNotFoundError as file_not_found_error:
+            error_message = (
+                f"File not found when processing PDF file {path}:"
+                f" {file_not_found_error}"
+            )
+            logger.warning(error_message)
+            return False
 
     async def download_one_pdf(
         self,
@@ -117,14 +150,251 @@ class ElsevierFetcher(BasePublisherFetcher):
             headers["Accept"] = "application/pdf"
             file_extension = ".pdf"
         elif get_xml and not get_pdf:
-            headers["Accept"] = "application/xml"
+            headers["Accept"] = "text/xml"
             file_extension = ".xml"
+        elif get_xml and get_pdf:
+            logger.warning(
+                "Both get_pdf and get_xml are True. Defaulting to PDF content."
+            )
+            headers["Accept"] = "application/pdf"
+        elif not get_xml and not get_pdf:
+            logger.warning(
+                "Both get_pdf and get_xml are False. Defaulting to PDF content."
+            )
+            headers["Accept"] = "application/pdf"
         else:
             headers["Accept"] = "application/json"
 
         return ElsevierRequestConfig(
             headers=headers,
             file_extension=file_extension,
+        )
+
+    async def get_final_fulltext_content(
+        self, url: str, output_file_path: Path, doi: str, uid: UUID
+    ) -> RetrievedFullText:
+        """
+        Produce the correct format fulltext content.
+
+        Handles cases where a PDF is returned, but it is a single page,
+        which may indicate that the content is closed access.
+        In this case, we should attempt to fetch the XML fulltext instead.
+
+        Args:
+            url (str): The URL of the Elsevier API.
+            output_file_path (Path): The path to the downloaded fulltext file.
+            doi (str): The DOI of the study.
+            uid (UUID): The unique identifier of the study.
+
+        Returns:
+            RetrievedFullText: The retrieved fulltext content.
+
+        """
+        is_single_page_pdf = (
+            self._is_single_page_pdf(output_file_path)
+            if (output_file_path and output_file_path.exists())
+            else False
+        )
+
+        if not is_single_page_pdf:
+            logger.info(f"Elsevier content saved {uid}: {output_file_path}")
+            return RetrievedFullText(
+                doi=doi,
+                uid=uid,
+                fulltext_path=output_file_path,
+                file_format="pdf",
+                error=None,
+            )
+
+        warning_message = (
+            f"Downloaded PDF for {uid} appears to be a single page."
+            " which may indicate closed access."
+            f" Removing single page PDF at {output_file_path}."
+            f" Fetching XML fulltext instead for {uid=} {doi=}."
+        )
+        logger.warning(warning_message)
+
+        output_file_path.unlink(missing_ok=True)
+
+        xml_request_config = self.prepare_request_config(get_pdf=False, get_xml=True)
+
+        try:
+            response = await self._elsevier_request(
+                url=url, elsevier_request_config=xml_request_config, doi=doi, uid=uid
+            )
+        except (
+            httpx.HTTPError,
+            FullTextStreamError,
+            ProxyConnectionError,
+        ) as elsevier_request_error:
+            error_message = (
+                "Elsevier request error when fetching XML after PDF fetch"
+                " found closed access"
+                f" for {doi=}: {elsevier_request_error}"
+            )
+            logger.error(error_message)
+            return RetrievedFullText(
+                doi=doi,
+                uid=uid,
+                fulltext_path=None,
+                error=error_message,
+            )
+
+        if response.status_code == httpx.codes.OK:
+            xml_file_path = output_file_path.with_suffix(".xml")
+            xml_file_path.write_bytes(response.content)
+            logger.info(f"Elsevier XML content saved {uid}: {xml_file_path}")
+            return RetrievedFullText(
+                doi=doi,
+                uid=uid,
+                fulltext_path=xml_file_path,
+                file_format="xml",
+                error=None,
+            )
+
+        warning_message = (
+            f"Unexpected status code when fetching XML after"
+            f" single page PDF for {uid=}, {doi=}."
+            f" Status Code: {response.status_code}"
+        )
+        logger.warning(warning_message)
+        return RetrievedFullText(
+            doi=doi,
+            uid=uid,
+            fulltext_path=None,
+            error=warning_message,
+        )
+
+    async def _elsevier_request(
+        self,
+        url: str,
+        elsevier_request_config: ElsevierRequestConfig,
+        doi: str,
+        uid: UUID,
+    ) -> httpx.Response:
+        """
+        Make an API request to Elsevier.
+
+        Uses a retrying Async HTTPX client to handle errors and proxy issues.
+
+        Args:
+            url (str): The URL to make the request to.
+            elsevier_request_config (ElsevierRequestConfig): The request configuration
+                containing headers and file extension.
+            doi (str): The DOI of the study.
+            uid (UUID): The unique identifier of the study.
+
+        Returns:
+            httpx.Response: The HTTP response or a RetrievedFullText instance
+                in case of an error.
+
+        """
+        try:
+            async with AsyncHTTPXRetryClient(
+                proxy_url=self.settings.scopus_proxy_url
+            ) as client:
+                response = await client.get(
+                    url, headers=elsevier_request_config.headers
+                )
+                response.raise_for_status()
+                return response
+        except httpx.HTTPError as http_error:
+            error_message = f"HTTP error fetching Elsevier data for {doi}: {http_error}"
+            logger.error(error_message)
+            raise
+
+        except ProxyConnectionError as proxy_error:
+            error_message = f"Proxy connection failed for {doi}, {uid}: {proxy_error}"
+            logger.error(error_message)
+            raise
+
+    async def _fetch_one_fulltext(
+        self,
+        study: Study,
+        output_directory: Path,
+        elsevier_request_config: ElsevierRequestConfig,
+    ) -> RetrievedFullText:
+        """
+        Fetch a single full text from Elsevier.
+
+        Args:
+            study (Study): The study to fetch.
+            output_directory (Path): The output directory path.
+            elsevier_request_config (ElsevierRequestConfig): The request
+                configuration containing headers and file extension.
+
+        Returns:
+            RetrievedFullText: A single RetrievedFullText instance.
+
+        Raises:
+            httpx.HTTPError: If an HTTP error occurs during the API request.
+            ProxyConnectionError: If a proxy connection error occurs.
+
+        """
+        doi = study.doi.identifier.lower()
+        uid = study.uid
+        url = f"{self.base_url}{doi}/"
+        file_path = output_directory / f"{uid}{elsevier_request_config.file_extension}"
+        if elsevier_request_config.file_extension == ".pdf":
+            logger.info(f"Attempting to fetch PDF full text for {uid=}, {doi=}")
+
+            try:
+                await self.download_one_pdf(
+                    AnyUrl(url), file_path, headers=elsevier_request_config.headers
+                )
+            except FullTextStreamError as fulltext_download_error:
+                error_message = (
+                    f"Full text download error for Elsevier DOI {doi}:"
+                    f" {fulltext_download_error}"
+                )
+                logger.error(error_message)
+                return RetrievedFullText(
+                    doi=doi, uid=uid, fulltext_path=None, error=error_message
+                )
+            return await self.get_final_fulltext_content(
+                url=str(url),
+                output_file_path=file_path,
+                doi=doi,
+                uid=uid,
+            )
+        try:
+            response = await self._elsevier_request(
+                url=url,
+                elsevier_request_config=elsevier_request_config,
+                doi=doi,
+                uid=uid,
+            )
+        except (
+            httpx.HTTPError,
+            ProxyConnectionError,
+        ) as elsevier_request_error:
+            error_message = (
+                f"Elsevier request error for {doi=}: {elsevier_request_error}"
+            )
+            logger.error(error_message)
+            return RetrievedFullText(
+                doi=doi, uid=uid, fulltext_path=None, error=error_message
+            )
+
+        if response.status_code == httpx.codes.OK:
+            file_path.write_bytes(response.content)
+            logger.info(f"Elsevier content saved {uid}: {file_path}")
+            return RetrievedFullText(
+                doi=doi,
+                uid=uid,
+                fulltext_path=file_path,
+                file_format="xml",
+                error=None,
+            )
+
+        warning_message = (
+            f"Unexpected successful status code for {uid=}, {doi=}."
+            f" Status Code: {response.status_code}"
+        )
+        logger.warning(warning_message)
+        logger.warning(f"Response Content: {response.text}")
+        return RetrievedFullText(
+            doi=doi, uid=uid, fulltext_path=None, error=warning_message
         )
 
     async def fetch_many_full_texts(
@@ -152,77 +422,14 @@ class ElsevierFetcher(BasePublisherFetcher):
             get_pdf=get_pdf,
             get_xml=get_xml,
         )
-        headers: dict[str, str] = request_info.headers
-        file_extension: str = request_info.file_extension
 
         output_items: list[RetrievedFullText] = []
         for study in study_collection.studies:
-            doi = study.doi.identifier.lower()
-            uid = study.uid
-            url = f"{self.base_url}{doi}/"
-
-            try:
-                async with AsyncHTTPXRetryClient(
-                    proxy_url=self.settings.scopus_proxy_url
-                ) as client:
-                    response = await client.get(url, headers=headers)
-                    response.raise_for_status()
-                    if response.status_code == httpx.codes.OK:
-                        file_path = output_directory / f"{uid}{file_extension}"
-                        output_file_path = await self.download_one_pdf(
-                            AnyUrl(url), file_path, headers=headers
-                        )
-                        if output_file_path:
-                            output_items.append(
-                                RetrievedFullText(
-                                    doi=doi,
-                                    uid=uid,
-                                    pdf_path=output_file_path,
-                                    error=None,
-                                )
-                            )
-                        logger.info(f"Elsevier content saved {uid}: {file_path}")
-                    else:
-                        warning_message = (
-                            f"Unexpected successful status code for {uid=}, {doi=}."
-                            f" Status Code: {response.status_code}"
-                        )
-                        logger.warning(warning_message)
-                        logger.warning(f"Response Content: {response.text}")
-                        output_items.append(
-                            RetrievedFullText(
-                                doi=doi, uid=uid, pdf_path=None, error=warning_message
-                            )
-                        )
-            except httpx.HTTPError as http_error:
-                error_message = (
-                    f"HTTP error fetching Elsevier data for {doi}: {http_error}"
-                )
-                logger.error(error_message)
-                output_items.append(
-                    RetrievedFullText(
-                        doi=doi, uid=uid, pdf_path=None, error=error_message
-                    )
-                )
-            except FullTextStreamError as fulltext_download_error:
-                error_message = (
-                    f"Full text download error for Elsevier DOI {doi}:"
-                    f" {fulltext_download_error}"
-                )
-                logger.error(error_message)
-                output_items.append(
-                    RetrievedFullText(
-                        doi=doi, uid=uid, pdf_path=None, error=error_message
-                    )
-                )
-
-            except ProxyConnectionError as e:
-                error_message = f"Proxy connection failed for {doi}, {uid}: {e}"
-                logger.error(error_message)
-                output_items.append(
-                    RetrievedFullText(
-                        doi=doi, uid=uid, pdf_path=None, error=error_message
-                    )
-                )
+            retrieved_full_text = await self._fetch_one_fulltext(
+                study=study,
+                output_directory=output_directory,
+                elsevier_request_config=request_info,
+            )
+            output_items.append(retrieved_full_text)
 
         return output_items

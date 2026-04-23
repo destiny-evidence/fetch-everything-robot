@@ -156,14 +156,15 @@ class OpenalexFetcher(BasePublisherFetcher):
                         RetrievedFullText(
                             doi=doi,
                             uid=uid,
-                            pdf_path=pdf_path,
+                            fulltext_path=pdf_path,
+                            file_format="pdf",
                         )
                     )
                 else:
                     warning_message = f"No PDF found for {doi=}."
                     output_items.append(
                         RetrievedFullText(
-                            doi=doi, uid=uid, pdf_path=None, error=warning_message
+                            doi=doi, uid=uid, fulltext_path=None, error=warning_message
                         )
                     )
             except OpenAlexAPIError as openalex_error:
@@ -174,7 +175,7 @@ class OpenalexFetcher(BasePublisherFetcher):
                 logger.error(error_message)
                 output_items.append(
                     RetrievedFullText(
-                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                        doi=doi, uid=uid, fulltext_path=None, error=error_message
                     )
                 )
             except HTTPError as http_error:
@@ -184,7 +185,7 @@ class OpenalexFetcher(BasePublisherFetcher):
                 logger.error(error_message)
                 output_items.append(
                     RetrievedFullText(
-                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                        doi=doi, uid=uid, fulltext_path=None, error=error_message
                     )
                 )
             except FullTextStreamError as fulltext_download_error:
@@ -195,7 +196,7 @@ class OpenalexFetcher(BasePublisherFetcher):
                 logger.error(error_message)
                 output_items.append(
                     RetrievedFullText(
-                        doi=doi, uid=uid, pdf_path=None, error=error_message
+                        doi=doi, uid=uid, fulltext_path=None, error=error_message
                     )
                 )
 

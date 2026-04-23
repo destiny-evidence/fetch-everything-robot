@@ -5,6 +5,7 @@ from httpx import HTTPError, Response
 
 from fer.fetching.core import FullTextStreamError
 from fer.fetching.openalex import OpenalexFetcher
+from tests.fixtures.fetching import fake_stream_file
 
 
 @pytest.fixture
@@ -109,7 +110,17 @@ async def test_fetch_many_full_texts_success(
     )
     mock_get_pdf_url = mocker.patch.object(fetcher, "_get_pdf_url")
     mock_download = mocker.patch.object(
-        fetcher, "download_one_pdf", new_callable=mocker.AsyncMock
+        fetcher,
+        "download_one_pdf",
+        new=mocker.AsyncMock(
+            side_effect=[
+                await fake_stream_file(
+                    url="http://example.com/article.pdf",
+                    destination=tmp_path / f"{uid}.pdf",
+                )
+                for uid in test_uuids
+            ]
+        ),
     )
     mock_sleep = mocker.patch("asyncio.sleep", new_callable=mocker.AsyncMock)
 
@@ -133,7 +144,7 @@ async def test_fetch_many_full_texts_success(
         for result, study in zip(results, test_study_collection.studies, strict=False)
     )
     assert all(
-        result.pdf_path == tmp_path / f"{study.uid}.pdf"
+        result.fulltext_path == tmp_path / f"{study.uid}.pdf"
         for result, study in zip(results, test_study_collection.studies, strict=False)
     )
 
@@ -166,7 +177,7 @@ async def test_fetch_many_full_texts_no_pdf(
         for result, study in zip(results, test_study_collection.studies, strict=False)
     )
     assert all(
-        result.pdf_path is None for result in results
+        result.fulltext_path is None for result in results
     ), "PDF path should be None when no PDF URL is available"
 
 
@@ -185,7 +196,7 @@ async def test_fetch_many_full_texts_http_error(
     results = await fetcher.fetch_many_full_texts(test_study_collection, tmp_path)
 
     assert all(
-        result.pdf_path is None for result in results
+        result.fulltext_path is None for result in results
     ), "PDF path should be None when HTTP error occurs"
     assert all(
         result.error is not None for result in results
@@ -212,7 +223,7 @@ async def test_fetch_many_full_texts_stream_error(
     results = await fetcher.fetch_many_full_texts(test_study_collection, tmp_path)
 
     assert all(
-        result.pdf_path is None for result in results
+        result.fulltext_path is None for result in results
     ), "PDF path should be None when stream error occurs"
     assert all(
         result.error is not None for result in results
