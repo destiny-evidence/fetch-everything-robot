@@ -20,7 +20,7 @@ class FullTextStreamError(Exception):
     """Custom exception to throw when full text streaming fails."""
 
 
-class IncompleteFullTextError(Exception):
+class IncompleteFullTextError(FullTextStreamError):
     """Custom exception to throw when a streamed full text file is incomplete."""
 
 
@@ -200,17 +200,19 @@ async def stream_file(
                 async for chunk in response.aiter_bytes():
                     destination_file.write(chunk)
 
-            if "elsevier" in str(url):
-                els_status = response.headers.get("X-ELS-Status", None)
-                if els_status and els_status.lower() != "ok":
-                    warning_message = (
-                        f"Elsevier download returned restricted response,"
-                        " likely single-page closed-access PDF."
-                        f" {els_status=}"
-                    )
-                    logger.warning(warning_message)
+            els_status = response.headers.get("X-ELS-Status", None)
+            if els_status and els_status.lower() != "ok":
+                warning_message = (
+                    f"Elsevier download returned restricted response,"
+                    " likely single-page closed-access PDF."
+                    f" {els_status=}"
+                )
+                logger.warning(warning_message)
+                if destination.exists():
+                    destination.unlink()
+                    logger.warning(f"Removing incomplete PDF at {destination}.")
 
-                    raise IncompleteFullTextError(warning_message)
+                raise IncompleteFullTextError(warning_message)
 
         logger.info(f"File downloaded successfully: {destination}")
     except httpx.HTTPError as http_error:

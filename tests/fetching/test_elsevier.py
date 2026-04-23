@@ -301,7 +301,7 @@ async def test_fetch_many_full_texts_single_page_incomplete_pdf_falls_back_to_xm
     Ensure a mislabelled open access item is handled correctly.
 
     An item mislabelled as open access, but that produces a single text PDF
-    should c ause us to fall back to producing XML output.
+    should cause us to fall back to producing XML output.
     """
     fetcher = ElsevierFetcher(settings=test_settings)
     studies = test_study_collection.studies
@@ -379,7 +379,7 @@ async def test_fetch_many_full_texts_single_page_complete_pdf_returns_gracefully
     mocked_stream = mocker.patch(
         "fer.fetching.elsevier.stream_file",
         new=mocker.AsyncMock(
-            new=[
+            side_effect=[
                 await fake_stream_file(
                     url="http://example.com/article.pdf",
                     destination=tmp_path / f"{study.uid}.pdf",

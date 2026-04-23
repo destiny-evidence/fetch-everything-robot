@@ -218,7 +218,7 @@ class ElsevierFetcher(BasePublisherFetcher):
             logger.info(
                 f"Downloaded PDF for {uid} is single page. "
                 "Can indicate closed access, "
-                "but elsevier reports entire PDF downloaded."
+                "but no incomplete-download status reported."
             )
             return RetrievedFullText(
                 doi=doi,
@@ -229,8 +229,8 @@ class ElsevierFetcher(BasePublisherFetcher):
             )
 
         warning_message = (
-            f"Downloaded PDF for {uid} appears to be a single page and elsevier"
-            " reports an incomplete download, which may indicate closed access."
+            f"Downloaded PDF for {uid} reports an incomplete download."
+            " May indicate closed access."
             f" Removing single page PDF at {output_file_path}."
             f" Fetching XML fulltext instead for {uid=} {doi=}."
         )
