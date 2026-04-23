@@ -108,6 +108,7 @@ lint.per-file-ignores = {"fer/enhancement_processor.py" = [
     "TRY300", # Consider moving this statement to an else block
 ], "tests*" = [
     "ANN001", # No return type annotation
+    "ANN003", # Missing type annotation for **kwargs
     "ANN201", # No return type annotation
     "ARG001", # Unused function argument
     "D100", # Missing docstring in public module

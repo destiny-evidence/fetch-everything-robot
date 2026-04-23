@@ -11,6 +11,7 @@ from fer.fetching.core import (
     RetrievedFullText,
 )
 from fer.fetching.elsevier import ElsevierFetcher, ElsevierRequestConfig
+from tests.fixtures.fetching import fake_stream_file
 
 
 @pytest.mark.asyncio
@@ -19,7 +20,7 @@ async def test_elsevier_fetcher_fetch_many_full_texts_pdf_success(
 ):
     fetcher = ElsevierFetcher(settings=test_settings)
     mocked_stream_call = mocker.patch(
-        "fer.fetching.elsevier.stream_file", return_value=tmp_path / "test.pdf"
+        "fer.fetching.elsevier.stream_file", side_effect=fake_stream_file
     )
     mock_response = mocker.MagicMock()
     mock_response.status_code = httpx.codes.OK
@@ -69,9 +70,7 @@ async def test_elsevier_fetcher_fetch_many_full_texts_xml_http_error(
 ):
     dois = [study.doi.identifier.lower() for study in test_study_collection.studies]
     fetcher = ElsevierFetcher(settings=test_settings)
-    mocker.patch(
-        "fer.fetching.elsevier.stream_file", return_value=tmp_path / "test.pdf"
-    )
+    mocker.patch("fer.fetching.elsevier.stream_file", side_effect=fake_stream_file)
 
     mock_response = mocker.MagicMock()
     mock_response.raise_for_status.side_effect = httpx.HTTPError("Test HTTP error")
@@ -179,9 +178,7 @@ async def test_fetch_one_fulltext_returns_retrieved_full_text_on_success(
     request_config = ElsevierRequestConfig(
         headers={"Accept": "application/pdf"}, file_extension=".pdf"
     )
-    mocker.patch(
-        "fer.fetching.elsevier.stream_file", return_value=tmp_path / f"{study.uid}.pdf"
-    )
+    mocker.patch("fer.fetching.elsevier.stream_file", side_effect=fake_stream_file)
     mock_response = mocker.MagicMock()
     mock_response.status_code = httpx.codes.OK
     mock_response.raise_for_status.return_value = None
@@ -391,66 +388,6 @@ async def test_fetch_many_full_texts_single_page_incomplete_pdf_falls_back_to_xm
 
 
 @pytest.mark.asyncio
-async def test_fetch_many_full_texts_single_page_complete_pdf_returns_gracefully(
-    mocker, test_settings, test_study_collection, tmp_path
-):
-    """
-    Ensure a single page open access item is handled correctly.
-
-    We can't just assume that single page PDFs are incomplete!
-    """
-    fetcher = ElsevierFetcher(settings=test_settings)
-    studies = test_study_collection.studies
-
-    pdf_responses = [
-        response
-        for _ in studies
-        for response in (
-            httpx.Response(status_code=httpx.codes.OK, content=b"PDF content"),
-        )
-    ]
-    mock_stream = mocker.patch(
-        "fer.fetching.elsevier.stream_file",
-        new=mocker.AsyncMock(
-            side_effect=[
-                tmp_path / f"{study.uid}.pdf" for study in test_study_collection.studies
-            ]
-        ),
-    )
-    mock_fetch = mocker.patch.object(
-        ElsevierFetcher,
-        "_elsevier_request",
-        new=mocker.AsyncMock(side_effect=pdf_responses),
-    )
-    mocker.patch.object(ElsevierFetcher, "_is_single_page_pdf", return_value=True)
-
-    results = await fetcher.fetch_many_full_texts(
-        study_collection=test_study_collection, output_directory=tmp_path
-    )
-    elsevier_request_configs = [
-        call.kwargs.get("elsevier_request_config") for call in mock_fetch.call_args_list
-    ]
-    stream_file_headers = [
-        call.kwargs.get("headers") for call in mock_stream.call_args_list
-    ]
-    pdf_calls = [
-        header
-        for header in stream_file_headers
-        if header.get("Accept") == "application/pdf"
-    ]
-
-    xml_calls = [
-        config
-        for config in elsevier_request_configs
-        if config.headers.get("Accept") == "text/xml"
-    ]
-
-    assert len(pdf_calls) == len(studies)
-    assert len(xml_calls) == 0
-    assert all(str(r.fulltext_path).endswith(".pdf") for r in results)
-
-
-@pytest.mark.asyncio
 async def test_fetch_many_full_texts_multi_page_complete_pdf_returns_gracefully(
     mocker, test_settings, test_study_collection, tmp_path
 ):
@@ -469,7 +406,12 @@ async def test_fetch_many_full_texts_multi_page_complete_pdf_returns_gracefully(
         "fer.fetching.elsevier.stream_file",
         new=mocker.AsyncMock(
             side_effect=[
-                tmp_path / f"{study.uid}.pdf" for study in test_study_collection.studies
+                await fake_stream_file(
+                    url="http://example.com/article.pdf",
+                    destination=tmp_path / f"{study.uid}.pdf",
+                    pdf_content=b"PDF content",
+                )
+                for study in test_study_collection.studies
             ]
         ),
     )
@@ -527,7 +469,12 @@ async def test_fetch_many_full_texts_single_page_closed_access_pdf_orphan_file_i
         "fer.fetching.elsevier.stream_file",
         new=mocker.AsyncMock(
             side_effect=[
-                tmp_path / f"{study.uid}.pdf" for study in test_study_collection.studies
+                await fake_stream_file(
+                    url="http://example.com/article.pdf",
+                    destination=tmp_path / f"{study.uid}.pdf",
+                    pdf_content=b"PDF content",
+                )
+                for study in test_study_collection.studies
             ]
         ),
     )

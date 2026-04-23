@@ -4,6 +4,7 @@ from pydantic import HttpUrl
 
 from fer.fetching.core import FullTextStreamError
 from fer.fetching.unpaywall import UnpaywallFetcher
+from tests.fixtures.fetching import fake_stream_file
 
 
 @pytest.mark.asyncio
@@ -17,9 +18,7 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_success_pdf_found(
         "publisher": "Test Publisher",
     }
     fetcher = UnpaywallFetcher(settings=test_settings)
-    mocker.patch(
-        "fer.fetching.unpaywall.stream_file", return_value=tmp_path / "dummy.pdf"
-    )
+    mocker.patch("fer.fetching.unpaywall.stream_file", side_effect=fake_stream_file)
     mock_response = mocker.MagicMock()
     mock_response.status_code = httpx.codes.OK
     mock_response.raise_for_status.return_value = None
@@ -305,6 +304,7 @@ async def test_process_single_study_response_pdf_found(
 ):
     test_doi = test_study_collection.studies[0].doi.identifier
     test_uid = test_study_collection.studies[0].uid
+    expected_pdf_path = tmp_path / f"{test_uid}.pdf"
 
     fetcher = UnpaywallFetcher(settings=test_settings)
     mock_response_data = {
@@ -320,7 +320,16 @@ async def test_process_single_study_response_pdf_found(
         "fer.fetching.unpaywall.AsyncHTTPXRetryClient.get", return_value=mock_response
     )
     mocker.patch(
-        "fer.fetching.unpaywall.stream_file", return_value=tmp_path / "dummy.pdf"
+        "fer.fetching.unpaywall.stream_file",
+        new=mocker.AsyncMock(
+            side_effect=[
+                await fake_stream_file(
+                    url="http://example.com/article.pdf",
+                    destination=expected_pdf_path,
+                    pdf_content=b"PDF content",
+                )
+            ]
+        ),
     )
 
     retrieved_fulltext = await fetcher.process_single_study_response(
@@ -330,7 +339,7 @@ async def test_process_single_study_response_pdf_found(
 
     assert retrieved_fulltext.doi == test_doi
     assert retrieved_fulltext.uid == test_uid
-    assert retrieved_fulltext.fulltext_path == tmp_path / "dummy.pdf"
+    assert retrieved_fulltext.fulltext_path == expected_pdf_path
 
 
 @pytest.mark.asyncio

@@ -70,6 +70,10 @@ class RetrievedFullText(BaseModel):
         """
         Validate that either fulltext_path or error is set.
 
+        If a full text is returned and saved to file(as XML or PDF),
+        the path should exist. If retrieval fails, this file is not
+        created, the path does not exist and an error message should be set instead.
+
         Raises:
             ValueError: If neither fulltext_path nor error is set.
 
@@ -79,6 +83,11 @@ class RetrievedFullText(BaseModel):
             raise ValueError(error_message)
         if self.fulltext_path is not None and self.error is not None:
             error_message = "Only one of fulltext_path or error can be set."
+            raise ValueError(error_message)
+        if self.error is None and (
+            self.fulltext_path is not None and not self.fulltext_path.exists()
+        ):
+            error_message = f"Full text path does not exist: {self.fulltext_path}"
             raise ValueError(error_message)
         return self
 

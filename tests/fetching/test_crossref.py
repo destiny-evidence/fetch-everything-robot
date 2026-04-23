@@ -3,6 +3,7 @@ import pytest
 from habanero import RequestError
 
 from fer.fetching.crossref import CrossrefFetcher
+from tests.fixtures.fetching import fake_stream_file
 
 
 def test_crossref_get_content_type_success(test_settings):
@@ -152,6 +153,10 @@ async def test_fetch_many_full_texts_with_valid_pdf(
 ):
     fetcher = CrossrefFetcher(settings=test_settings)
     mocker.patch("asyncio.sleep")
+    valid_pdf_content = b"test"
+    temp_pdf_path = tmp_path / "dummy.pdf"
+    temp_pdf_path.write_bytes(valid_pdf_content)
+
     patched_crossref_works = mocker.patch("fer.fetching.crossref.Crossref.works")
     patched_url_get_call = mocker.patch.object(
         fetcher,
@@ -164,8 +169,9 @@ async def test_fetch_many_full_texts_with_valid_pdf(
     patched_pdf_url_is_valid = mocker.patch.object(
         fetcher, "pdf_url_is_valid", return_value=True
     )
+
     patched_stream_file = mocker.patch(
-        "fer.fetching.crossref.stream_file", return_value=tmp_path / "dummy.pdf"
+        "fer.fetching.crossref.stream_file", side_effect=fake_stream_file
     )
     await fetcher.fetch_many_full_texts(
         study_collection=test_study_collection, output_directory=tmp_path

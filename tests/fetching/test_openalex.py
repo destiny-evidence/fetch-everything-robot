@@ -5,6 +5,7 @@ from httpx import HTTPError, Response
 
 from fer.fetching.core import FullTextStreamError
 from fer.fetching.openalex import OpenalexFetcher
+from tests.fixtures.fetching import fake_stream_file
 
 
 @pytest.fixture
@@ -109,7 +110,17 @@ async def test_fetch_many_full_texts_success(
     )
     mock_get_pdf_url = mocker.patch.object(fetcher, "_get_pdf_url")
     mock_download = mocker.patch.object(
-        fetcher, "download_one_pdf", new_callable=mocker.AsyncMock
+        fetcher,
+        "download_one_pdf",
+        new=mocker.AsyncMock(
+            side_effect=[
+                await fake_stream_file(
+                    url="http://example.com/article.pdf",
+                    destination=tmp_path / f"{uid}.pdf",
+                )
+                for uid in test_uuids
+            ]
+        ),
     )
     mock_sleep = mocker.patch("asyncio.sleep", new_callable=mocker.AsyncMock)
 
