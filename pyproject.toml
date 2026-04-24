@@ -44,7 +44,7 @@ docs = [
     "mkdocs-mermaid2-plugin>=1.2.1",
     "mkdocstrings",
     "mkdocstrings-python",
-    "tox>=4.27.0",
+    "pygments==2.19.2",
 ]
 test = [
     "fastapi[standard]>=0.115.14",
@@ -134,25 +134,6 @@ spaces_indent_inline_array = 4
 trailing_comma_inline_array = true
 overrides."project.classifiers".inline_arrays = false
 overrides."tool.coverage.paths.source".inline_arrays = false
-overrides."tool.tox.env.docs.commands".inline_arrays = false
-
-[tool.tox]
-env_list = [
-    "py313",
-]
-
-[tool.tox.env.docs]
-commands = [
-    [
-        "mkdocs",
-        "build",
-        "--strict",
-    ],
-]
-extras = [
-    "docs",
-]
-gh.python."3.13" = ["py313"]
 
 [tool.uv]
 exclude-dependencies = [
