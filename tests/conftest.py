@@ -300,6 +300,16 @@ def test_dois() -> list[str]:
 
 
 @pytest.fixture
+def test_openalex_ids() -> list[destiny_sdk.identifiers.OpenAlexIdentifier]:
+    """Create a list of test OpenAlex IDs."""
+    test_ids = ["W1234567890", "W0987654321"]
+    return [
+        destiny_sdk.identifiers.OpenAlexIdentifier(identifier=test_id)
+        for test_id in test_ids
+    ]
+
+
+@pytest.fixture
 def mock_reference_file_stream(
     httpx_mock: HTTPXMock, test_reference_ids: list[uuid.UUID], test_dois: list[str]
 ):

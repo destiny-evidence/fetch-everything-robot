@@ -7,7 +7,7 @@ from typing import Literal
 from uuid import UUID
 
 import httpx
-from destiny_sdk.identifiers import DOIIdentifier
+from destiny_sdk.identifiers import DOIIdentifier, OpenAlexIdentifier
 from httpx_socks import AsyncProxyTransport
 from loguru import logger
 from pydantic import AnyUrl, BaseModel, Field, model_validator
@@ -25,7 +25,13 @@ class IncompleteFullTextError(FullTextStreamError):
     """Custom exception to throw when a streamed full text file is incomplete."""
 
 
-class Study(BaseModel):
+class BaseStudy(BaseModel):
+    """Base model representing a study with a unique identifier."""
+
+    uid: UUID = Field(..., description="An internal unique identifier for the study.")
+
+
+class Study(BaseStudy):
     """
     Model representing a single study with DOI and unique identifier.
 
@@ -34,7 +40,27 @@ class Study(BaseModel):
     """
 
     doi: DOIIdentifier = Field(..., description="The DOI identifier of the study.")
-    uid: UUID = Field(..., description="A unique identifier for the study.")
+    openalex_id: OpenAlexIdentifier | None = Field(
+        None, description="The OpenAlex identifier of the study, if available."
+    )
+
+
+class OpenAlexStudy(BaseStudy):
+    """
+    Model representing a single OpenAlex study.
+
+    Crucially, DOI is allowed to be `None` here,
+    since not all OpenAlex records have DOIs.
+
+    An OpenAlex ID _is_ required.
+    """
+
+    openalex_id: OpenAlexIdentifier = Field(
+        ..., description="The OpenAlex identifier of the study, if available."
+    )
+    doi: DOIIdentifier | None = Field(
+        ..., description="The DOI identifier of the study."
+    )
 
 
 class StudyCollection(BaseModel):
@@ -52,14 +78,41 @@ class StudyCollection(BaseModel):
             doi (str): The DOI of the study to remove.
 
         """
-        self.studies = [study for study in self.studies if study.doi.identifier != doi]
+        self.studies = [
+            study
+            for study in self.studies
+            if study.doi is not None and study.doi.identifier != doi
+        ]
+
+
+class OpenAlexStudyCollection(BaseModel):
+    """Model representing a collection of studies."""
+
+    studies: list[OpenAlexStudy] = Field(
+        default_factory=list, description="A collection of studies."
+    )
+
+    def remove_study_by_openalex_id(self, openalex_id: str) -> None:
+        """
+        Remove a study from the collection by its OpenAlex ID.
+
+        Args:
+            openalex_id (str): The OpenAlex ID of the study to remove.
+
+        """
+        self.studies = [
+            study for study in self.studies if study.openalex_id != openalex_id
+        ]
 
 
 class RetrievedFullText(BaseModel):
     """Model representing a retrieved full text file."""
 
-    doi: str = Field(..., description="The DOI of the study.")
+    doi: str | None = Field(None, description="The DOI of the study, if available.")
     uid: UUID = Field(..., description="The unique identifier of the study.")
+    openalex_id: str | None = Field(
+        None, description="The OpenAlex ID of the study, if available."
+    )
     fulltext_path: Path | None = Field(
         None, description="The path to the retrieved full text file, if it exists."
     )
