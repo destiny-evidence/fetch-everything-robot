@@ -14,7 +14,10 @@ from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import (
     AsyncHTTPXRetryClient,
     FullTextStreamError,
+    OpenAlexStudy,
+    OpenAlexStudyCollection,
     RetrievedFullText,
+    Study,
     StudyCollection,
     stream_file,
 )
@@ -50,6 +53,27 @@ class OpenalexFetcher(BasePublisherFetcher):
         self.base_url: AnyUrl = self.api_config.url
         self.query_params: dict | None = self.api_config.query_params
         self.headers: dict = self.api_config.headers
+
+    async def _get_work_openalex_id(self, openalex_id: str) -> dict:
+        """
+        Retrieve a Work from an OpenAlex ID.
+
+        Args:
+            openalex_id (str): The OpenAlex ID to look up, as a string.
+
+        Returns:
+            dict: The JSON response from the OA API.
+
+        """
+        async with AsyncHTTPXRetryClient() as client:
+            response = await client.get(
+                url=f"{self.base_url!s}{openalex_id}",
+                headers=self.headers,
+                params=self.query_params,
+            )
+            response.raise_for_status()
+
+        return response.json()
 
     async def _get_work_doi(self, doi: str) -> dict:
         """
@@ -119,9 +143,68 @@ class OpenalexFetcher(BasePublisherFetcher):
         """
         return await stream_file(url=pdf_url, destination=filepath, headers=headers)
 
+    async def _openalex_retrieval(
+        self, study: Study | OpenAlexStudy, output_directory: Path
+    ) -> RetrievedFullText:
+        """
+        Retrieve full text for a single Study using OpenAlex API.
+
+        Args:
+            study (Study | OpenAlexStudy):
+                The study for which to retrieve the full text.
+            output_directory (Path): The directory where the full text should be saved.
+
+        Returns:
+            RetrievedFullText: The retrieved full text information.
+
+        """
+        doi = study.doi.identifier.lower() if study.doi else None
+        uid = study.uid
+        openalex_id = study.openalex_id.identifier if study.openalex_id else None
+        if openalex_id:
+            work = await self._get_work_openalex_id(openalex_id)
+        else:
+            if not doi:
+                error_message = (
+                    f"Study {uid} has neither DOI nor OpenAlex ID. "
+                    "Cannot retrieve full text."
+                )
+                logger.error(error_message)
+                return RetrievedFullText(
+                    doi=None,
+                    uid=uid,
+                    openalex_id=None,
+                    fulltext_path=None,
+                    error=error_message,
+                )
+            work = await self._get_work_doi(doi)
+        openalex_id = work.get("id", None)
+        pdf_url = self._get_pdf_url(work)
+        pdf_path: Path | None = None
+        if pdf_url is not None:
+            pdf_path = await self.download_one_pdf(
+                pdf_url=pdf_url, filepath=output_directory / f"{uid}.pdf"
+            )
+            return RetrievedFullText(
+                doi=doi,
+                uid=uid,
+                openalex_id=openalex_id,
+                fulltext_path=pdf_path,
+                file_format="pdf",
+            )
+
+        warning_message = f"No PDF found for {doi=} {openalex_id=}."
+        return RetrievedFullText(
+            doi=doi,
+            uid=uid,
+            openalex_id=openalex_id,
+            fulltext_path=None,
+            error=warning_message,
+        )
+
     async def fetch_many_full_texts(
         self,
-        study_collection: StudyCollection,
+        study_collection: StudyCollection | OpenAlexStudyCollection,
         output_directory: Path,
         **kwargs: object,
     ) -> list[RetrievedFullText]:
@@ -142,61 +225,60 @@ class OpenalexFetcher(BasePublisherFetcher):
         output_directory.mkdir(parents=True, exist_ok=True)
         output_items: list[RetrievedFullText] = []
         for study in study_collection.studies:
+            doi = study.doi.identifier.lower() if study.doi is not None else None
+            uid = study.uid
+            openalex_id = (
+                study.openalex_id.identifier if study.openalex_id is not None else None
+            )
             try:
-                doi = study.doi.identifier.lower()
-                uid = study.uid
-                work = await self._get_work_doi(doi)
-                pdf_url = self._get_pdf_url(work)
-                pdf_path: Path | None = None
-                if pdf_url is not None:
-                    pdf_path = await self.download_one_pdf(
-                        pdf_url=pdf_url, filepath=output_directory / f"{uid}.pdf"
+                output_items.append(
+                    await self._openalex_retrieval(
+                        study=study, output_directory=output_directory
                     )
-                    output_items.append(
-                        RetrievedFullText(
-                            doi=doi,
-                            uid=uid,
-                            fulltext_path=pdf_path,
-                            file_format="pdf",
-                        )
-                    )
-                else:
-                    warning_message = f"No PDF found for {doi=}."
-                    output_items.append(
-                        RetrievedFullText(
-                            doi=doi, uid=uid, fulltext_path=None, error=warning_message
-                        )
-                    )
+                )
             except OpenAlexAPIError as openalex_error:
                 error_message = (
-                    f"Openalex API error fetching data for {doi}: {openalex_error}"
+                    f"Openalex API error fetching data for {doi=} "
+                    f"{openalex_id=}: {openalex_error}"
                 )
-
                 logger.error(error_message)
                 output_items.append(
                     RetrievedFullText(
-                        doi=doi, uid=uid, fulltext_path=None, error=error_message
+                        doi=doi,
+                        uid=uid,
+                        openalex_id=openalex_id,
+                        fulltext_path=None,
+                        error=error_message,
                     )
                 )
             except HTTPError as http_error:
                 error_message = (
-                    f"HTTP error fetching Openalex data for {doi}: {http_error}"
+                    f"HTTP error fetching Openalex data for {doi=} "
+                    f"{openalex_id=}: {http_error}"
                 )
                 logger.error(error_message)
                 output_items.append(
                     RetrievedFullText(
-                        doi=doi, uid=uid, fulltext_path=None, error=error_message
+                        doi=doi,
+                        uid=uid,
+                        openalex_id=openalex_id,
+                        fulltext_path=None,
+                        error=error_message,
                     )
                 )
             except FullTextStreamError as fulltext_download_error:
                 error_message = (
-                    f"Full text download error for Openalex DOI {doi}:"
+                    f"Full text download error for Openalex DOI {doi=} {openalex_id=}:"
                     f" {fulltext_download_error}"
                 )
                 logger.error(error_message)
                 output_items.append(
                     RetrievedFullText(
-                        doi=doi, uid=uid, fulltext_path=None, error=error_message
+                        doi=doi,
+                        uid=uid,
+                        openalex_id=openalex_id,
+                        fulltext_path=None,
+                        error=error_message,
                     )
                 )
 
