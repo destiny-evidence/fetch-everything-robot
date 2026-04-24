@@ -1,16 +1,28 @@
 from uuid import uuid5
 
 import pytest
+from destiny_sdk.identifiers import DOIIdentifier, OpenAlexIdentifier
 
 from fer.config import ExternalAPI
 from fer.enhancement_processor import FullTextEnhancementProcessor
-from fer.fetching.core import Study, StudyCollection
+from fer.fetching.core import (
+    OpenAlexStudy,
+    OpenAlexStudyCollection,
+    RetrievedFullText,
+    Study,
+    StudyCollection,
+)
 from fer.local.run import (
     DOI_NAMESPACE,
+    InvalidIdentifierError,
+    generate_study_collection,
     generate_study_collection_from_dois,
     main,
+    openalex_retrieval_short_circuit,
     prepare_processor,
-    process_incoming_dois,
+    process_identifier_file,
+    process_identifiers,
+    resolve_openalex_identifiers,
 )
 from fer.utils import InvalidDOIError, validate_doi
 
@@ -80,22 +92,86 @@ def test_prepare_processor_excludes_apis_exits_on_all_api_exclusion(test_setting
         prepare_processor(test_settings, exclude_api=excluded_apis)
 
 
-def test_process_incoming_dois_from_file(test_doi_list, tmp_path):
+@pytest.mark.asyncio
+async def test_process_identifier_file_dois(test_doi_list, tmp_path):
     test_temp_dois_file = tmp_path / "test_dois.txt"
     test_temp_dois_file.write_text("\n".join(test_doi_list))
 
-    processed_dois = process_incoming_dois(test_temp_dois_file)
+    expected_identifiers = [validate_doi(doi) for doi in test_doi_list]
+    processed_dois = await process_identifier_file(test_temp_dois_file)
 
     assert isinstance(processed_dois, list)
-    assert processed_dois == test_doi_list
+    assert [
+        identifier.identifier for identifier in processed_dois
+    ] == expected_identifiers
 
 
-def test_process_incoming_dois_from_file_empty_file(tmp_path):
+@pytest.mark.asyncio
+async def test_process_identifier_file_mixed_identifiers(test_doi_list, tmp_path):
+    test_identifiers_file = tmp_path / "test_identifiers.txt"
+    openalex_ids = ["W123456789", "W987654321"]
+    all_identifiers = test_doi_list + openalex_ids
+    test_identifiers_file.write_text("\n".join(all_identifiers))
+
+    processed_dois = await process_identifier_file(test_identifiers_file)
+
+    assert isinstance(processed_dois, list)
+    assert all(
+        isinstance(identifier, (DOIIdentifier | OpenAlexIdentifier))
+        for identifier in processed_dois
+    )
+
+
+@pytest.mark.asyncio
+async def test_process_identifiers_valid_dois(test_doi_list):
+    processed_identifiers = await process_identifiers(test_doi_list)
+
+    assert isinstance(processed_identifiers, list)
+    assert all(
+        isinstance(identifier, DOIIdentifier) for identifier in processed_identifiers
+    )
+
+
+@pytest.mark.asyncio
+async def test_process_identifiers_valid_openalex_ids():
+    openalex_ids = ["W123456789", "W987654321"]
+    processed_identifiers = await process_identifiers(openalex_ids)
+
+    assert isinstance(processed_identifiers, list)
+    assert all(
+        isinstance(identifier, OpenAlexIdentifier)
+        for identifier in processed_identifiers
+    )
+
+
+@pytest.mark.asyncio
+async def test_process_identifiers_mixed_ids(test_doi_list):
+    openalex_ids = ["W123456789", "W987654321"]
+    combined_identifiers = test_doi_list + openalex_ids
+    processed_identifiers = await process_identifiers(combined_identifiers)
+
+    assert isinstance(processed_identifiers, list)
+    assert all(
+        isinstance(identifier, (DOIIdentifier | OpenAlexIdentifier))
+        for identifier in processed_identifiers
+    )
+
+
+@pytest.mark.asyncio
+async def test_process_identifiers_invalid_ids():
+    invalid_identifiers = ["12345", "not a valid identifier"]
+
+    with pytest.raises(InvalidIdentifierError):
+        await process_identifiers(invalid_identifiers)
+
+
+@pytest.mark.asyncio
+async def test_process_identifier_file_empty_file(tmp_path):
     test_temp_dois_file = tmp_path / "test_dois.txt"
     test_temp_dois_file.write_text("")
 
     with pytest.raises(SystemExit):
-        process_incoming_dois(test_temp_dois_file)
+        await process_identifier_file(test_temp_dois_file)
 
 
 @pytest.mark.asyncio
@@ -123,7 +199,7 @@ async def test_main_no_excluded_apis_success(mocker, tmp_path, test_doi_list):
     test_temp_dois_file.write_text("\n".join(test_doi_list))
 
     await main(
-        doi_list=test_temp_dois_file,
+        identifier_file=test_temp_dois_file,
         output_directory=test_output_directory,
     )
 
@@ -160,7 +236,7 @@ async def test_main_excluded_apis_success(
 
     with caplog.at_level("INFO"):
         await main(
-            doi_list=test_temp_dois_file,
+            identifier_file=test_temp_dois_file,
             output_directory=test_output_directory,
             exclude_api=excluded_api_list,
         )
@@ -171,3 +247,371 @@ async def test_main_excluded_apis_success(
     assert (
         mocked_get_many_fulltexts.await_count == 1
     ), "get_many_fulltext_pdfs_cycling_apis should be called once"
+
+
+@pytest.mark.asyncio
+async def test_resolve_openalex_identifiers_empty_list(test_settings):
+    resolved, without_doi = await resolve_openalex_identifiers([], test_settings)
+    assert resolved == []
+    assert without_doi == []
+
+
+@pytest.mark.asyncio
+async def test_resolve_openalex_identifiers_all_resolve_success(
+    mocker, test_settings, test_openalex_ids
+):
+    mock_fetcher = mocker.MagicMock()
+    mock_fetcher.get_work_openalex_id = mocker.AsyncMock(
+        side_effect=[
+            {"doi": "10.1000/xyz123"},
+            {"doi": "10.1000/xyz456"},
+        ]
+    )
+    mocker.patch("fer.local.run.OpenalexFetcher", return_value=mock_fetcher)
+
+    resolved, without_doi = await resolve_openalex_identifiers(
+        test_openalex_ids, test_settings
+    )
+    assert len(resolved) == len(test_openalex_ids)
+    assert without_doi == []
+    assert all(isinstance(study, Study) for study in resolved)
+    assert all(study.doi is not None for study in resolved)
+
+
+@pytest.mark.asyncio
+async def test_resolve_openalex_identifiers_partial_resolve(
+    mocker, test_settings, test_openalex_ids
+):
+    expected_id_resolution = [
+        {"doi": "10.1000/xyz123"},
+        {},
+    ]
+    mock_fetcher = mocker.MagicMock()
+    mock_fetcher.get_work_openalex_id = mocker.AsyncMock(
+        side_effect=expected_id_resolution
+    )
+    mocker.patch("fer.local.run.OpenalexFetcher", return_value=mock_fetcher)
+
+    resolved, without_doi = await resolve_openalex_identifiers(
+        test_openalex_ids, test_settings
+    )
+    assert len(resolved) == len(
+        [identifier for identifier in expected_id_resolution if "doi" in identifier]
+    )
+    assert len(without_doi) == len(
+        [identifier for identifier in expected_id_resolution if "doi" not in identifier]
+    )
+    assert isinstance(resolved[0], Study)
+    assert resolved[0].doi is not None
+    assert isinstance(without_doi[0], OpenAlexStudy)
+    assert without_doi[0].openalex_id == test_openalex_ids[1]
+    assert without_doi[0].doi is None
+
+
+@pytest.mark.asyncio
+async def test_resolve_openalex_identifiers_invalid_doi(
+    mocker, test_settings, test_openalex_ids, caplog
+):
+    mock_fetcher = mocker.MagicMock()
+    mock_fetcher.get_work_openalex_id = mocker.AsyncMock(
+        return_value={"doi": "invalid_doi"}
+    )
+    mocker.patch("fer.local.run.OpenalexFetcher", return_value=mock_fetcher)
+
+    with caplog.at_level("WARNING"):
+        resolved, without_doi = await resolve_openalex_identifiers(
+            test_openalex_ids, test_settings
+        )
+    assert len(resolved) == 0
+    assert len(without_doi) == len(test_openalex_ids)
+    assert all(isinstance(study, OpenAlexStudy) for study in without_doi)
+    assert "Invalid DOI" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_resolve_openalex_identifiers_all_without_doi(
+    mocker, test_settings, test_openalex_ids, caplog
+):
+    mock_fetcher = mocker.MagicMock()
+    mock_fetcher.get_work_openalex_id = mocker.AsyncMock(return_value={})
+    mocker.patch("fer.local.run.OpenalexFetcher", return_value=mock_fetcher)
+
+    with caplog.at_level("WARNING"):
+        resolved, without_doi = await resolve_openalex_identifiers(
+            test_openalex_ids, test_settings
+        )
+    assert len(resolved) == 0
+    assert len(without_doi) == len(test_openalex_ids)
+    assert all(isinstance(study, OpenAlexStudy) for study in without_doi)
+    assert all(study.doi is None for study in without_doi)
+    assert "No valid DOI found" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_generate_study_collection_doi_only(mocker, test_settings, test_doi_list):
+    identifier_list = [DOIIdentifier(identifier=doi) for doi in test_doi_list]
+    study_collection, openalex_study_collection = await generate_study_collection(
+        test_settings, identifier_list
+    )
+    assert isinstance(study_collection, StudyCollection)
+    assert len(study_collection.studies) == len(test_doi_list)
+    assert all(isinstance(study, Study) for study in study_collection.studies)
+    assert all(study.doi is not None for study in study_collection.studies)
+    assert not openalex_study_collection.studies
+
+
+@pytest.mark.asyncio
+async def test_generate_study_collection_openalex_only_resolves_to_dois(
+    mocker, test_settings, test_openalex_ids
+):
+    mock_fetcher = mocker.MagicMock()
+    mock_fetcher.get_work_openalex_id = mocker.AsyncMock(
+        side_effect=[{"doi": "10.1000/xyz123"}, {"doi": "10.1000/xyz456"}]
+    )
+    mocker.patch("fer.local.run.OpenalexFetcher", return_value=mock_fetcher)
+    study_collection, openalex_study_collection = await generate_study_collection(
+        test_settings, test_openalex_ids
+    )
+    assert isinstance(study_collection, StudyCollection)
+    assert len(study_collection.studies) == len(test_openalex_ids)
+    assert all(isinstance(study, Study) for study in study_collection.studies)
+    assert all(study.doi is not None for study in study_collection.studies)
+    assert not openalex_study_collection.studies
+
+
+@pytest.mark.asyncio
+async def test_generate_study_collection_openalex_only_partial_doi_resolution(
+    mocker, test_settings, test_openalex_ids
+):
+    single_doi_resolution_result = [
+        {"doi": "10.1000/xyz123"},
+        {},
+    ]
+    mock_fetcher = mocker.MagicMock()
+    mock_fetcher.get_work_openalex_id = mocker.AsyncMock(
+        side_effect=single_doi_resolution_result
+    )
+    mocker.patch("fer.local.run.OpenalexFetcher", return_value=mock_fetcher)
+    study_collection, openalex_study_collection = await generate_study_collection(
+        test_settings, test_openalex_ids
+    )
+    assert isinstance(study_collection, StudyCollection)
+    assert len(study_collection.studies) == len(
+        [result for result in single_doi_resolution_result if "doi" in result]
+    )
+    assert all(isinstance(study, Study) for study in study_collection.studies)
+    assert all(study.doi is not None for study in study_collection.studies)
+    assert isinstance(openalex_study_collection, OpenAlexStudyCollection)
+    assert len(openalex_study_collection.studies) == len(
+        [result for result in single_doi_resolution_result if "doi" not in result]
+    )
+    assert all(
+        isinstance(study, OpenAlexStudy) for study in openalex_study_collection.studies
+    )
+    assert all(study.doi is None for study in openalex_study_collection.studies)
+
+
+@pytest.mark.asyncio
+async def test_openalex_retrieval_short_circuit_creates_map(
+    mocker, tmp_path, test_openalex_ids
+):
+    openalex_study_collection = OpenAlexStudyCollection(
+        studies=[
+            OpenAlexStudy(
+                uid=uuid5(DOI_NAMESPACE, test_identifier.identifier),
+                openalex_id=test_identifier,
+                doi=None,
+            )
+            for test_identifier in test_openalex_ids
+        ]
+    )
+    expected_map_file = tmp_path / "retrieved_fulltexts_map.txt"
+
+    mock_processor = mocker.MagicMock()
+    mock_processor.fulltext_fetcher.full_text_fetcher.fetch = mocker.AsyncMock(
+        return_value=[
+            RetrievedFullText(
+                uid=uuid5(DOI_NAMESPACE, test_identifier.identifier),
+                openalex_id=test_identifier.identifier,
+                fulltext_path=None,
+                error="No PDF found",
+            )
+            for test_identifier in test_openalex_ids
+        ]
+    )
+    assert expected_map_file.exists() is False
+    await openalex_retrieval_short_circuit(
+        processor=mock_processor,
+        openalex_study_collection=openalex_study_collection,
+        output_directory=tmp_path,
+    )
+
+    content = expected_map_file.read_text()
+    assert all(
+        test_identifier.identifier in content for test_identifier in test_openalex_ids
+    )
+    assert all("openalex" in content for _ in test_openalex_ids)
+    assert all("None" in content for _ in test_openalex_ids)
+
+
+@pytest.mark.asyncio
+async def test_openalex_retrieval_short_circuit_appends_existing_map(
+    mocker, tmp_path, test_openalex_ids
+):
+    existing_line = "10.1000/xyz123\tfile.pdf\topenalex\n"
+    map_file = tmp_path / "retrieved_fulltexts_map.txt"
+    map_file.write_text(existing_line)
+
+    openalex_study_collection = OpenAlexStudyCollection(
+        studies=[
+            OpenAlexStudy(
+                uid=uuid5(DOI_NAMESPACE, test_identifier.identifier),
+                openalex_id=test_identifier,
+                doi=None,
+            )
+            for test_identifier in test_openalex_ids
+        ]
+    )
+    mock_processor = mocker.MagicMock()
+    mock_processor.fulltext_fetcher.full_text_fetcher.fetch = mocker.AsyncMock(
+        return_value=[
+            RetrievedFullText(
+                uid=uuid5(DOI_NAMESPACE, test_identifier.identifier),
+                openalex_id=test_identifier.identifier,
+                fulltext_path=None,
+                error="No PDF found",
+            )
+            for test_identifier in test_openalex_ids
+        ]
+    )
+    await openalex_retrieval_short_circuit(
+        processor=mock_processor,
+        openalex_study_collection=openalex_study_collection,
+        output_directory=tmp_path,
+    )
+    content = map_file.read_text()
+    assert existing_line in content
+    assert all(
+        test_identifier.identifier in content for test_identifier in test_openalex_ids
+    )
+
+
+@pytest.mark.asyncio
+async def test_main_doi_only(mocker, tmp_path, test_doi_list):
+    """DOI-only input: multi-API pipeline runs, short-circuit is skipped."""
+    test_identifiers_file = tmp_path / "ids.txt"
+    test_identifiers_file.write_text("\n".join(test_doi_list))
+
+    doi_studies = [
+        Study(doi=DOIIdentifier(identifier=doi), uid=uuid5(DOI_NAMESPACE, doi))
+        for doi in test_doi_list
+    ]
+    mocker.patch("fer.local.run.prepare_processor", return_value=mocker.MagicMock())
+    mocker.patch(
+        "fer.local.run.generate_study_collection",
+        new=mocker.AsyncMock(
+            return_value=(
+                StudyCollection(studies=doi_studies),
+                OpenAlexStudyCollection(),
+            )
+        ),
+    )
+    mock_retrieve = mocker.patch(
+        "fer.local.run.retrieve_fulltexts_from_external_providers",
+        new=mocker.AsyncMock(),
+    )
+    mock_short_circuit = mocker.patch(
+        "fer.local.run.openalex_retrieval_short_circuit", new=mocker.AsyncMock()
+    )
+
+    await main(identifier_file=test_identifiers_file, output_directory=tmp_path / "out")
+
+    mock_retrieve.assert_awaited_once()
+    mock_short_circuit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_main_openalex_only_no_doi(mocker, tmp_path, test_openalex_ids):
+    """OpenAlex ID-only input with no DOIs resolved."""
+    test_identifiers_file = tmp_path / "ids.txt"
+    test_identifiers_file.write_text(
+        "\n".join([test_identifier.identifier for test_identifier in test_openalex_ids])
+    )
+
+    openalex_studies = [
+        OpenAlexStudy(
+            doi=None,
+            openalex_id=test_identifier,
+            uid=uuid5(DOI_NAMESPACE, test_identifier.identifier),
+        )
+        for test_identifier in test_openalex_ids
+    ]
+    mocker.patch("fer.local.run.prepare_processor", return_value=mocker.MagicMock())
+    mocker.patch(
+        "fer.local.run.generate_study_collection",
+        new=mocker.AsyncMock(
+            return_value=(
+                StudyCollection(studies=[]),
+                OpenAlexStudyCollection(studies=openalex_studies),
+            )
+        ),
+    )
+    mock_retrieve = mocker.patch(
+        "fer.local.run.retrieve_fulltexts_from_external_providers",
+        new=mocker.AsyncMock(),
+    )
+    mock_short_circuit = mocker.patch(
+        "fer.local.run.openalex_retrieval_short_circuit", new=mocker.AsyncMock()
+    )
+
+    await main(identifier_file=test_identifiers_file, output_directory=tmp_path / "out")
+
+    mock_short_circuit.assert_awaited_once()
+    mock_retrieve.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_main_mixed_identifiers(
+    mocker, tmp_path, test_doi_list, test_openalex_ids
+):
+    """Mixed DOI and OpenAlex ID input: both multi-API pipeline and short-circuit run."""
+    all_identifiers = test_doi_list + [
+        test_identifier.identifier for test_identifier in test_openalex_ids
+    ]
+    test_identifiers_file = tmp_path / "ids.txt"
+    test_identifiers_file.write_text("\n".join(all_identifiers))
+
+    doi_studies = [
+        Study(doi=DOIIdentifier(identifier=doi), uid=uuid5(DOI_NAMESPACE, doi))
+        for doi in test_doi_list
+    ]
+    openalex_studies = [
+        OpenAlexStudy(
+            doi=None,
+            openalex_id=test_identifier,
+            uid=uuid5(DOI_NAMESPACE, test_identifier.identifier),
+        )
+        for test_identifier in test_openalex_ids
+    ]
+    mocker.patch("fer.local.run.prepare_processor", return_value=mocker.MagicMock())
+    mocker.patch(
+        "fer.local.run.generate_study_collection",
+        new=mocker.AsyncMock(
+            return_value=(
+                StudyCollection(studies=doi_studies),
+                OpenAlexStudyCollection(studies=openalex_studies),
+            )
+        ),
+    )
+    mock_retrieve = mocker.patch(
+        "fer.local.run.retrieve_fulltexts_from_external_providers",
+        new=mocker.AsyncMock(),
+    )
+    mock_short_circuit = mocker.patch(
+        "fer.local.run.openalex_retrieval_short_circuit", new=mocker.AsyncMock()
+    )
+
+    await main(identifier_file=test_identifiers_file, output_directory=tmp_path / "out")
+
+    mock_retrieve.assert_awaited_once()
+    mock_short_circuit.assert_awaited_once()

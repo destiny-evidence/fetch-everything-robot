@@ -54,7 +54,7 @@ class OpenalexFetcher(BasePublisherFetcher):
         self.query_params: dict | None = self.api_config.query_params
         self.headers: dict = self.api_config.headers
 
-    async def _get_work_openalex_id(self, openalex_id: str) -> dict:
+    async def get_work_openalex_id(self, openalex_id: str) -> dict:
         """
         Retrieve a Work from an OpenAlex ID.
 
@@ -162,7 +162,7 @@ class OpenalexFetcher(BasePublisherFetcher):
         uid = study.uid
         openalex_id = study.openalex_id.identifier if study.openalex_id else None
         if openalex_id:
-            work = await self._get_work_openalex_id(openalex_id)
+            work = await self.get_work_openalex_id(openalex_id)
         else:
             if not doi:
                 error_message = (

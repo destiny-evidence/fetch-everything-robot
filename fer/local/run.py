@@ -1,12 +1,14 @@
 """Define local run configurations."""
 
+import asyncio
 import sys
 from pathlib import Path
 from typing import Final
 from uuid import UUID, uuid5
 
 from cyclopts import App
-from destiny_sdk.identifiers import DOIIdentifier
+from destiny_sdk.identifiers import DOIIdentifier, OpenAlexIdentifier
+from pydantic import ValidationError
 
 from fer.config import ExternalAPI, Settings, get_settings
 from fer.data_models.crossref import get_crossref_api_config
@@ -18,7 +20,8 @@ from fer.enhancement_processor import (
     FullTextEnhancementProcessor,
 )
 from fer.fetch_fulltext import ZeroFullTextsGeneratedError
-from fer.fetching.core import Study, StudyCollection
+from fer.fetching.core import OpenAlexStudyCollection, Study, StudyCollection
+from fer.fetching.openalex import OpenalexFetcher, OpenAlexStudy
 from fer.fetching.registry import get_publisher_fetcher_registry
 from fer.logger import logger, set_up_logger
 from fer.utils import InvalidDOIError, get_version_number, validate_doi
@@ -29,6 +32,131 @@ app = App(
 )
 
 DOI_NAMESPACE = UUID("12345678-1234-5678-1234-567812345678")
+
+
+class InvalidIdentifierError(Exception):
+    """Raise when no valid identifier is found for a single Reference."""
+
+
+async def resolve_openalex_identifiers(
+    openalex_identifiers: list[OpenAlexIdentifier], settings: Settings
+) -> tuple[list[Study], list[OpenAlexStudy]]:
+    """
+    Resolve OpenAlex IDs to DOIs where possible, splitting into two groups.
+
+    Args:
+        openalex_identifiers (list[OpenAlexIdentifier]):
+            List of OpenAlex identifiers to resolve.
+        settings (Settings): The settings to use for the fetcher.
+
+    Returns:
+        tuple[list[Study], list[OpenAlexStudy]]:
+            A tuple containing a list of Study objects with valid DOIs and a
+                list of OpenAlexStudy objects without valid DOIs.
+
+    """
+    if not openalex_identifiers:
+        return [], []
+
+    openalex_fetcher = OpenalexFetcher(settings)
+    works = await asyncio.gather(
+        *[
+            openalex_fetcher.get_work_openalex_id(openalex_id.identifier)
+            for openalex_id in openalex_identifiers
+        ]
+    )
+    resolved: list[Study] = []
+    without_doi: list[OpenAlexStudy] = []
+
+    for openalex_id, work in zip(openalex_identifiers, works, strict=False):
+        raw_doi = work.get("doi", None)
+        doi: DOIIdentifier | None = None
+        if raw_doi:
+            try:
+                doi = DOIIdentifier(identifier=validate_doi(raw_doi))
+            except InvalidDOIError:
+                warning_message = (
+                    f"Invalid DOI found for OpenAlex ID {openalex_id.identifier}: "
+                    f"{raw_doi}. This item will be treated as having no valid DOI."
+                )
+                logger.warning(warning_message)
+
+        if doi is not None:
+            resolved.append(
+                Study(
+                    doi=doi,
+                    uid=uuid5(DOI_NAMESPACE, doi.identifier),
+                    openalex_id=openalex_id,
+                )
+            )
+        else:
+            logger.warning(
+                f"No valid DOI found for OpenAlex ID {openalex_id.identifier}. "
+                "This item will be treated as having no valid DOI."
+                "Attempting to fetch from _only_ OpenAlex."
+            )
+            without_doi.append(
+                OpenAlexStudy(
+                    uid=uuid5(DOI_NAMESPACE, openalex_id.identifier),
+                    openalex_id=openalex_id,
+                    doi=None,
+                )
+            )
+    return resolved, without_doi
+
+
+async def generate_study_collection(
+    settings: Settings, identifier_list: list[OpenAlexIdentifier | DOIIdentifier]
+) -> tuple[StudyCollection, OpenAlexStudyCollection]:
+    """
+    Generate a StudyCollection from a list of identifiers.
+
+    Identifiers can be DOIs or OpenAlex IDs.
+    If an OpenAlex ID is provided, this should be treated
+    as a valid identifier, but can only be used with the OpenAlex API.
+
+    If a DOI is provided, this should be validated and formatted.
+    We apply additional DOI validation in this package.
+    Validated DOIs can then be used with any API that accepts DOIs.
+
+    Args:
+        settings (Settings): The settings to use for the fetcher.
+        identifier_list (list[OpenAlexIdentifier | DOIIdentifier]):
+            List of identifiers to generate the StudyCollection from.
+
+    Returns:
+        tuple[StudyCollection, OpenAlexStudyCollection]:
+            A tuple containing a StudyCollection and an OpenAlexStudyCollection.
+
+    """
+    extracted_dois = [
+        identifier.identifier
+        for identifier in identifier_list
+        if isinstance(identifier, DOIIdentifier)
+    ]
+    extracted_openalex_ids = [
+        identifier
+        for identifier in identifier_list
+        if isinstance(identifier, OpenAlexIdentifier)
+    ]
+    doi_study_collection = (
+        generate_study_collection_from_dois(extracted_dois)
+        if len(extracted_dois) > 0
+        else StudyCollection(studies=[])
+    )
+    (
+        resolved_studies,
+        openalex_id_studies_without_doi,
+    ) = await resolve_openalex_identifiers(extracted_openalex_ids, settings)
+
+    study_collection = StudyCollection(
+        studies=doi_study_collection.studies + resolved_studies
+    )
+
+    openalex_collection = OpenAlexStudyCollection(
+        studies=openalex_id_studies_without_doi
+    )
+    return study_collection, openalex_collection
 
 
 def generate_study_collection_from_dois(doi_list: list[str]) -> StudyCollection:
@@ -108,49 +236,100 @@ def prepare_processor(
     )
 
 
-def process_incoming_dois(doi_list_file: Path) -> list[str]:
+async def process_identifier_file(
+    id_file: Path,
+) -> list[DOIIdentifier | OpenAlexIdentifier]:
     """
-    Process incoming DOIs from an input file.
+    Process an input file containing identifiers.
+
+    Return a list of processed identifiers.
 
     Args:
-        doi_list_file (Path): Path to a newline-separated file containing DOIs.
+        id_file (Path): Path to a newline-separated file containing identifiers.
 
     Returns:
-        list[str]: A list of processed DOIs.
+        list[DOIIdentifier | OpenAlexIdentifier]: A list of processed identifiers.
 
     """
-    with doi_list_file.open("r") as input_file:
-        doi_found = [line.strip() for line in input_file if line.strip()]
-    if len(doi_found) == 0:
-        error_message = f"No DOIs found in the provided file: {doi_list_file}. Exiting."
+    with id_file.open("r") as input_file:
+        raw_identifiers = [str(line.strip()) for line in input_file if line.strip()]
+    if len(raw_identifiers) == 0:
+        error_message = (
+            f"No identifiers found in the provided file: {id_file}. Exiting."
+        )
         logger.error(error_message)
         sys.exit(1)
-    return doi_found
+
+    return await process_identifiers(raw_identifiers)
 
 
-@app.default
-async def main(
-    doi_list: Path,
-    output_directory: Path,
-    exclude_api: list[ExternalAPI] | None = None,
-) -> None:
+async def process_identifiers(
+    raw_identifiers: list[str],
+) -> list[DOIIdentifier | OpenAlexIdentifier]:
     """
-    Define the main entry point for local running.
+    Process a list of identifiers, validating DOIs and returning the processed list.
+
+    Some items don't have a single canonical DOI, and may be presented as OpenAlex IDs.
+    We should ideally use these to fetch metadata and full text from OpenAlex.
+    If that's not possible we can collect metadata from OpenAlex,
+    extract what OpenAlex considers to be the DOI and use that for
+    fetching from other APIs.
+    This function is intended to be the starting point for that process.
 
     Args:
-        doi_list (Path): Path to a newline-separated file containing DOIs.
-        output_directory (Path): Path to the output directory.
-        exclude_api (list[ExternalAPI] | None): List of API names to exclude
-            from fetching. Defaults to None.
+        raw_identifiers (list[str]):
+            A list of raw identifier strings to process.
+
+    Returns:
+        list[DOIIdentifier | OpenAlexIdentifier]: A list of processed identifiers.
 
     """
-    set_up_logger()
-    settings = get_settings()
-    processor = prepare_processor(settings, exclude_api)
-    extracted_dois = process_incoming_dois(doi_list)
-    study_collection = generate_study_collection_from_dois(extracted_dois)
-    output_directory.mkdir(parents=True, exist_ok=True)
+    processed_identifiers = []
+    for raw_id in raw_identifiers:
+        try:
+            processed_identifiers.append(DOIIdentifier(identifier=validate_doi(raw_id)))
+        except (ValidationError, InvalidDOIError):
+            logger.warning(
+                f"Invalid DOI encountered, treating as OpenAlex ID: {raw_id}"
+            )
+            try:
+                processed_identifiers.append(OpenAlexIdentifier(identifier=raw_id))
+            except ValidationError as no_valid_identifier_error:
+                error_message = (
+                    f"Identifier {raw_id} is neither a valid DOI nor "
+                    f"a valid OpenAlex ID. Error: {no_valid_identifier_error}"
+                )
+                logger.error(f"Invalid OpenAlex ID encountered: {raw_id}")
+                raise InvalidIdentifierError(
+                    error_message
+                ) from no_valid_identifier_error
 
+    return processed_identifiers
+
+
+async def retrieve_fulltexts_from_external_providers(
+    processor: FullTextEnhancementProcessor,
+    study_collection: StudyCollection,
+    output_directory: Path,
+) -> None:
+    """
+    Retrieve full texts for a given StudyCollection.
+
+    Uses the provided processor and saves them to the output directory.
+
+    Potentially uses multiple external APIs, cycling through them as needed.
+
+    Results are saved to the output directory,
+    and a results map is written to a text file in the output directory.
+
+    Args:
+        processor (FullTextEnhancementProcessor):
+            The processor to use for retrieving full texts.
+        study_collection (StudyCollection):
+            The collection of studies for which to retrieve full texts.
+        output_directory (Path): The directory where the full texts should be saved.
+
+    """
     try:
         results = await processor.fulltext_fetcher.get_many_fulltext_pdfs_cycling_apis(
             input_study_collection=study_collection,
@@ -183,6 +362,90 @@ async def main(
             source = result["source"]
             f.write(f"{doi}\t{filename}\t{source}\n")
     logger.info(f"Results map written to {results_map_file}")
+
+
+async def openalex_retrieval_short_circuit(
+    processor: FullTextEnhancementProcessor,
+    openalex_study_collection: OpenAlexStudyCollection,
+    output_directory: Path,
+) -> None:
+    """
+    Short-circuit to fetch from OpenAlex for valid OpenAlex IDs.
+
+    Used in instances when we have OpenAlex IDs but no corresponding DOIs are found.
+    Such cases can _only_ be fetched from OpenAlex, so we need to attempt the fetch
+    and exit promptly, without attempting to fetch from any other APIs.
+
+
+    Args:
+        processor (FullTextEnhancementProcessor):
+            The processor to use for retrieving full texts.
+        openalex_study_collection (OpenAlexStudyCollection):
+            The collection of OpenAlex studies for which to retrieve full texts.
+        output_directory (Path):
+            The directory where the full texts should be saved.
+
+    """
+    logger.info("Short-circuiting to fetch from OpenAlex for valid OpenAlex IDs.")
+
+    no_doi_openalex_results = await processor.fulltext_fetcher.full_text_fetcher.fetch(
+        publisher_name="openalex",
+        study_collection=openalex_study_collection,
+        output_directory=output_directory,
+    )
+    results_map_file = output_directory / "retrieved_fulltexts_map.txt"
+    with results_map_file.open("a") as f:
+        for result in no_doi_openalex_results:
+            identifier = result.openalex_id or result.doi
+            filename = result.fulltext_path.name if result.fulltext_path else "None"
+            source = "openalex"
+            f.write(f"{identifier}\t{filename}\t{source}\n")
+
+
+@app.default
+async def main(
+    identifier_file: Path,
+    output_directory: Path,
+    exclude_api: list[ExternalAPI] | None = None,
+) -> None:
+    """
+    Define the main entry point for local running.
+
+    Args:
+        identifier_file (Path): Path to a newline-separated file containing identifiers.
+        output_directory (Path): Path to the output directory.
+        exclude_api (list[ExternalAPI] | None): List of API names to exclude
+            from fetching. Defaults to None.
+
+    """
+    set_up_logger()
+    settings = get_settings()
+    processor = prepare_processor(settings, exclude_api)
+    extracted_identifiers = await process_identifier_file(identifier_file)
+    output_directory.mkdir(parents=True, exist_ok=True)
+
+    study_collection, openalex_study_collection = await generate_study_collection(
+        settings, extracted_identifiers
+    )
+
+    if study_collection.studies:
+        logger.info(
+            f"Generated StudyCollection with {len(study_collection.studies)} "
+            "studies with valid DOIs."
+        )
+        await retrieve_fulltexts_from_external_providers(
+            processor, study_collection, output_directory
+        )
+
+    if openalex_study_collection.studies:
+        logger.info(
+            f"Fetching {len(openalex_study_collection.studies)} studies "
+            "with valid OpenAlex IDs but no valid DOIs from OpenAlex."
+        )
+
+        await openalex_retrieval_short_circuit(
+            processor, openalex_study_collection, output_directory
+        )
 
 
 if __name__ == "__main__":

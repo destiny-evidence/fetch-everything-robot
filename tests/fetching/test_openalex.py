@@ -232,7 +232,7 @@ async def test_fetch_many_full_texts_stream_error(
 
 @pytest.mark.asyncio
 async def test_get_work_openalex_id_success(mocker, fetcher):
-    """Test _get_work_openalex_id returns JSON data on success."""
+    """Test get_work_openalex_id returns JSON data on success."""
     openalex_id = "W1234567890"
     expected_data = {"id": openalex_id}
 
@@ -245,7 +245,7 @@ async def test_get_work_openalex_id_success(mocker, fetcher):
     mock_client.return_value.__aenter__.return_value = mock_client_instance
     mock_client_instance.get.return_value = mock_response
 
-    result = await fetcher._get_work_openalex_id(openalex_id)
+    result = await fetcher.get_work_openalex_id(openalex_id)
 
     assert result == expected_data
     mock_client_instance.get.assert_called_once()
@@ -266,7 +266,7 @@ async def test_get_work_openalex_id_http_error(mocker, fetcher):
     mock_client_instance.get.return_value = mock_response
 
     with pytest.raises(HTTPError):
-        await fetcher._get_work_openalex_id("W1234567890")
+        await fetcher.get_work_openalex_id("W1234567890")
 
 
 @pytest.mark.asyncio
@@ -275,7 +275,7 @@ async def test_fetch_many_full_texts_openalex_collection_success(
 ):
     mock_get_work_openalex = mocker.patch.object(
         fetcher,
-        "_get_work_openalex_id",
+        "get_work_openalex_id",
         new_callable=mocker.AsyncMock,
         side_effect=[{"id": "W1234567890"}, {"id": "W0987654321"}],
     )
@@ -333,7 +333,7 @@ async def test_fetch_many_full_texts_openalex_collection_no_pdf(
 ):
     mocker.patch.object(
         fetcher,
-        "_get_work_openalex_id",
+        "get_work_openalex_id",
         new_callable=mocker.AsyncMock,
         return_value={"id": "W1234567890"},
     )
