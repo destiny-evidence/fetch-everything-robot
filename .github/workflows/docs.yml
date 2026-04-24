@@ -16,12 +16,6 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - name: Cache tox
-        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
-        with:
-          path: .tox
-          key: tox-${{ hashFiles('pyproject.toml') }}
-
       - name: Set up Python
         uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5
         with:
@@ -29,10 +23,17 @@ jobs:
           cache: "pip"
           cache-dependency-path: "pyproject.toml"
 
-      - name: Install tox
-        run: python -m pip install tox
-      - name: Build HTML documentation with tox
-        run: tox -e docs
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8
+        with:
+          # Install a specific version of uv.
+          version: "0.8.4"
+
+      - name: Install the project
+        run: uv sync --locked --extra docs
+
+      - name: Build documentation
+        run: uv run mkdocs build --strict
 
       # Automatically deploy documentation to a GitHub Pages website on pushing to main.
       # Requires configuring the repository to deploy GitHub pages from a branch
