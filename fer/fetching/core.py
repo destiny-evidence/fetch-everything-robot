@@ -59,7 +59,7 @@ class OpenAlexStudy(BaseStudy):
         ..., description="The OpenAlex identifier of the study, if available."
     )
     doi: DOIIdentifier | None = Field(
-        ..., description="The DOI identifier of the study."
+        None, description="The DOI identifier of the study."
     )
 
 
@@ -101,7 +101,9 @@ class OpenAlexStudyCollection(BaseModel):
 
         """
         self.studies = [
-            study for study in self.studies if study.openalex_id != openalex_id
+            study
+            for study in self.studies
+            if study.openalex_id.identifier != openalex_id
         ]
 
 

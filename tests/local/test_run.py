@@ -1,5 +1,7 @@
+import json
 from uuid import uuid5
 
+import httpx
 import pytest
 from destiny_sdk.identifiers import DOIIdentifier, OpenAlexIdentifier
 
@@ -345,6 +347,73 @@ async def test_resolve_openalex_identifiers_all_without_doi(
     assert all(isinstance(study, OpenAlexStudy) for study in without_doi)
     assert all(study.doi is None for study in without_doi)
     assert "No valid DOI found" in caplog.text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "error",
+    [
+        httpx.HTTPStatusError(
+            "500 Internal Server Error",
+            request=httpx.Request("GET", "https://api.openalex.org/W123"),
+            response=httpx.Response(500),
+        ),
+        httpx.ConnectError("Connection refused"),
+        httpx.TimeoutException("Request timed out"),
+        httpx.ReadError("Read error"),
+        json.JSONDecodeError("Malformed JSON response", doc="", pos=0),
+    ],
+)
+async def test_resolve_openalex_identifiers_error_treated_as_without_doi(
+    mocker, test_settings, test_openalex_ids, caplog, error
+):
+    """
+
+    Test that a single error doesn't cause the entire resolution to fail.
+
+    We should resolve what we can, and treat errors as DOI not found.
+    """
+    test_resolution_results = [
+        {"doi": "10.1000/xyz123"},
+        error,
+    ]
+    mock_fetcher = mocker.MagicMock()
+    mock_fetcher.get_work_openalex_id = mocker.AsyncMock(
+        side_effect=test_resolution_results
+    )
+    mocker.patch("fer.local.run.OpenalexFetcher", return_value=mock_fetcher)
+
+    with caplog.at_level("WARNING"):
+        resolved, without_doi = await resolve_openalex_identifiers(
+            test_openalex_ids, test_settings
+        )
+
+    assert len(resolved) == len(
+        [
+            result
+            for result in test_resolution_results
+            if isinstance(result, dict) and "doi" in result
+        ]
+    ), "Only the successful resolution should be in the resolved list"
+    assert (
+        len(without_doi)
+        == len(
+            [
+                result
+                for result in test_resolution_results
+                if not (isinstance(result, dict) and "doi" in result)
+            ]
+        )
+    ), "The number of studies without DOIs should match the number of errored resolutions - i.e. 1"
+    assert (
+        without_doi[0].openalex_id == test_openalex_ids[1]
+    ), "The second result errored, so the OpenAlex ID from the second input should be in the without_doi list"
+    assert (
+        without_doi[0].doi is None
+    ), "DOI should be none for the OpenAlex ID that errored"
+    assert (
+        "Failed to fetch OpenAlex work" in caplog.text
+    ), "Error during OpenAlex ID resolution should be logged as a warning"
 
 
 @pytest.mark.asyncio

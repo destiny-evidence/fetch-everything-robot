@@ -63,12 +63,26 @@ async def resolve_openalex_identifiers(
         *[
             openalex_fetcher.get_work_openalex_id(openalex_id.identifier)
             for openalex_id in openalex_identifiers
-        ]
+        ],
+        return_exceptions=True,
     )
     resolved: list[Study] = []
     without_doi: list[OpenAlexStudy] = []
 
     for openalex_id, work in zip(openalex_identifiers, works, strict=False):
+        if isinstance(work, BaseException):
+            logger.warning(
+                f"Failed to fetch OpenAlex work for {openalex_id.identifier}: {work}. "
+                "Treating as having no valid DOI."
+            )
+            without_doi.append(
+                OpenAlexStudy(
+                    uid=uuid5(DOI_NAMESPACE, openalex_id.identifier),
+                    openalex_id=openalex_id,
+                    doi=None,
+                )
+            )
+            continue
         raw_doi = work.get("doi", None)
         doi: DOIIdentifier | None = None
         if raw_doi:
