@@ -63,11 +63,9 @@ explicit_package_bases = true
 plugins = ["pydantic.mypy"]
 
 [tool.pytest]
-asyncio_mode = "auto"
-
-[tool.pytest.ini_options]
 addopts = ["--color=yes", "--import-mode=importlib", "--verbose"]
-pythonpath = "."
+asyncio_mode = "auto"
+pythonpath = ["."]
 testpaths = ["tests"]
 
 [tool.ruff]
