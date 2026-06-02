@@ -134,6 +134,7 @@ overrides."project.classifiers".inline_arrays = false
 overrides."tool.coverage.paths.source".inline_arrays = false
 
 [tool.uv]
-override-dependencies = [
-    "ecdsa; sys_platform == 'never'", # Required until https://github.com/mpdavis/python-jose/issues/390 is resolved
+exclude-dependencies = [
+    "ecdsa", # Required until https://github.com/mpdavis/python-jose/issues/390 is resolved
 ]
+exclude-newer = "P5D"
