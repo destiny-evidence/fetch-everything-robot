@@ -1,6 +1,7 @@
 """Core fetching utilities and models."""
 
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 from typing import Literal
 from uuid import UUID
@@ -18,6 +19,10 @@ class BaseAuthError(Exception):
 
 class FullTextStreamError(Exception):
     """Custom exception to throw when full text streaming fails."""
+
+
+class IncompleteFullTextError(FullTextStreamError):
+    """Custom exception to throw when a streamed full text file is incomplete."""
 
 
 class Study(BaseModel):
@@ -168,7 +173,10 @@ def delete_temporary_file(temp_file_path: Path) -> None:
 
 
 async def stream_file(
-    url: AnyUrl, destination: Path, headers: dict | None = None
+    url: AnyUrl,
+    destination: Path,
+    headers: dict | None = None,
+    response_validator: Callable[[httpx.Headers], None] | None = None,
 ) -> Path | None:
     """
     Stream bytes from a file from a URL and save it to the specified destination.
@@ -177,6 +185,8 @@ async def stream_file(
         url (AnyUrl): The URL of the file to download.
         destination (Path): The destination file path.
         headers (dict | None): Optional headers to include. Defaults to None.
+        response_validator (Callable[[httpx.Headers], None] | None):
+            Optional function to validate the response headers. Defaults to None.
 
     Returns:
         Path | None: The path to the downloaded file or None if the download failed.
@@ -196,6 +206,14 @@ async def stream_file(
                 async for chunk in response.aiter_bytes():
                     destination_file.write(chunk)
 
+        if response_validator is not None:
+            try:
+                response_validator(response.headers)
+            except IncompleteFullTextError:
+                if destination.exists():
+                    destination.unlink()
+                    logger.warning(f"Removing incomplete file at {destination}.")
+                raise
         logger.info(f"File downloaded successfully: {destination}")
     except httpx.HTTPError as http_error:
         logger.error(f"Error downloading {url}: {http_error}")

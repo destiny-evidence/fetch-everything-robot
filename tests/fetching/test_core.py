@@ -8,11 +8,13 @@ from pytest_httpx import IteratorStream
 from fer.fetching.core import (
     AsyncHTTPXRetryClient,
     FullTextStreamError,
+    IncompleteFullTextError,
     Study,
     StudyCollection,
     download_temporary_file,
     stream_file,
 )
+from fer.fetching.elsevier import ElsevierFetcher
 
 
 def test_study_collection_iterable():
@@ -143,11 +145,40 @@ async def test_stream_file_empty_downloaded_file(
 
 
 @pytest.mark.asyncio
+async def test_stream_file_response_validation_elsevier_els_status_not_ok(
+    httpx_mock, temporary_test_file, caplog
+):
+    test_url = "http://example.com/elsevier/streamfile"
+
+    httpx_mock.add_response(
+        method="GET",
+        url=test_url,
+        content=b"",
+        headers={"X-ELS-Status": "PDF_RESTRICTED"},
+    )
+    with (
+        pytest.raises(IncompleteFullTextError) as error_info,
+        caplog.at_level("WARNING"),
+    ):
+        await stream_file(
+            test_url,
+            temporary_test_file,
+            response_validator=ElsevierFetcher._check_els_status,
+        )
+
+    assert "Elsevier download returned restricted response" in str(
+        error_info.value
+    ), "Expect a warning message about incomplete Elsevier full text"
+    assert not temporary_test_file.exists(), "Incomplete file should be deleted"
+
+
+@pytest.mark.asyncio
 async def test_stream_file_appends_all_chunks(mocker, temporary_test_file):
     test_url = "http://example.com/streamfile"
     chunks = [b"first ", b"second ", b"third"]
 
     mock_response = mocker.MagicMock()
+    mock_response.headers = {}
     mock_response.__aenter__.return_value = mock_response
     mock_response.__aexit__.return_value = None
     mock_response.aiter_bytes.return_value = IteratorStream(chunks)
@@ -161,3 +192,4 @@ async def test_stream_file_appends_all_chunks(mocker, temporary_test_file):
     assert content == b"".join(
         chunks
     ), "File should contain all concatenated chunks and not overwrite."
+    assert streamed_file_path.exists()
