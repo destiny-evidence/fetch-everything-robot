@@ -204,22 +204,21 @@ class ElsevierFetcher(BasePublisherFetcher):
             RetrievedFullText: The retrieved fulltext content.
 
         """
-        is_single_page_pdf = (
-            self._is_single_page_pdf(output_file_path)
-            if (output_file_path and output_file_path.exists())
-            else False
-        )
-
-        if not is_single_page_pdf and not is_incomplete_pdf:
-            logger.info(f"Elsevier content saved {uid}: {output_file_path}")
-            return RetrievedFullText(
-                doi=doi,
-                uid=uid,
-                fulltext_path=output_file_path,
-                file_format="pdf",
-                error=None,
+        if not is_incomplete_pdf:
+            is_single_page_pdf = (
+                self._is_single_page_pdf(output_file_path)
+                if (output_file_path and output_file_path.exists())
+                else False
             )
-        if is_single_page_pdf and not is_incomplete_pdf:
+            if not is_single_page_pdf:
+                logger.info(f"Elsevier content saved {uid}: {output_file_path}")
+                return RetrievedFullText(
+                    doi=doi,
+                    uid=uid,
+                    fulltext_path=output_file_path,
+                    file_format="pdf",
+                    error=None,
+                )
             logger.info(
                 f"Downloaded PDF for {uid} is single page. "
                 "Can indicate closed access, "
@@ -236,12 +235,9 @@ class ElsevierFetcher(BasePublisherFetcher):
         warning_message = (
             f"Downloaded PDF for {uid} reports an incomplete download."
             " May indicate closed access."
-            f" Removing single page PDF at {output_file_path}."
             f" Fetching XML fulltext instead for {uid=} {doi=}."
         )
         logger.warning(warning_message)
-
-        output_file_path.unlink(missing_ok=True)
 
         xml_request_config = self.prepare_request_config(get_pdf=False, get_xml=True)
 

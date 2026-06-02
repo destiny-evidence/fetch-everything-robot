@@ -490,36 +490,48 @@ async def test_fetch_many_full_texts_single_page_closed_access_pdf_orphan_file_i
     mocker, test_settings, test_study_collection, tmp_path
 ):
     orphan_pdf = tmp_path / f"{test_study_collection.studies[0].uid}.pdf"
-    orphan_pdf.write_bytes(b"placeholder")
     fetcher = ElsevierFetcher(settings=test_settings)
+    studies = test_study_collection.studies
 
-    sequential_responses = [
-        response
-        for _ in test_study_collection.studies
-        for response in (
-            httpx.Response(status_code=httpx.codes.OK, content=b"PDF content"),
-            httpx.Response(status_code=httpx.codes.OK, content=b"<xml>content</xml>"),
-        )
+    async def restricted_stream_file(url, destination, **kwargs) -> None:
+        """Simulate stream_file writing a PDF, detecting a restricted header, and cleaning up."""
+        destination.write_bytes(b"PDF content")
+        destination.unlink()
+        test_error_message = "PDF_RESTRICTED"
+        raise IncompleteFullTextError(test_error_message)
+
+    xml_responses = [
+        httpx.Response(status_code=httpx.codes.OK, content=b"<xml>content</xml>")
+        for _ in studies
     ]
-    mocker.patch(
+
+    mocked_stream = mocker.patch(
         "fer.fetching.elsevier.stream_file",
-        new=mocker.AsyncMock(
-            side_effect=IncompleteFullTextError("Test incomplete PDF error")
-        ),
+        side_effect=restricted_stream_file,
     )
-    mocker.patch.object(
+    mock_fetch = mocker.patch.object(
         ElsevierFetcher,
         "_elsevier_request",
-        new=mocker.AsyncMock(side_effect=sequential_responses),
+        new=mocker.AsyncMock(side_effect=xml_responses),
     )
-    mocker.patch.object(ElsevierFetcher, "_is_single_page_pdf", return_value=True)
 
-    await fetcher.fetch_many_full_texts(
+    results = await fetcher.fetch_many_full_texts(
         study_collection=test_study_collection, output_directory=tmp_path
     )
+
+    xml_calls = [
+        call.kwargs.get("elsevier_request_config")
+        for call in mock_fetch.call_args_list
+        if call.kwargs.get("elsevier_request_config").headers.get("Accept")
+        == "text/xml"
+    ]
+
+    assert mocked_stream.call_count == len(studies)
+    assert len(xml_calls) == len(studies)
     assert (
         not orphan_pdf.exists()
-    ), "Orphan single page PDF should be deleted after falling back to XML fetch."
+    ), "Orphan PDF should be deleted after restricted header detected."
+    assert all(str(r.fulltext_path).endswith(".xml") for r in results)
 
 
 async def test_get_final_fulltext_content_happy_path_multi_page_pdf(
