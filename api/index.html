@@ -1150,6 +1150,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#fer.fetching.core.IncompleteFullTextError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IncompleteFullTextError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#fer.fetching.core.RetrievedFullText" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2889,6 +2900,17 @@
     <span class="md-ellipsis">
       
         FullTextStreamError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fer.fetching.core.IncompleteFullTextError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IncompleteFullTextError
       
     </span>
   </a>
@@ -9186,7 +9208,7 @@ Will unpack and, if required, clean full text.</p>
                     <span class="p">(</span>
                         <span class="n">output_directory</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">uid</span><span class="si">}{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span>
                         <span class="k">for</span> <span class="n">ext</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;.pdf&quot;</span><span class="p">,</span> <span class="s2">&quot;.xml&quot;</span><span class="p">]</span>
-                        <span class="k">if</span> <span class="p">(</span><span class="n">output_directory</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">uid</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="p">(</span><span class="n">output_directory</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">uid</span><span class="si">}{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
                     <span class="p">),</span>
                     <span class="kc">None</span><span class="p">,</span>
                 <span class="p">)</span>
@@ -9965,7 +9987,7 @@ and newlines)</p>
                 <span class="p">(</span>
                     <span class="n">output_directory</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">uid</span><span class="si">}{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span>
                     <span class="k">for</span> <span class="n">ext</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;.pdf&quot;</span><span class="p">,</span> <span class="s2">&quot;.xml&quot;</span><span class="p">]</span>
-                    <span class="k">if</span> <span class="p">(</span><span class="n">output_directory</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">uid</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">output_directory</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">uid</span><span class="si">}{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
                 <span class="p">),</span>
                 <span class="kc">None</span><span class="p">,</span>
             <span class="p">)</span>
@@ -10525,12 +10547,18 @@ and newlines)</p>
 <span class="normal">48</span>
 <span class="normal">49</span>
 <span class="normal">50</span>
-<span class="normal">51</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">BasePublisherFetcher</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">BasePublisherFetcher</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract base class for publisher fetchers.&quot;&quot;&quot;</span>
 
     <span class="nd">@abstractmethod</span>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">download_one_pdf</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">pdf_url</span><span class="p">:</span> <span class="n">AnyUrl</span><span class="p">,</span> <span class="n">filepath</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">headers</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">pdf_url</span><span class="p">:</span> <span class="n">AnyUrl</span><span class="p">,</span>
+        <span class="n">filepath</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+        <span class="n">headers</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Download a pdf for a pdf_url associated with a single `Study`.</span>
@@ -10705,9 +10733,15 @@ and newlines)</p>
 <span class="normal">27</span>
 <span class="normal">28</span>
 <span class="normal">29</span>
-<span class="normal">30</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@abstractmethod</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@abstractmethod</span>
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">download_one_pdf</span><span class="p">(</span>
-    <span class="bp">self</span><span class="p">,</span> <span class="n">pdf_url</span><span class="p">:</span> <span class="n">AnyUrl</span><span class="p">,</span> <span class="n">filepath</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">headers</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">pdf_url</span><span class="p">:</span> <span class="n">AnyUrl</span><span class="p">,</span>
+    <span class="n">filepath</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">headers</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Download a pdf for a pdf_url associated with a single `Study`.</span>
@@ -10821,10 +10855,7 @@ representing the saved full text files.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/__init__.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">32</span>
-<span class="normal">33</span>
-<span class="normal">34</span>
-<span class="normal">35</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">35</span>
 <span class="normal">36</span>
 <span class="normal">37</span>
 <span class="normal">38</span>
@@ -10840,7 +10871,10 @@ representing the saved full text files.</p>
 <span class="normal">48</span>
 <span class="normal">49</span>
 <span class="normal">50</span>
-<span class="normal">51</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@abstractmethod</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@abstractmethod</span>
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">fetch_many_full_texts</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">study_collection</span><span class="p">:</span> <span class="n">StudyCollection</span><span class="p">,</span>
@@ -10937,12 +10971,7 @@ representing the saved full text files.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/core.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 95</span>
-<span class="normal"> 96</span>
-<span class="normal"> 97</span>
-<span class="normal"> 98</span>
-<span class="normal"> 99</span>
-<span class="normal">100</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">100</span>
 <span class="normal">101</span>
 <span class="normal">102</span>
 <span class="normal">103</span>
@@ -10973,7 +11002,12 @@ representing the saved full text files.</p>
 <span class="normal">128</span>
 <span class="normal">129</span>
 <span class="normal">130</span>
-<span class="normal">131</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">AsyncHTTPXRetryClient</span><span class="p">(</span><span class="n">httpx</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">):</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">AsyncHTTPXRetryClient</span><span class="p">(</span><span class="n">httpx</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;An HTTPX Client with retry logic for transient errors.&quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
@@ -11069,16 +11103,16 @@ representing the saved full text files.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">122</span>
-<span class="normal">123</span>
-<span class="normal">124</span>
-<span class="normal">125</span>
-<span class="normal">126</span>
-<span class="normal">127</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">127</span>
 <span class="normal">128</span>
 <span class="normal">129</span>
 <span class="normal">130</span>
-<span class="normal">131</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="fm">__aenter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;AsyncHTTPXRetryClient&quot;</span><span class="p">:</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="fm">__aenter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;AsyncHTTPXRetryClient&quot;</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Define a context manager for an async HTTPX client with retries.</span>
 
@@ -11157,12 +11191,7 @@ representing the saved full text files.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 98</span>
-<span class="normal"> 99</span>
-<span class="normal">100</span>
-<span class="normal">101</span>
-<span class="normal">102</span>
-<span class="normal">103</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">103</span>
 <span class="normal">104</span>
 <span class="normal">105</span>
 <span class="normal">106</span>
@@ -11179,7 +11208,12 @@ representing the saved full text files.</p>
 <span class="normal">117</span>
 <span class="normal">118</span>
 <span class="normal">119</span>
-<span class="normal">120</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">timeout_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">360</span><span class="p">,</span>
     <span class="n">max_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
@@ -11244,8 +11278,8 @@ representing the saved full text files.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/core.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">15</span>
-<span class="normal">16</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">BaseAuthError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">16</span>
+<span class="normal">17</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">BaseAuthError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raise when fetcher API authentication fails.&quot;&quot;&quot;</span>
 </code></pre></div></td></tr></table></div>
               </details>
@@ -11282,9 +11316,47 @@ representing the saved full text files.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/core.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">19</span>
-<span class="normal">20</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">FullTextStreamError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">20</span>
+<span class="normal">21</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">FullTextStreamError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom exception to throw when full text streaming fails.&quot;&quot;&quot;</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h4 id="fer.fetching.core.IncompleteFullTextError" class="doc doc-heading">
+            <code>IncompleteFullTextError</code>
+
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="FullTextStreamError (fer.fetching.core.FullTextStreamError)" href="#fer.fetching.core.FullTextStreamError">FullTextStreamError</a></code></p>
+
+
+
+        <p>Custom exception to throw when a streamed full text file is incomplete.</p>
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>fer/fetching/core.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">24</span>
+<span class="normal">25</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">IncompleteFullTextError</span><span class="p">(</span><span class="n">FullTextStreamError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom exception to throw when a streamed full text file is incomplete.&quot;&quot;&quot;</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -11320,12 +11392,7 @@ representing the saved full text files.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/core.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">53</span>
-<span class="normal">54</span>
-<span class="normal">55</span>
-<span class="normal">56</span>
-<span class="normal">57</span>
-<span class="normal">58</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">58</span>
 <span class="normal">59</span>
 <span class="normal">60</span>
 <span class="normal">61</span>
@@ -11359,7 +11426,12 @@ representing the saved full text files.</p>
 <span class="normal">89</span>
 <span class="normal">90</span>
 <span class="normal">91</span>
-<span class="normal">92</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">RetrievedFullText</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="normal">92</span>
+<span class="normal">93</span>
+<span class="normal">94</span>
+<span class="normal">95</span>
+<span class="normal">96</span>
+<span class="normal">97</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">RetrievedFullText</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Model representing a retrieved full text file.&quot;&quot;&quot;</span>
 
     <span class="n">doi</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;The DOI of the study.&quot;</span><span class="p">)</span>
@@ -11457,12 +11529,7 @@ created, the path does not exist and an error message should be set instead.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">68</span>
-<span class="normal">69</span>
-<span class="normal">70</span>
-<span class="normal">71</span>
-<span class="normal">72</span>
-<span class="normal">73</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">73</span>
 <span class="normal">74</span>
 <span class="normal">75</span>
 <span class="normal">76</span>
@@ -11481,7 +11548,12 @@ created, the path does not exist and an error message should be set instead.</p>
 <span class="normal">89</span>
 <span class="normal">90</span>
 <span class="normal">91</span>
-<span class="normal">92</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">&quot;after&quot;</span><span class="p">)</span>
+<span class="normal">92</span>
+<span class="normal">93</span>
+<span class="normal">94</span>
+<span class="normal">95</span>
+<span class="normal">96</span>
+<span class="normal">97</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">&quot;after&quot;</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">check_fulltext_path_or_error</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;RetrievedFullText&quot;</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Validate that either fulltext_path or error is set.</span>
@@ -11550,16 +11622,16 @@ as it lacks any other metadata.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/core.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">23</span>
-<span class="normal">24</span>
-<span class="normal">25</span>
-<span class="normal">26</span>
-<span class="normal">27</span>
-<span class="normal">28</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">28</span>
 <span class="normal">29</span>
 <span class="normal">30</span>
 <span class="normal">31</span>
-<span class="normal">32</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Study</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Study</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Model representing a single study with DOI and unique identifier.</span>
 
@@ -11621,12 +11693,7 @@ as it lacks any other metadata.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/core.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">35</span>
-<span class="normal">36</span>
-<span class="normal">37</span>
-<span class="normal">38</span>
-<span class="normal">39</span>
-<span class="normal">40</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">40</span>
 <span class="normal">41</span>
 <span class="normal">42</span>
 <span class="normal">43</span>
@@ -11636,7 +11703,12 @@ as it lacks any other metadata.</p>
 <span class="normal">47</span>
 <span class="normal">48</span>
 <span class="normal">49</span>
-<span class="normal">50</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">StudyCollection</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">StudyCollection</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Model representing a collection of studies.&quot;&quot;&quot;</span>
 
     <span class="n">studies</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Study</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
@@ -11715,15 +11787,15 @@ as it lacks any other metadata.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">42</span>
-<span class="normal">43</span>
-<span class="normal">44</span>
-<span class="normal">45</span>
-<span class="normal">46</span>
-<span class="normal">47</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">47</span>
 <span class="normal">48</span>
 <span class="normal">49</span>
-<span class="normal">50</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">remove_study_by_doi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">doi</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">remove_study_by_doi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">doi</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Remove a study from the collection by its DOI.</span>
 
@@ -11794,12 +11866,7 @@ as it lacks any other metadata.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">153</span>
-<span class="normal">154</span>
-<span class="normal">155</span>
-<span class="normal">156</span>
-<span class="normal">157</span>
-<span class="normal">158</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">158</span>
 <span class="normal">159</span>
 <span class="normal">160</span>
 <span class="normal">161</span>
@@ -11808,7 +11875,12 @@ as it lacks any other metadata.</p>
 <span class="normal">164</span>
 <span class="normal">165</span>
 <span class="normal">166</span>
-<span class="normal">167</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete_temporary_file</span><span class="p">(</span><span class="n">temp_file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete_temporary_file</span><span class="p">(</span><span class="n">temp_file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Delete a temporary file.</span>
 
@@ -11904,12 +11976,7 @@ By some definition of "temporary", since the file will persist until deleted.</p
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">134</span>
-<span class="normal">135</span>
-<span class="normal">136</span>
-<span class="normal">137</span>
-<span class="normal">138</span>
-<span class="normal">139</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">139</span>
 <span class="normal">140</span>
 <span class="normal">141</span>
 <span class="normal">142</span>
@@ -11920,7 +11987,12 @@ By some definition of "temporary", since the file will persist until deleted.</p
 <span class="normal">147</span>
 <span class="normal">148</span>
 <span class="normal">149</span>
-<span class="normal">150</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">download_temporary_file</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="n">AnyUrl</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">download_temporary_file</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="n">AnyUrl</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Stream bytes from a file from a URL and save it to a temporary file.</span>
 <span class="sd">    By some definition of &quot;temporary&quot;, since the file will persist until deleted.</span>
@@ -11947,7 +12019,7 @@ By some definition of "temporary", since the file will persist until deleted.</p
 
 
 <h4 id="fer.fetching.core.stream_file" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">stream_file</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">stream_file</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">response_validator</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-async"><code>async</code></small>
@@ -12020,6 +12092,22 @@ By some definition of "temporary", since the file will persist until deleted.</p
                   <code>None</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>response_validator</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="collections.abc.Callable" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable">Callable</a>[[<span title="httpx.Headers">Headers</span>], None] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional function to validate the response headers. Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -12049,12 +12137,7 @@ By some definition of "temporary", since the file will persist until deleted.</p
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">170</span>
-<span class="normal">171</span>
-<span class="normal">172</span>
-<span class="normal">173</span>
-<span class="normal">174</span>
-<span class="normal">175</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">175</span>
 <span class="normal">176</span>
 <span class="normal">177</span>
 <span class="normal">178</span>
@@ -12094,8 +12177,29 @@ By some definition of "temporary", since the file will persist until deleted.</p
 <span class="normal">212</span>
 <span class="normal">213</span>
 <span class="normal">214</span>
-<span class="normal">215</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">stream_file</span><span class="p">(</span>
-    <span class="n">url</span><span class="p">:</span> <span class="n">AnyUrl</span><span class="p">,</span> <span class="n">destination</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">headers</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">stream_file</span><span class="p">(</span>
+    <span class="n">url</span><span class="p">:</span> <span class="n">AnyUrl</span><span class="p">,</span>
+    <span class="n">destination</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">headers</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">response_validator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">httpx</span><span class="o">.</span><span class="n">Headers</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Stream bytes from a file from a URL and save it to the specified destination.</span>
@@ -12104,6 +12208,8 @@ By some definition of "temporary", since the file will persist until deleted.</p
 <span class="sd">        url (AnyUrl): The URL of the file to download.</span>
 <span class="sd">        destination (Path): The destination file path.</span>
 <span class="sd">        headers (dict | None): Optional headers to include. Defaults to None.</span>
+<span class="sd">        response_validator (Callable[[httpx.Headers], None] | None):</span>
+<span class="sd">            Optional function to validate the response headers. Defaults to None.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Path | None: The path to the downloaded file or None if the download failed.</span>
@@ -12123,6 +12229,14 @@ By some definition of "temporary", since the file will persist until deleted.</p
                 <span class="k">async</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">aiter_bytes</span><span class="p">():</span>
                     <span class="n">destination_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">response_validator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response_validator</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">IncompleteFullTextError</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">destination</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                    <span class="n">destination</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Removing incomplete file at </span><span class="si">{</span><span class="n">destination</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+                <span class="k">raise</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File downloaded successfully: </span><span class="si">{</span><span class="n">destination</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">except</span> <span class="n">httpx</span><span class="o">.</span><span class="n">HTTPError</span> <span class="k">as</span> <span class="n">http_error</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error downloading </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">http_error</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -13651,8 +13765,8 @@ This is expected to have 'content_type' and 'url' keys.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/elsevier.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">28</span>
-<span class="normal">29</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ElsevierAuthError</span><span class="p">(</span><span class="n">BaseAuthError</span><span class="p">):</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">29</span>
+<span class="normal">30</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ElsevierAuthError</span><span class="p">(</span><span class="n">BaseAuthError</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raise when Elsevier API authentication fails.&quot;&quot;&quot;</span>
 </code></pre></div></td></tr></table></div>
               </details>
@@ -13689,8 +13803,7 @@ This is expected to have 'content_type' and 'url' keys.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/elsevier.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 39</span>
-<span class="normal"> 40</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 40</span>
 <span class="normal"> 41</span>
 <span class="normal"> 42</span>
 <span class="normal"> 43</span>
@@ -14085,7 +14198,56 @@ This is expected to have 'content_type' and 'url' keys.</p>
 <span class="normal">432</span>
 <span class="normal">433</span>
 <span class="normal">434</span>
-<span class="normal">435</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ElsevierFetcher</span><span class="p">(</span><span class="n">BasePublisherFetcher</span><span class="p">):</span>
+<span class="normal">435</span>
+<span class="normal">436</span>
+<span class="normal">437</span>
+<span class="normal">438</span>
+<span class="normal">439</span>
+<span class="normal">440</span>
+<span class="normal">441</span>
+<span class="normal">442</span>
+<span class="normal">443</span>
+<span class="normal">444</span>
+<span class="normal">445</span>
+<span class="normal">446</span>
+<span class="normal">447</span>
+<span class="normal">448</span>
+<span class="normal">449</span>
+<span class="normal">450</span>
+<span class="normal">451</span>
+<span class="normal">452</span>
+<span class="normal">453</span>
+<span class="normal">454</span>
+<span class="normal">455</span>
+<span class="normal">456</span>
+<span class="normal">457</span>
+<span class="normal">458</span>
+<span class="normal">459</span>
+<span class="normal">460</span>
+<span class="normal">461</span>
+<span class="normal">462</span>
+<span class="normal">463</span>
+<span class="normal">464</span>
+<span class="normal">465</span>
+<span class="normal">466</span>
+<span class="normal">467</span>
+<span class="normal">468</span>
+<span class="normal">469</span>
+<span class="normal">470</span>
+<span class="normal">471</span>
+<span class="normal">472</span>
+<span class="normal">473</span>
+<span class="normal">474</span>
+<span class="normal">475</span>
+<span class="normal">476</span>
+<span class="normal">477</span>
+<span class="normal">478</span>
+<span class="normal">479</span>
+<span class="normal">480</span>
+<span class="normal">481</span>
+<span class="normal">482</span>
+<span class="normal">483</span>
+<span class="normal">484</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ElsevierFetcher</span><span class="p">(</span><span class="n">BasePublisherFetcher</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Define a concrete fetcher for Elsevier full texts.&quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Settings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -14140,12 +14302,18 @@ This is expected to have 'content_type' and 'url' keys.</p>
 <span class="sd">        Args:</span>
 <span class="sd">            pdf_url (AnyUrl): The URL of the PDF to download.</span>
 <span class="sd">            filepath (Path): Output file path.</span>
+<span class="sd">            headers (dict | None): Optional headers to include in the download request.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Path | None: The path to the downloaded PDF or None if download failed.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="k">await</span> <span class="n">stream_file</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="n">pdf_url</span><span class="p">,</span> <span class="n">destination</span><span class="o">=</span><span class="n">filepath</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+        <span class="k">return</span> <span class="k">await</span> <span class="n">stream_file</span><span class="p">(</span>
+            <span class="n">url</span><span class="o">=</span><span class="n">pdf_url</span><span class="p">,</span>
+            <span class="n">destination</span><span class="o">=</span><span class="n">filepath</span><span class="p">,</span>
+            <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span>
+            <span class="n">response_validator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_check_els_status</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">prepare_request_config</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">get_pdf</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">get_xml</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
@@ -14220,7 +14388,13 @@ This is expected to have 'content_type' and 'url' keys.</p>
         <span class="p">)</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_final_fulltext_content</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">output_file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">doi</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">uid</span><span class="p">:</span> <span class="n">UUID</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">output_file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+        <span class="n">doi</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">uid</span><span class="p">:</span> <span class="n">UUID</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">is_incomplete_pdf</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RetrievedFullText</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Produce the correct format fulltext content.</span>
@@ -14234,19 +14408,32 @@ This is expected to have 'content_type' and 'url' keys.</p>
 <span class="sd">            output_file_path (Path): The path to the downloaded fulltext file.</span>
 <span class="sd">            doi (str): The DOI of the study.</span>
 <span class="sd">            uid (UUID): The unique identifier of the study.</span>
+<span class="sd">            is_incomplete_pdf (bool): Whether the downloaded PDF is incomplete.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            RetrievedFullText: The retrieved fulltext content.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">is_single_page_pdf</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_is_single_page_pdf</span><span class="p">(</span><span class="n">output_file_path</span><span class="p">)</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">output_file_path</span> <span class="ow">and</span> <span class="n">output_file_path</span><span class="o">.</span><span class="n">exists</span><span class="p">())</span>
-            <span class="k">else</span> <span class="kc">False</span>
-        <span class="p">)</span>
-
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_single_page_pdf</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Elsevier content saved </span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">output_file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_incomplete_pdf</span><span class="p">:</span>
+            <span class="n">is_single_page_pdf</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_is_single_page_pdf</span><span class="p">(</span><span class="n">output_file_path</span><span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">output_file_path</span> <span class="ow">and</span> <span class="n">output_file_path</span><span class="o">.</span><span class="n">exists</span><span class="p">())</span>
+                <span class="k">else</span> <span class="kc">False</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_single_page_pdf</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Elsevier content saved </span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">output_file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">RetrievedFullText</span><span class="p">(</span>
+                    <span class="n">doi</span><span class="o">=</span><span class="n">doi</span><span class="p">,</span>
+                    <span class="n">uid</span><span class="o">=</span><span class="n">uid</span><span class="p">,</span>
+                    <span class="n">fulltext_path</span><span class="o">=</span><span class="n">output_file_path</span><span class="p">,</span>
+                    <span class="n">file_format</span><span class="o">=</span><span class="s2">&quot;pdf&quot;</span><span class="p">,</span>
+                    <span class="n">error</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Downloaded PDF for </span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s2"> is single page. &quot;</span>
+                <span class="s2">&quot;Can indicate closed access, &quot;</span>
+                <span class="s2">&quot;but no incomplete-download status reported.&quot;</span>
+            <span class="p">)</span>
             <span class="k">return</span> <span class="n">RetrievedFullText</span><span class="p">(</span>
                 <span class="n">doi</span><span class="o">=</span><span class="n">doi</span><span class="p">,</span>
                 <span class="n">uid</span><span class="o">=</span><span class="n">uid</span><span class="p">,</span>
@@ -14256,14 +14443,11 @@ This is expected to have 'content_type' and 'url' keys.</p>
             <span class="p">)</span>
 
         <span class="n">warning_message</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Downloaded PDF for </span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s2"> appears to be a single page.&quot;</span>
-            <span class="s2">&quot; which may indicate closed access.&quot;</span>
-            <span class="sa">f</span><span class="s2">&quot; Removing single page PDF at </span><span class="si">{</span><span class="n">output_file_path</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Downloaded PDF for </span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s2"> reports an incomplete download.&quot;</span>
+            <span class="s2">&quot; May indicate closed access.&quot;</span>
             <span class="sa">f</span><span class="s2">&quot; Fetching XML fulltext instead for </span><span class="si">{</span><span class="n">uid</span><span class="si">=}</span><span class="s2"> </span><span class="si">{</span><span class="n">doi</span><span class="si">=}</span><span class="s2">.&quot;</span>
         <span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">warning_message</span><span class="p">)</span>
-
-        <span class="n">output_file_path</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="n">xml_request_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_request_config</span><span class="p">(</span><span class="n">get_pdf</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">get_xml</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
@@ -14314,6 +14498,28 @@ This is expected to have 'content_type' and 'url' keys.</p>
             <span class="n">error</span><span class="o">=</span><span class="n">warning_message</span><span class="p">,</span>
         <span class="p">)</span>
 
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_els_status</span><span class="p">(</span><span class="n">headers</span><span class="p">:</span> <span class="n">httpx</span><span class="o">.</span><span class="n">Headers</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check the X-ELS-Status header in the response.</span>
+
+<span class="sd">        This determines if the content is restricted and</span>
+<span class="sd">        hints at whether we&#39;re returning an incomplete full text.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            headers (httpx.Headers): Headers from the HTTP response.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">els_status</span> <span class="o">=</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;X-ELS-Status&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">els_status</span> <span class="ow">and</span> <span class="n">els_status</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">&quot;ok&quot;</span><span class="p">:</span>
+            <span class="n">warning_message</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Elsevier download returned restricted response,&quot;</span>
+                <span class="s2">&quot; likely single-page closed-access PDF.&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">els_status</span><span class="si">=}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">warning_message</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">IncompleteFullTextError</span><span class="p">(</span><span class="n">warning_message</span><span class="p">)</span>
+
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_elsevier_request</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -14334,8 +14540,7 @@ This is expected to have 'content_type' and 'url' keys.</p>
 <span class="sd">            uid (UUID): The unique identifier of the study.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            httpx.Response: The HTTP response or a RetrievedFullText instance</span>
-<span class="sd">                in case of an error.</span>
+<span class="sd">            httpx.Response: The HTTP response from the Elsevier API.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">try</span><span class="p">:</span>
@@ -14385,12 +14590,16 @@ This is expected to have 'content_type' and 'url' keys.</p>
         <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">base_url</span><span class="si">}{</span><span class="n">doi</span><span class="si">}</span><span class="s2">/&quot;</span>
         <span class="n">file_path</span> <span class="o">=</span> <span class="n">output_directory</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">uid</span><span class="si">}{</span><span class="n">elsevier_request_config</span><span class="o">.</span><span class="n">file_extension</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">if</span> <span class="n">elsevier_request_config</span><span class="o">.</span><span class="n">file_extension</span> <span class="o">==</span> <span class="s2">&quot;.pdf&quot;</span><span class="p">:</span>
+            <span class="n">is_incomplete_pdf</span> <span class="o">=</span> <span class="kc">False</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Attempting to fetch PDF full text for </span><span class="si">{</span><span class="n">uid</span><span class="si">=}</span><span class="s2">, </span><span class="si">{</span><span class="n">doi</span><span class="si">=}</span><span class="s2">&quot;</span><span class="p">)</span>
 
             <span class="k">try</span><span class="p">:</span>
                 <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">download_one_pdf</span><span class="p">(</span>
                     <span class="n">AnyUrl</span><span class="p">(</span><span class="n">url</span><span class="p">),</span> <span class="n">file_path</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">elsevier_request_config</span><span class="o">.</span><span class="n">headers</span>
                 <span class="p">)</span>
+            <span class="k">except</span> <span class="n">IncompleteFullTextError</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Incomplete full text downloaded for </span><span class="si">{</span><span class="n">doi</span><span class="si">=}</span><span class="s2">, </span><span class="si">{</span><span class="n">uid</span><span class="si">=}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">is_incomplete_pdf</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="k">except</span> <span class="n">FullTextStreamError</span> <span class="k">as</span> <span class="n">fulltext_download_error</span><span class="p">:</span>
                 <span class="n">error_message</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;Full text download error for Elsevier DOI </span><span class="si">{</span><span class="n">doi</span><span class="si">}</span><span class="s2">:&quot;</span>
@@ -14405,6 +14614,7 @@ This is expected to have 'content_type' and 'url' keys.</p>
                 <span class="n">output_file_path</span><span class="o">=</span><span class="n">file_path</span><span class="p">,</span>
                 <span class="n">doi</span><span class="o">=</span><span class="n">doi</span><span class="p">,</span>
                 <span class="n">uid</span><span class="o">=</span><span class="n">uid</span><span class="p">,</span>
+                <span class="n">is_incomplete_pdf</span><span class="o">=</span><span class="n">is_incomplete_pdf</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_elsevier_request</span><span class="p">(</span>
@@ -14545,8 +14755,7 @@ This is expected to have 'content_type' and 'url' keys.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/elsevier.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">42</span>
-<span class="normal">43</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">43</span>
 <span class="normal">44</span>
 <span class="normal">45</span>
 <span class="normal">46</span>
@@ -14555,7 +14764,8 @@ This is expected to have 'content_type' and 'url' keys.</p>
 <span class="normal">49</span>
 <span class="normal">50</span>
 <span class="normal">51</span>
-<span class="normal">52</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Settings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">52</span>
+<span class="normal">53</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Settings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Initialise an ElsevierFetcher.</span>
 
@@ -14633,6 +14843,22 @@ This is expected to have 'content_type' and 'url' keys.</p>
                 <em>required</em>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>headers</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional headers to include in the download request.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -14662,24 +14888,30 @@ This is expected to have 'content_type' and 'url' keys.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/elsevier.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">82</span>
-<span class="normal">83</span>
-<span class="normal">84</span>
-<span class="normal">85</span>
-<span class="normal">86</span>
-<span class="normal">87</span>
-<span class="normal">88</span>
-<span class="normal">89</span>
-<span class="normal">90</span>
-<span class="normal">91</span>
-<span class="normal">92</span>
-<span class="normal">93</span>
-<span class="normal">94</span>
-<span class="normal">95</span>
-<span class="normal">96</span>
-<span class="normal">97</span>
-<span class="normal">98</span>
-<span class="normal">99</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">download_one_pdf</span><span class="p">(</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">download_one_pdf</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">pdf_url</span><span class="p">:</span> <span class="n">AnyUrl</span><span class="p">,</span>
     <span class="n">filepath</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
@@ -14691,12 +14923,18 @@ This is expected to have 'content_type' and 'url' keys.</p>
 <span class="sd">    Args:</span>
 <span class="sd">        pdf_url (AnyUrl): The URL of the PDF to download.</span>
 <span class="sd">        filepath (Path): Output file path.</span>
+<span class="sd">        headers (dict | None): Optional headers to include in the download request.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Path | None: The path to the downloaded PDF or None if download failed.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="k">await</span> <span class="n">stream_file</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="n">pdf_url</span><span class="p">,</span> <span class="n">destination</span><span class="o">=</span><span class="n">filepath</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+    <span class="k">return</span> <span class="k">await</span> <span class="n">stream_file</span><span class="p">(</span>
+        <span class="n">url</span><span class="o">=</span><span class="n">pdf_url</span><span class="p">,</span>
+        <span class="n">destination</span><span class="o">=</span><span class="n">filepath</span><span class="p">,</span>
+        <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span>
+        <span class="n">response_validator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_check_els_status</span><span class="p">,</span>
+    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -14794,42 +15032,42 @@ representing the saved output files.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/elsevier.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">400</span>
-<span class="normal">401</span>
-<span class="normal">402</span>
-<span class="normal">403</span>
-<span class="normal">404</span>
-<span class="normal">405</span>
-<span class="normal">406</span>
-<span class="normal">407</span>
-<span class="normal">408</span>
-<span class="normal">409</span>
-<span class="normal">410</span>
-<span class="normal">411</span>
-<span class="normal">412</span>
-<span class="normal">413</span>
-<span class="normal">414</span>
-<span class="normal">415</span>
-<span class="normal">416</span>
-<span class="normal">417</span>
-<span class="normal">418</span>
-<span class="normal">419</span>
-<span class="normal">420</span>
-<span class="normal">421</span>
-<span class="normal">422</span>
-<span class="normal">423</span>
-<span class="normal">424</span>
-<span class="normal">425</span>
-<span class="normal">426</span>
-<span class="normal">427</span>
-<span class="normal">428</span>
-<span class="normal">429</span>
-<span class="normal">430</span>
-<span class="normal">431</span>
-<span class="normal">432</span>
-<span class="normal">433</span>
-<span class="normal">434</span>
-<span class="normal">435</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">fetch_many_full_texts</span><span class="p">(</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">449</span>
+<span class="normal">450</span>
+<span class="normal">451</span>
+<span class="normal">452</span>
+<span class="normal">453</span>
+<span class="normal">454</span>
+<span class="normal">455</span>
+<span class="normal">456</span>
+<span class="normal">457</span>
+<span class="normal">458</span>
+<span class="normal">459</span>
+<span class="normal">460</span>
+<span class="normal">461</span>
+<span class="normal">462</span>
+<span class="normal">463</span>
+<span class="normal">464</span>
+<span class="normal">465</span>
+<span class="normal">466</span>
+<span class="normal">467</span>
+<span class="normal">468</span>
+<span class="normal">469</span>
+<span class="normal">470</span>
+<span class="normal">471</span>
+<span class="normal">472</span>
+<span class="normal">473</span>
+<span class="normal">474</span>
+<span class="normal">475</span>
+<span class="normal">476</span>
+<span class="normal">477</span>
+<span class="normal">478</span>
+<span class="normal">479</span>
+<span class="normal">480</span>
+<span class="normal">481</span>
+<span class="normal">482</span>
+<span class="normal">483</span>
+<span class="normal">484</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">fetch_many_full_texts</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">study_collection</span><span class="p">:</span> <span class="n">StudyCollection</span><span class="p">,</span>
     <span class="n">output_directory</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
@@ -14875,7 +15113,7 @@ representing the saved output files.</p>
 
 
 <h5 id="fer.fetching.elsevier.ElsevierFetcher.get_final_fulltext_content" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">get_final_fulltext_content</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">output_file_path</span><span class="p">,</span> <span class="n">doi</span><span class="p">,</span> <span class="n">uid</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">get_final_fulltext_content</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">output_file_path</span><span class="p">,</span> <span class="n">doi</span><span class="p">,</span> <span class="n">uid</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">is_incomplete_pdf</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-async"><code>async</code></small>
@@ -14967,6 +15205,22 @@ In this case, we should attempt to fetch the XML fulltext instead.</p>
                 <em>required</em>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>is_incomplete_pdf</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether the downloaded PDF is incomplete.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -14996,14 +15250,7 @@ In this case, we should attempt to fetch the XML fulltext instead.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/elsevier.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">173</span>
-<span class="normal">174</span>
-<span class="normal">175</span>
-<span class="normal">176</span>
-<span class="normal">177</span>
-<span class="normal">178</span>
-<span class="normal">179</span>
-<span class="normal">180</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">180</span>
 <span class="normal">181</span>
 <span class="normal">182</span>
 <span class="normal">183</span>
@@ -15089,8 +15336,37 @@ In this case, we should attempt to fetch the XML fulltext instead.</p>
 <span class="normal">263</span>
 <span class="normal">264</span>
 <span class="normal">265</span>
-<span class="normal">266</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_final_fulltext_content</span><span class="p">(</span>
-    <span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">output_file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">doi</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">uid</span><span class="p">:</span> <span class="n">UUID</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_final_fulltext_content</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">output_file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">doi</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">uid</span><span class="p">:</span> <span class="n">UUID</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">is_incomplete_pdf</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RetrievedFullText</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Produce the correct format fulltext content.</span>
@@ -15104,19 +15380,32 @@ In this case, we should attempt to fetch the XML fulltext instead.</p>
 <span class="sd">        output_file_path (Path): The path to the downloaded fulltext file.</span>
 <span class="sd">        doi (str): The DOI of the study.</span>
 <span class="sd">        uid (UUID): The unique identifier of the study.</span>
+<span class="sd">        is_incomplete_pdf (bool): Whether the downloaded PDF is incomplete.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        RetrievedFullText: The retrieved fulltext content.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">is_single_page_pdf</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_is_single_page_pdf</span><span class="p">(</span><span class="n">output_file_path</span><span class="p">)</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">output_file_path</span> <span class="ow">and</span> <span class="n">output_file_path</span><span class="o">.</span><span class="n">exists</span><span class="p">())</span>
-        <span class="k">else</span> <span class="kc">False</span>
-    <span class="p">)</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_single_page_pdf</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Elsevier content saved </span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">output_file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_incomplete_pdf</span><span class="p">:</span>
+        <span class="n">is_single_page_pdf</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_is_single_page_pdf</span><span class="p">(</span><span class="n">output_file_path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">output_file_path</span> <span class="ow">and</span> <span class="n">output_file_path</span><span class="o">.</span><span class="n">exists</span><span class="p">())</span>
+            <span class="k">else</span> <span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_single_page_pdf</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Elsevier content saved </span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">output_file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">RetrievedFullText</span><span class="p">(</span>
+                <span class="n">doi</span><span class="o">=</span><span class="n">doi</span><span class="p">,</span>
+                <span class="n">uid</span><span class="o">=</span><span class="n">uid</span><span class="p">,</span>
+                <span class="n">fulltext_path</span><span class="o">=</span><span class="n">output_file_path</span><span class="p">,</span>
+                <span class="n">file_format</span><span class="o">=</span><span class="s2">&quot;pdf&quot;</span><span class="p">,</span>
+                <span class="n">error</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Downloaded PDF for </span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s2"> is single page. &quot;</span>
+            <span class="s2">&quot;Can indicate closed access, &quot;</span>
+            <span class="s2">&quot;but no incomplete-download status reported.&quot;</span>
+        <span class="p">)</span>
         <span class="k">return</span> <span class="n">RetrievedFullText</span><span class="p">(</span>
             <span class="n">doi</span><span class="o">=</span><span class="n">doi</span><span class="p">,</span>
             <span class="n">uid</span><span class="o">=</span><span class="n">uid</span><span class="p">,</span>
@@ -15126,14 +15415,11 @@ In this case, we should attempt to fetch the XML fulltext instead.</p>
         <span class="p">)</span>
 
     <span class="n">warning_message</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="sa">f</span><span class="s2">&quot;Downloaded PDF for </span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s2"> appears to be a single page.&quot;</span>
-        <span class="s2">&quot; which may indicate closed access.&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot; Removing single page PDF at </span><span class="si">{</span><span class="n">output_file_path</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;Downloaded PDF for </span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s2"> reports an incomplete download.&quot;</span>
+        <span class="s2">&quot; May indicate closed access.&quot;</span>
         <span class="sa">f</span><span class="s2">&quot; Fetching XML fulltext instead for </span><span class="si">{</span><span class="n">uid</span><span class="si">=}</span><span class="s2"> </span><span class="si">{</span><span class="n">doi</span><span class="si">=}</span><span class="s2">.&quot;</span>
     <span class="p">)</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">warning_message</span><span class="p">)</span>
-
-    <span class="n">output_file_path</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="n">xml_request_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_request_config</span><span class="p">(</span><span class="n">get_pdf</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">get_xml</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
@@ -15299,14 +15585,7 @@ headers and file extension.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/elsevier.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">101</span>
-<span class="normal">102</span>
-<span class="normal">103</span>
-<span class="normal">104</span>
-<span class="normal">105</span>
-<span class="normal">106</span>
-<span class="normal">107</span>
-<span class="normal">108</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">108</span>
 <span class="normal">109</span>
 <span class="normal">110</span>
 <span class="normal">111</span>
@@ -15369,7 +15648,14 @@ headers and file extension.</p>
 <span class="normal">168</span>
 <span class="normal">169</span>
 <span class="normal">170</span>
-<span class="normal">171</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">prepare_request_config</span><span class="p">(</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">prepare_request_config</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">get_pdf</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">get_xml</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ElsevierRequestConfig</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -15482,11 +15768,11 @@ headers and file extension.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/elsevier.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">32</span>
-<span class="normal">33</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">33</span>
 <span class="normal">34</span>
 <span class="normal">35</span>
-<span class="normal">36</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ElsevierRequestConfig</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="normal">36</span>
+<span class="normal">37</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ElsevierRequestConfig</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Configuration for Elsevier API requests.&quot;&quot;&quot;</span>
 
     <span class="n">headers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
