@@ -98,7 +98,12 @@ class ElsevierFetcher(BasePublisherFetcher):
             Path | None: The path to the downloaded PDF or None if download failed.
 
         """
-        return await stream_file(url=pdf_url, destination=filepath, headers=headers)
+        return await stream_file(
+            url=pdf_url,
+            destination=filepath,
+            headers=headers,
+            response_validator=self._check_els_status,
+        )
 
     def prepare_request_config(
         self, *, get_pdf: bool = True, get_xml: bool = False
@@ -286,6 +291,28 @@ class ElsevierFetcher(BasePublisherFetcher):
             fulltext_path=None,
             error=warning_message,
         )
+
+    @staticmethod
+    def _check_els_status(headers: httpx.Headers) -> None:
+        """
+        Check the X-ELS-Status header in the response.
+
+        This determines if the content is restricted and
+        hints at whether we're returning an incomplete full text.
+
+        Args:
+            headers (httpx.Headers): Headers from the HTTP response.
+
+        """
+        els_status = headers.get("X-ELS-Status", None)
+        if els_status and els_status.lower() != "ok":
+            warning_message = (
+                f"Elsevier download returned restricted response,"
+                " likely single-page closed-access PDF."
+                f" {els_status=}"
+            )
+            logger.warning(warning_message)
+            raise IncompleteFullTextError(warning_message)
 
     async def _elsevier_request(
         self,

@@ -14,6 +14,7 @@ from fer.fetching.core import (
     download_temporary_file,
     stream_file,
 )
+from fer.fetching.elsevier import ElsevierFetcher
 
 
 def test_study_collection_iterable():
@@ -144,7 +145,7 @@ async def test_stream_file_empty_downloaded_file(
 
 
 @pytest.mark.asyncio
-async def test_stream_file_empty_downloaded_file_elsevier_els_status_not_ok(
+async def test_stream_file_response_validation_elsevier_els_status_not_ok(
     httpx_mock, temporary_test_file, caplog
 ):
     test_url = "http://example.com/elsevier/streamfile"
@@ -159,7 +160,11 @@ async def test_stream_file_empty_downloaded_file_elsevier_els_status_not_ok(
         pytest.raises(IncompleteFullTextError) as error_info,
         caplog.at_level("WARNING"),
     ):
-        await stream_file(test_url, temporary_test_file)
+        await stream_file(
+            test_url,
+            temporary_test_file,
+            response_validator=ElsevierFetcher._check_els_status,
+        )
 
     assert "Elsevier download returned restricted response" in str(
         error_info.value

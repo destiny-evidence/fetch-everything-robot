@@ -643,3 +643,29 @@ async def test_get_final_fulltext_content_fails(
     assert response.error is not None
     error_text = str(elsevier_request_error)
     assert error_text in response.error
+
+
+@pytest.mark.asyncio
+async def test_download_one_pdf_empty_downloaded_file_elsevier_els_status_not_ok(
+    httpx_mock, temporary_test_file, caplog, test_settings
+):
+    test_url = "http://example.com/elsevier/streamfile"
+
+    httpx_mock.add_response(
+        method="GET",
+        url=test_url,
+        content=b"",
+        headers={"X-ELS-Status": "PDF_RESTRICTED"},
+    )
+    fetcher = ElsevierFetcher(settings=test_settings)
+
+    with (
+        pytest.raises(IncompleteFullTextError) as error_info,
+        caplog.at_level("WARNING"),
+    ):
+        await fetcher.download_one_pdf(test_url, temporary_test_file)
+
+    assert "Elsevier download returned restricted response" in str(
+        error_info.value
+    ), "Expect a warning message about incomplete Elsevier full text"
+    assert not temporary_test_file.exists(), "Incomplete file should be deleted"
