@@ -78,18 +78,6 @@ class FullTextFetcher:
         if output_directory is None:
             output_directory = Path(tempfile.TemporaryDirectory(delete=False).name)
         try:
-            if isinstance(fetcher, ElsevierFetcher):
-                if not isinstance(study_collection, DOIStudyCollection):
-                    error_message = (
-                        "ElsevierFetcher requires a DOI-based DOIStudyCollection."
-                    )
-                    raise FullTextFetcherError(error_message)
-                return await fetcher.fetch_many_full_texts(
-                    study_collection,
-                    output_directory,
-                    get_pdf=get_pdf,
-                    get_xml=get_xml,
-                )
             if isinstance(fetcher, OpenalexFetcher):
                 return await fetcher.fetch_many_full_texts(
                     study_collection, output_directory
@@ -100,6 +88,13 @@ class FullTextFetcher:
                     "DOI-based DOIStudyCollection."
                 )
                 raise FullTextFetcherError(error_message)
+            if isinstance(fetcher, ElsevierFetcher):
+                return await fetcher.fetch_many_full_texts(
+                    study_collection,
+                    output_directory,
+                    get_pdf=get_pdf,
+                    get_xml=get_xml,
+                )
             return await fetcher.fetch_many_full_texts(
                 study_collection, output_directory
             )
