@@ -23,7 +23,7 @@ from fer.data_models.generic import (
 from fer.data_models.scopus import ScopusAPIConfig
 from fer.enhancement_processor import FullTextEnhancementProcessor
 from fer.fetching import BasePublisherFetcher
-from fer.fetching.core import RetrievedFullText, StudyCollection, stream_file
+from fer.fetching.core import DOIStudyCollection, RetrievedFullText, stream_file
 
 pytest_plugins = [
     "tests.fixtures.generic",
@@ -226,7 +226,7 @@ class DummyPublisherFetcher(BasePublisherFetcher):
 
     async def fetch_many_full_texts(
         self,
-        study_collection: StudyCollection,
+        study_collection: DOIStudyCollection,
         output_directory: Path,
         **kwargs: object,
     ) -> list[RetrievedFullText]:

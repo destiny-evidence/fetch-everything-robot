@@ -11,10 +11,10 @@ from fer.data_models.unpaywall import get_unpaywall_api_config
 from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import (
     AsyncHTTPXRetryClient,
+    DOIStudy,
+    DOIStudyCollection,
     FullTextStreamError,
     RetrievedFullText,
-    Study,
-    StudyCollection,
     stream_file,
 )
 
@@ -106,13 +106,13 @@ class UnpaywallFetcher(BasePublisherFetcher):
         return self.validate_pdf_url(doi, data)
 
     async def process_single_study_response(
-        self, study: Study, output_directory: Path
+        self, study: DOIStudy, output_directory: Path
     ) -> RetrievedFullText:
         """
         Process a single study response from Unpaywall.
 
         Args:
-            study (Study): The Study object to process.
+            study (DOIStudy): The Study object to process.
             output_directory (Path): The directory where the PDF should be saved.
 
         Returns:
@@ -208,7 +208,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
 
     async def fetch_many_full_texts(
         self,
-        study_collection: StudyCollection,
+        study_collection: DOIStudyCollection,
         output_directory: Path,
         **kwargs: object,
     ) -> list[RetrievedFullText]:
@@ -216,7 +216,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
         Fetch the full text of an Unpaywall article.
 
         Args:
-            study_collection (StudyCollection): The collection of studies to fetch.
+            study_collection (DOIStudyCollection): The collection of studies to fetch.
             output_directory (Path): The output directory path.
 
         Returns:

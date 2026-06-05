@@ -7,9 +7,9 @@ from fer.config import Settings
 from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import (
     BaseAuthError,
+    DOIStudyCollection,
     OpenAlexStudyCollection,
     RetrievedFullText,
-    StudyCollection,
 )
 from fer.fetching.elsevier import ElsevierFetcher
 from fer.fetching.openalex import OpenalexFetcher
@@ -48,7 +48,7 @@ class FullTextFetcher:
     async def fetch(
         self,
         publisher_name: str,
-        study_collection: StudyCollection | OpenAlexStudyCollection,
+        study_collection: DOIStudyCollection | OpenAlexStudyCollection,
         output_directory: Path | None = None,
         *,
         get_pdf: bool = True,
@@ -59,7 +59,7 @@ class FullTextFetcher:
 
         Args:
             publisher_name (str): The name of the publisher.
-            study_collection (StudyCollection | OpenAlexStudyCollection):
+            study_collection (DOIStudyCollection | OpenAlexStudyCollection):
                 A collection of studies.
             output_directory (Path | None, optional): The directory to save the
                 fetched articles. Defaults to None.
@@ -79,9 +79,9 @@ class FullTextFetcher:
             output_directory = Path(tempfile.TemporaryDirectory(delete=False).name)
         try:
             if isinstance(fetcher, ElsevierFetcher):
-                if not isinstance(study_collection, StudyCollection):
+                if not isinstance(study_collection, DOIStudyCollection):
                     error_message = (
-                        "ElsevierFetcher requires a DOI-based StudyCollection."
+                        "ElsevierFetcher requires a DOI-based DOIStudyCollection."
                     )
                     raise FullTextFetcherError(error_message)
                 return await fetcher.fetch_many_full_texts(
@@ -94,10 +94,10 @@ class FullTextFetcher:
                 return await fetcher.fetch_many_full_texts(
                     study_collection, output_directory
                 )
-            if not isinstance(study_collection, StudyCollection):
+            if not isinstance(study_collection, DOIStudyCollection):
                 error_message = (
                     f"Fetcher for '{publisher_name}' requires a "
-                    "DOI-based StudyCollection."
+                    "DOI-based DOIStudyCollection."
                 )
                 raise FullTextFetcherError(error_message)
             return await fetcher.fetch_many_full_texts(

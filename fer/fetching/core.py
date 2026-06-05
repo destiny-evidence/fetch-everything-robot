@@ -31,9 +31,12 @@ class BaseStudy(BaseModel):
     uid: UUID = Field(..., description="An internal unique identifier for the study.")
 
 
-class Study(BaseStudy):
+class DOIStudy(BaseStudy):
     """
-    Model representing a single study with DOI and unique identifier.
+    Model representing a single study with that uses DOI as a unique identifier.
+
+    It _may_ also have an OpenAlex ID, but this is not required. The DOI is the primary
+    identifier for this model, and the OpenAlex ID is optional metadata.
 
     This is functionally different to a Destiny `Reference`
     as it lacks any other metadata.
@@ -47,12 +50,14 @@ class Study(BaseStudy):
 
 class OpenAlexStudy(BaseStudy):
     """
-    Model representing a single OpenAlex study.
+    Model representing a single study that uses OpenAlex ID as a unique identifier.
 
-    Crucially, DOI is allowed to be `None` here,
-    since not all OpenAlex records have DOIs.
+    It _may_ also have a DOI, but this is not required. The OpenAlex ID is the primary
+    identifier for this model, and the DOI is optional metadata as not all
+    openalex records have DOIs.
 
-    An OpenAlex ID _is_ required.
+    This is functionally different to a Destiny `Reference`
+    as it lacks any other metadata.
     """
 
     openalex_id: OpenAlexIdentifier = Field(
@@ -63,10 +68,10 @@ class OpenAlexStudy(BaseStudy):
     )
 
 
-class StudyCollection(BaseModel):
-    """Model representing a collection of studies."""
+class DOIStudyCollection(BaseModel):
+    """Model representing a collection of DOI studies."""
 
-    studies: list[Study] = Field(
+    studies: list[DOIStudy] = Field(
         default_factory=list, description="A collection of studies."
     )
 

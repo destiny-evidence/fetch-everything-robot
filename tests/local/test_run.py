@@ -8,11 +8,11 @@ from destiny_sdk.identifiers import DOIIdentifier, OpenAlexIdentifier
 from fer.config import ExternalAPI
 from fer.enhancement_processor import FullTextEnhancementProcessor
 from fer.fetching.core import (
+    DOIStudy,
+    DOIStudyCollection,
     OpenAlexStudy,
     OpenAlexStudyCollection,
     RetrievedFullText,
-    Study,
-    StudyCollection,
 )
 from fer.local.run import (
     DOI_NAMESPACE,
@@ -41,12 +41,12 @@ def test_doi_list():
 def test_generate_study_collection_from_dois_success(mocker, test_doi_list):
     study_collection = generate_study_collection_from_dois(test_doi_list)
 
-    assert isinstance(study_collection, StudyCollection)
+    assert isinstance(study_collection, DOIStudyCollection)
     assert len(study_collection.studies) == len(test_doi_list)
 
     for study, doi in zip(study_collection.studies, test_doi_list, strict=True):
         expected_uuid = uuid5(DOI_NAMESPACE, validate_doi(doi))
-        assert isinstance(study, Study)
+        assert isinstance(study, DOIStudy)
         assert study.doi.identifier == doi
         assert study.uid == expected_uuid
 
@@ -276,7 +276,7 @@ async def test_resolve_openalex_identifiers_all_resolve_success(
     )
     assert len(resolved) == len(test_openalex_ids)
     assert without_doi == []
-    assert all(isinstance(study, Study) for study in resolved)
+    assert all(isinstance(study, DOIStudy) for study in resolved)
     assert all(study.doi is not None for study in resolved)
 
 
@@ -303,7 +303,7 @@ async def test_resolve_openalex_identifiers_partial_resolve(
     assert len(without_doi) == len(
         [identifier for identifier in expected_id_resolution if "doi" not in identifier]
     )
-    assert isinstance(resolved[0], Study)
+    assert isinstance(resolved[0], DOIStudy)
     assert resolved[0].doi is not None
     assert isinstance(without_doi[0], OpenAlexStudy)
     assert without_doi[0].openalex_id == test_openalex_ids[1]
@@ -422,9 +422,9 @@ async def test_generate_study_collection_doi_only(mocker, test_settings, test_do
     study_collection, openalex_study_collection = await generate_study_collection(
         test_settings, identifier_list
     )
-    assert isinstance(study_collection, StudyCollection)
+    assert isinstance(study_collection, DOIStudyCollection)
     assert len(study_collection.studies) == len(test_doi_list)
-    assert all(isinstance(study, Study) for study in study_collection.studies)
+    assert all(isinstance(study, DOIStudy) for study in study_collection.studies)
     assert all(study.doi is not None for study in study_collection.studies)
     assert not openalex_study_collection.studies
 
@@ -441,9 +441,9 @@ async def test_generate_study_collection_openalex_only_resolves_to_dois(
     study_collection, openalex_study_collection = await generate_study_collection(
         test_settings, test_openalex_ids
     )
-    assert isinstance(study_collection, StudyCollection)
+    assert isinstance(study_collection, DOIStudyCollection)
     assert len(study_collection.studies) == len(test_openalex_ids)
-    assert all(isinstance(study, Study) for study in study_collection.studies)
+    assert all(isinstance(study, DOIStudy) for study in study_collection.studies)
     assert all(study.doi is not None for study in study_collection.studies)
     assert not openalex_study_collection.studies
 
@@ -464,11 +464,11 @@ async def test_generate_study_collection_openalex_only_partial_doi_resolution(
     study_collection, openalex_study_collection = await generate_study_collection(
         test_settings, test_openalex_ids
     )
-    assert isinstance(study_collection, StudyCollection)
+    assert isinstance(study_collection, DOIStudyCollection)
     assert len(study_collection.studies) == len(
         [result for result in single_doi_resolution_result if "doi" in result]
     )
-    assert all(isinstance(study, Study) for study in study_collection.studies)
+    assert all(isinstance(study, DOIStudy) for study in study_collection.studies)
     assert all(study.doi is not None for study in study_collection.studies)
     assert isinstance(openalex_study_collection, OpenAlexStudyCollection)
     assert len(openalex_study_collection.studies) == len(
@@ -572,7 +572,7 @@ async def test_main_doi_only(mocker, tmp_path, test_doi_list):
     test_identifiers_file.write_text("\n".join(test_doi_list))
 
     doi_studies = [
-        Study(doi=DOIIdentifier(identifier=doi), uid=uuid5(DOI_NAMESPACE, doi))
+        DOIStudy(doi=DOIIdentifier(identifier=doi), uid=uuid5(DOI_NAMESPACE, doi))
         for doi in test_doi_list
     ]
     mocker.patch("fer.local.run.prepare_processor", return_value=mocker.MagicMock())
@@ -580,7 +580,7 @@ async def test_main_doi_only(mocker, tmp_path, test_doi_list):
         "fer.local.run.generate_study_collection",
         new=mocker.AsyncMock(
             return_value=(
-                StudyCollection(studies=doi_studies),
+                DOIStudyCollection(studies=doi_studies),
                 OpenAlexStudyCollection(),
             )
         ),
@@ -620,7 +620,7 @@ async def test_main_openalex_only_no_doi(mocker, tmp_path, test_openalex_ids):
         "fer.local.run.generate_study_collection",
         new=mocker.AsyncMock(
             return_value=(
-                StudyCollection(studies=[]),
+                DOIStudyCollection(studies=[]),
                 OpenAlexStudyCollection(studies=openalex_studies),
             )
         ),
@@ -651,7 +651,7 @@ async def test_main_mixed_identifiers(
     test_identifiers_file.write_text("\n".join(all_identifiers))
 
     doi_studies = [
-        Study(doi=DOIIdentifier(identifier=doi), uid=uuid5(DOI_NAMESPACE, doi))
+        DOIStudy(doi=DOIIdentifier(identifier=doi), uid=uuid5(DOI_NAMESPACE, doi))
         for doi in test_doi_list
     ]
     openalex_studies = [
@@ -667,7 +667,7 @@ async def test_main_mixed_identifiers(
         "fer.local.run.generate_study_collection",
         new=mocker.AsyncMock(
             return_value=(
-                StudyCollection(studies=doi_studies),
+                DOIStudyCollection(studies=doi_studies),
                 OpenAlexStudyCollection(studies=openalex_studies),
             )
         ),

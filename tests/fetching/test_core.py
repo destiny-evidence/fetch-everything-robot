@@ -7,12 +7,12 @@ from pytest_httpx import IteratorStream
 
 from fer.fetching.core import (
     AsyncHTTPXRetryClient,
+    DOIStudy,
+    DOIStudyCollection,
     FullTextStreamError,
     IncompleteFullTextError,
     OpenAlexStudy,
     OpenAlexStudyCollection,
-    Study,
-    StudyCollection,
     download_temporary_file,
     stream_file,
 )
@@ -24,9 +24,9 @@ def test_study_collection_iterable():
         DOIIdentifier(identifier=doi_string, identifier_type=ExternalIdentifierType.DOI)
         for doi_string in ["10.1000/xyz123", "10.1000/xyz456"]
     ]
-    study1 = Study(doi=test_dois[0], uid=uuid4())
-    study2 = Study(doi=test_dois[1], uid=uuid4())
-    collection = StudyCollection(studies=[study1, study2])
+    study1 = DOIStudy(doi=test_dois[0], uid=uuid4())
+    study2 = DOIStudy(doi=test_dois[1], uid=uuid4())
+    collection = DOIStudyCollection(studies=[study1, study2])
 
     collected_dois = [study.doi.identifier for study in collection.studies]
     collected_uids = [str(study.uid) for study in collection.studies]
@@ -40,12 +40,12 @@ def test_study_collection_remove_study_by_doi(test_dois):
         for doi_string in test_dois
     ]
     test_studies = [
-        Study(doi=test_doi, uid=test_uid)
+        DOIStudy(doi=test_doi, uid=test_uid)
         for test_doi, test_uid in zip(
             test_doi_identifiers, [uuid4(), uuid4()], strict=False
         )
     ]
-    collection = StudyCollection(studies=test_studies)
+    collection = DOIStudyCollection(studies=test_studies)
 
     collection.remove_study_by_doi(test_dois[0])
 

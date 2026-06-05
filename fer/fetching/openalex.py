@@ -13,12 +13,12 @@ from fer.data_models.openalex import get_openalex_api_config
 from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import (
     AsyncHTTPXRetryClient,
+    DOIStudy,
+    DOIStudyCollection,
     FullTextStreamError,
     OpenAlexStudy,
     OpenAlexStudyCollection,
     RetrievedFullText,
-    Study,
-    StudyCollection,
     stream_file,
 )
 from fer.utils import format_doi, validate_doi
@@ -144,13 +144,13 @@ class OpenalexFetcher(BasePublisherFetcher):
         return await stream_file(url=pdf_url, destination=filepath, headers=headers)
 
     async def _openalex_retrieval(
-        self, study: Study | OpenAlexStudy, output_directory: Path
+        self, study: DOIStudy | OpenAlexStudy, output_directory: Path
     ) -> RetrievedFullText:
         """
         Retrieve full text for a single Study using OpenAlex API.
 
         Args:
-            study (Study | OpenAlexStudy):
+            study (DOIStudy | OpenAlexStudy):
                 The study for which to retrieve the full text.
             output_directory (Path): The directory where the full text should be saved.
 
@@ -204,16 +204,16 @@ class OpenalexFetcher(BasePublisherFetcher):
 
     async def fetch_many_full_texts(
         self,
-        study_collection: StudyCollection | OpenAlexStudyCollection,
+        study_collection: DOIStudyCollection | OpenAlexStudyCollection,
         output_directory: Path,
         **kwargs: object,
     ) -> list[RetrievedFullText]:
         """
-        Fetch full text for a given StudyCollection and save them to output_directory.
+        Fetch full text for a collection of studies and save them to output_directory.
 
         Args:
-            study_collection (StudyCollection): The study collection for which to fetch
-                the full text.
+            study_collection (DOIStudyCollection | OpenAlexStudyCollection):
+                The study collection for which to fetch the full text.
             output_directory (Path): The directory where the full text should be saved.
 
         Returns:

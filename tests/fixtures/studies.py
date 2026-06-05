@@ -8,31 +8,31 @@ from destiny_sdk.identifiers import (
 )
 
 from fer.fetching.core import (
+    DOIStudy,
+    DOIStudyCollection,
     OpenAlexStudy,
     OpenAlexStudyCollection,
-    Study,
-    StudyCollection,
 )
 
 
 @pytest.fixture
-def test_study_collection() -> StudyCollection:
-    """Create a test StudyCollection with sample studies."""
+def test_study_collection() -> DOIStudyCollection:
+    """Create a test DOIStudyCollection with sample studies."""
     studies = [
-        Study(
+        DOIStudy(
             uid=uuid4(),
             doi=DOIIdentifier(
                 identifier="10.1000/xyz123", identifier_type=ExternalIdentifierType.DOI
             ),
         ),
-        Study(
+        DOIStudy(
             uid=uuid4(),
             doi=DOIIdentifier(
                 identifier="10.1000/abc456", identifier_type=ExternalIdentifierType.DOI
             ),
         ),
     ]
-    return StudyCollection(studies=studies)
+    return DOIStudyCollection(studies=studies)
 
 
 @pytest.fixture

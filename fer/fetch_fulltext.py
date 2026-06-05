@@ -13,7 +13,7 @@ from loguru import logger
 
 from fer.config import Settings
 from fer.fetching import BasePublisherFetcher
-from fer.fetching.core import RetrievedFullText, StudyCollection
+from fer.fetching.core import DOIStudyCollection, RetrievedFullText
 from fer.fetching.fetchers import FullTextFetcher, FullTextFetcherError
 from fer.utils import InvalidDOIError, validate_doi
 
@@ -123,7 +123,7 @@ class FullTextBatchFetcher:
 
     async def get_many_fulltext_pdfs_cycling_apis(
         self,
-        input_study_collection: StudyCollection,
+        input_study_collection: DOIStudyCollection,
         output_directory: Path | None = None,
         *,
         get_pdf: bool = True,
@@ -133,7 +133,7 @@ class FullTextBatchFetcher:
         Get many full texts from a list of DOIs, cycling APIs in order of priority.
 
         Args:
-            input_study_collection (StudyCollection): Input collection of studies.
+            input_study_collection (DOIStudyCollection): Input study collection.
             output_directory (Path | None, optional): Directory to save full texts.
             get_pdf (bool, optional): Whether to fetch PDF files. Defaults to True.
             get_xml (bool, optional): Whether to fetch XML files. Defaults to False.
@@ -156,7 +156,7 @@ class FullTextBatchFetcher:
             f"Valid references provided: {valid_references_provided} "
             f"of {len(input_study_collection.studies)} studies."
         )
-        valid_study_collection = StudyCollection(
+        valid_study_collection = DOIStudyCollection(
             studies=[
                 study
                 for study in input_study_collection.studies

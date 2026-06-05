@@ -20,7 +20,7 @@ from fer.enhancement_processor import (
     FullTextEnhancementProcessor,
 )
 from fer.fetch_fulltext import ZeroFullTextsGeneratedError
-from fer.fetching.core import OpenAlexStudyCollection, Study, StudyCollection
+from fer.fetching.core import DOIStudy, DOIStudyCollection, OpenAlexStudyCollection
 from fer.fetching.openalex import OpenalexFetcher, OpenAlexStudy
 from fer.fetching.registry import get_publisher_fetcher_registry
 from fer.logger import logger, set_up_logger
@@ -40,7 +40,7 @@ class InvalidIdentifierError(Exception):
 
 async def resolve_openalex_identifiers(
     openalex_identifiers: list[OpenAlexIdentifier], settings: Settings
-) -> tuple[list[Study], list[OpenAlexStudy]]:
+) -> tuple[list[DOIStudy], list[OpenAlexStudy]]:
     """
     Resolve OpenAlex IDs to DOIs where possible, splitting into two groups.
 
@@ -50,7 +50,7 @@ async def resolve_openalex_identifiers(
         settings (Settings): The settings to use for the fetcher.
 
     Returns:
-        tuple[list[Study], list[OpenAlexStudy]]:
+        tuple[list[DOIStudy], list[OpenAlexStudy]]:
             A tuple containing a list of Study objects with valid DOIs and a
                 list of OpenAlexStudy objects without valid DOIs.
 
@@ -66,7 +66,7 @@ async def resolve_openalex_identifiers(
         ],
         return_exceptions=True,
     )
-    resolved: list[Study] = []
+    resolved: list[DOIStudy] = []
     without_doi: list[OpenAlexStudy] = []
 
     for openalex_id, work in zip(openalex_identifiers, works, strict=False):
@@ -97,7 +97,7 @@ async def resolve_openalex_identifiers(
 
         if doi is not None:
             resolved.append(
-                Study(
+                DOIStudy(
                     doi=doi,
                     uid=uuid5(DOI_NAMESPACE, doi.identifier),
                     openalex_id=openalex_id,
@@ -121,7 +121,7 @@ async def resolve_openalex_identifiers(
 
 async def generate_study_collection(
     settings: Settings, identifier_list: list[OpenAlexIdentifier | DOIIdentifier]
-) -> tuple[StudyCollection, OpenAlexStudyCollection]:
+) -> tuple[DOIStudyCollection, OpenAlexStudyCollection]:
     """
     Generate a StudyCollection from a list of identifiers.
 
@@ -139,8 +139,8 @@ async def generate_study_collection(
             List of identifiers to generate the StudyCollection from.
 
     Returns:
-        tuple[StudyCollection, OpenAlexStudyCollection]:
-            A tuple containing a StudyCollection and an OpenAlexStudyCollection.
+        tuple[DOIStudyCollection, OpenAlexStudyCollection]:
+            A tuple containing a DOIStudyCollection and an OpenAlexStudyCollection.
 
     """
     extracted_dois = [
@@ -156,14 +156,14 @@ async def generate_study_collection(
     doi_study_collection = (
         generate_study_collection_from_dois(extracted_dois)
         if len(extracted_dois) > 0
-        else StudyCollection(studies=[])
+        else DOIStudyCollection(studies=[])
     )
     (
         resolved_studies,
         openalex_id_studies_without_doi,
     ) = await resolve_openalex_identifiers(extracted_openalex_ids, settings)
 
-    study_collection = StudyCollection(
+    study_collection = DOIStudyCollection(
         studies=doi_study_collection.studies + resolved_studies
     )
 
@@ -173,15 +173,15 @@ async def generate_study_collection(
     return study_collection, openalex_collection
 
 
-def generate_study_collection_from_dois(doi_list: list[str]) -> StudyCollection:
+def generate_study_collection_from_dois(doi_list: list[str]) -> DOIStudyCollection:
     """
-    Generate a StudyCollection from a list of DOIs.
+    Generate a DOIStudyCollection from a list of DOIs.
 
     Args:
-        doi_list (list[str]): List of DOIs to generate the StudyCollection from.
+        doi_list (list[str]): List of DOIs to generate the DOIStudyCollection from.
 
     Returns:
-        StudyCollection: A collection of Study objects created from the DOIs.
+        DOIStudyCollection: A collection of DOIStudy objects created from the DOIs.
 
     """
     try:
@@ -193,9 +193,9 @@ def generate_study_collection_from_dois(doi_list: list[str]) -> StudyCollection:
         error_message = f"Invalid DOI encountered: {invalid_doi_error}"
         logger.error(error_message)
         sys.exit(1)
-    return StudyCollection(
+    return DOIStudyCollection(
         studies=[
-            Study(doi=doi, uid=uuid5(DOI_NAMESPACE, doi.identifier))
+            DOIStudy(doi=doi, uid=uuid5(DOI_NAMESPACE, doi.identifier))
             for doi in validated_doi_identifiers
         ]
     )
@@ -323,11 +323,11 @@ async def process_identifiers(
 
 async def retrieve_fulltexts_from_external_providers(
     processor: FullTextEnhancementProcessor,
-    study_collection: StudyCollection,
+    study_collection: DOIStudyCollection,
     output_directory: Path,
 ) -> None:
     """
-    Retrieve full texts for a given StudyCollection.
+    Retrieve full texts for a given DOIStudyCollection.
 
     Uses the provided processor and saves them to the output directory.
 
@@ -339,7 +339,7 @@ async def retrieve_fulltexts_from_external_providers(
     Args:
         processor (FullTextEnhancementProcessor):
             The processor to use for retrieving full texts.
-        study_collection (StudyCollection):
+        study_collection (DOIStudyCollection):
             The collection of studies for which to retrieve full texts.
         output_directory (Path): The directory where the full texts should be saved.
 
@@ -444,7 +444,7 @@ async def main(
 
     if study_collection.studies:
         logger.info(
-            f"Generated StudyCollection with {len(study_collection.studies)} "
+            f"Generated DOIStudyCollection with {len(study_collection.studies)} "
             "studies with valid DOIs."
         )
         await retrieve_fulltexts_from_external_providers(

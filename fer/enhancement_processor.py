@@ -15,7 +15,7 @@ from fer.config import Settings
 from fer.data_models.generic import APIConfig
 from fer.fetch_fulltext import FullTextBatchFetcher, ZeroFullTextsGeneratedError
 from fer.fetching import BasePublisherFetcher
-from fer.fetching.core import Study, StudyCollection
+from fer.fetching.core import DOIStudy, DOIStudyCollection
 
 
 class MissingDOIError(Exception):
@@ -61,15 +61,15 @@ class FullTextEnhancementProcessor:
         self.available_api_configs = available_api_configs
 
     @staticmethod
-    def get_study_or_raise_error(reference: Reference) -> Study:
+    def get_study_or_raise_error(reference: Reference) -> DOIStudy:
         """
-        Convert a Reference object to a Study, raising an error if DOI is missing.
+        Convert a Reference object to a DOIStudy, raising an error if DOI is missing.
 
         Args:
             reference (Reference): A Reference object.
 
         Returns:
-            Study: The corresponding Study object.
+            DOIStudy: The corresponding DOIStudy object.
 
         Raises:
             MissingDOIError: If the Reference does not have a DOI identifier.
@@ -88,7 +88,7 @@ class FullTextEnhancementProcessor:
             error_message = f"Reference {reference.id} is missing a DOI identifier."
             raise MissingDOIError(error_message)
 
-        return Study(
+        return DOIStudy(
             doi=doi_id,
             uid=reference.id,
         )
@@ -96,22 +96,22 @@ class FullTextEnhancementProcessor:
     @staticmethod
     def get_study_collection_from_references(
         references: list[Reference],
-    ) -> StudyCollection:
+    ) -> DOIStudyCollection:
         """
-        Convert a list of Reference objects to a StudyCollection.
+        Convert a list of Reference objects to a DOIStudyCollection.
 
         Args:
             references (list[Reference]): A list of Reference objects.
 
         Returns:
-            StudyCollection: The corresponding StudyCollection.
+            DOIStudyCollection: The corresponding DOIStudyCollection.
 
         """
         studies = [
             FullTextEnhancementProcessor.get_study_or_raise_error(reference)
             for reference in references
         ]
-        return StudyCollection(studies=studies)
+        return DOIStudyCollection(studies=studies)
 
     async def generate_fulltext(
         self,

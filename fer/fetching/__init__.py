@@ -5,7 +5,7 @@ from pathlib import Path
 
 from pydantic import AnyUrl
 
-from fer.fetching.core import RetrievedFullText, StudyCollection
+from fer.fetching.core import DOIStudyCollection, RetrievedFullText
 
 
 class BasePublisherFetcher(ABC):
@@ -19,7 +19,7 @@ class BasePublisherFetcher(ABC):
         headers: dict | None = None,
     ) -> Path | None:
         """
-        Download a pdf for a pdf_url associated with a single `Study`.
+        Download a pdf for a pdf_url associated with a single `DOIStudy`.
 
         Args:
             pdf_url (AnyUrl): The URL of the PDF to download.
@@ -35,16 +35,16 @@ class BasePublisherFetcher(ABC):
     @abstractmethod
     async def fetch_many_full_texts(
         self,
-        study_collection: StudyCollection,
+        study_collection: DOIStudyCollection,
         output_directory: Path,
         **kwargs: object,
     ) -> list[RetrievedFullText]:
         """
-        Fetch full text for a given StudyCollection and save them to output_directory.
+        Fetch full text for a given DOIStudyCollection and save to output_directory.
 
         Args:
-            study_collection (StudyCollection): The study collection for which to fetch
-                the full text.
+            study_collection (DOIStudyCollection): The study collection for which
+                to fetch the full text.
             output_directory (Path): The directory where the full text should be saved.
 
         Returns:
