@@ -3,7 +3,7 @@
 import tempfile
 from collections.abc import Callable
 from pathlib import Path
-from typing import Literal
+from typing import Generic, Literal, TypeVar
 from uuid import UUID
 
 import httpx
@@ -68,48 +68,81 @@ class OpenAlexStudy(BaseStudy):
     )
 
 
-class DOIStudyCollection(BaseModel):
+T = TypeVar("T", bound=BaseStudy)
+
+
+class BaseStudyCollection(BaseModel, Generic[T]):
+    """Base model representing a collection of studies."""
+
+    studies: list[T] = Field(
+        default_factory=list, description="A collection of studies."
+    )
+
+    def _identifier_of(self, study: T) -> str | None:
+        """
+        Get the unique identifier of a study as a string.
+
+        Subclasses should implement this to extract the identifier for the
+        concrete study type `T`.
+        """
+        exception_message = "Subclasses must implement the _identifier_of method."
+        raise NotImplementedError(exception_message)
+
+    def remove_study_by_identifier(self, identifier: str) -> None:
+        """
+        Remove a study from the collection by its unique identifier.
+
+        Args:
+            identifier (str): The unique identifier of the study to remove.
+
+        """
+        self.studies = [
+            study for study in self.studies if self._identifier_of(study) != identifier
+        ]
+
+
+class DOIStudyCollection(BaseStudyCollection[DOIStudy]):
     """Model representing a collection of DOI studies."""
 
     studies: list[DOIStudy] = Field(
         default_factory=list, description="A collection of studies."
     )
 
-    def remove_study_by_doi(self, doi: str) -> None:
+    def _identifier_of(self, study: DOIStudy) -> str | None:
         """
-        Remove a study from the collection by its DOI.
+        Get the DOI identifier of a DOIStudy as a string.
 
         Args:
-            doi (str): The DOI of the study to remove.
+            study (DOIStudy): A DOIStudy object from which
+                to extract the DOI identifier.
+
+        Returns:
+            str | None: The DOI identifier of the study, if available.
 
         """
-        self.studies = [
-            study
-            for study in self.studies
-            if study.doi is not None and study.doi.identifier != doi
-        ]
+        return study.doi.identifier if study.doi is not None else None
 
 
-class OpenAlexStudyCollection(BaseModel):
+class OpenAlexStudyCollection(BaseStudyCollection[OpenAlexStudy]):
     """Model representing a collection of studies."""
 
     studies: list[OpenAlexStudy] = Field(
         default_factory=list, description="A collection of studies."
     )
 
-    def remove_study_by_openalex_id(self, openalex_id: str) -> None:
+    def _identifier_of(self, study: OpenAlexStudy) -> str | None:
         """
-        Remove a study from the collection by its OpenAlex ID.
+        Get the OpenAlex ID of an OpenAlexStudy as a string.
 
         Args:
-            openalex_id (str): The OpenAlex ID of the study to remove.
+            study (OpenAlexStudy): An OpenAlexStudy object from which
+                to extract the OpenAlex ID.
+
+        Returns:
+            str | None: The OpenAlex ID of the study, if available.
 
         """
-        self.studies = [
-            study
-            for study in self.studies
-            if study.openalex_id.identifier != openalex_id
-        ]
+        return study.openalex_id.identifier if study.openalex_id is not None else None
 
 
 class RetrievedFullText(BaseModel):

@@ -188,7 +188,7 @@ class FullTextBatchFetcher:
                     )
                     doi_to_remove = self.process_doi(study.doi.identifier)
                     valid_dois.remove(doi_to_remove)
-                    valid_study_collection.remove_study_by_doi(doi_to_remove)
+                    valid_study_collection.remove_study_by_identifier(doi_to_remove)
 
         for api_name in self.all_api_configs["fulltext"]:
             if len(valid_dois) == 0:
@@ -223,7 +223,7 @@ class FullTextBatchFetcher:
 
                         logger.info(f"Full text found for {item.doi} from {api_name}.")
                         valid_dois.remove(doi_to_remove)
-                        valid_study_collection.remove_study_by_doi(doi_to_remove)
+                        valid_study_collection.remove_study_by_identifier(doi_to_remove)
                         logger.info(
                             f"Got full text for doi {doi_to_remove} from {api_name}. "
                             "Removing from master list."

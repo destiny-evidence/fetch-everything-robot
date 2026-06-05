@@ -47,7 +47,7 @@ def test_study_collection_remove_study_by_doi(test_dois):
     ]
     collection = DOIStudyCollection(studies=test_studies)
 
-    collection.remove_study_by_doi(test_dois[0])
+    collection.remove_study_by_identifier(test_dois[0])
 
     remaining_dois = [study.doi.identifier for study in collection.studies]
     assert remaining_dois == test_dois[1:], "All but the first DOI should remain."
@@ -65,7 +65,7 @@ def test_openalex_study_collection_remove_study_by_openalex_id(test_openalex_ids
     ]
     collection = OpenAlexStudyCollection(studies=test_openalex_studies)
 
-    collection.remove_study_by_openalex_id(openalex_string_ids[0])
+    collection.remove_study_by_identifier(openalex_string_ids[0])
 
     remaining_openalex_ids = [
         str(study.openalex_id.identifier) for study in collection.studies
