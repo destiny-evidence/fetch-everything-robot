@@ -426,7 +426,8 @@ async def main(
     Define the main entry point for local running.
 
     Args:
-        identifier_file (Path): Path to a newline-separated file containing identifiers.
+        identifier_file (Path): Path to a newline-separated file containing identifiers
+            as strings. Identifiers can be DOIs, OpenAlex IDs or a mixture of both.
         output_directory (Path): Path to the output directory.
         exclude_api (list[ExternalAPI] | None): List of API names to exclude
             from fetching. Defaults to None.
