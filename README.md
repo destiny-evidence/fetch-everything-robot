@@ -4,6 +4,14 @@ A _DESTINY_ robot for retrieving full texts from various third-party APIs, and a
 
 This derived from the example robot producing toy enhancements against the destiny repository available at [destiny-evidence/toy-robot](https://github.com/destiny-evidence/toy-robot).
 
+## Current retrieval rate
+
+<!-- ![PDF Retrieval Rate](https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/destiny-evidence/fetch-everything-robot/refs/heads/metrics/fetch_badge.json&query=%24.message&label=pdf%20fetch%20rate&style=flat-square) -->
+
+Fer is evaluated on a random sample of [documents relevant to climate and health](https://github.com/destiny-evidence/blob/main/tests/fixtures/evaluation_datasets/climate_and_health.txt)
+
+Results are stored in [metrics.json](https://github.com/destiny-evidence/fetch-everything-robot/blob/metrics/metrics.json)
+
 ## tl, dr
 
 A **robot** is an extension/plugin to the _DESTINY_ repository, which, using _DESTINY_'s API (specifically POST) endpoints to create `Enhancement`s on the core unit of analysis, `Record`s (the bespoke data model for scientific publications, reports, papers, etc. which are stored in _DESTINY_-repository).
