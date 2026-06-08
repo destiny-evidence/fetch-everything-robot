@@ -3,7 +3,7 @@
 import tempfile
 from collections.abc import Callable
 from pathlib import Path
-from typing import Generic, Literal, TypeVar
+from typing import Literal
 from uuid import UUID
 
 import httpx
@@ -68,10 +68,7 @@ class OpenAlexStudy(BaseStudy):
     )
 
 
-T = TypeVar("T", bound=BaseStudy)
-
-
-class BaseStudyCollection(BaseModel, Generic[T]):
+class BaseStudyCollection[T: BaseStudy](BaseModel):
     """Base model representing a collection of studies."""
 
     studies: list[T] = Field(
