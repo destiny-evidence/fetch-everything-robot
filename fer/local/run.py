@@ -3,10 +3,10 @@
 import asyncio
 import sys
 from pathlib import Path
-from typing import Final
+from typing import Annotated, Final
 from uuid import UUID, uuid5
 
-from cyclopts import App
+from cyclopts import App, Parameter
 from destiny_sdk.identifiers import DOIIdentifier, OpenAlexIdentifier
 from pydantic import ValidationError
 
@@ -573,10 +573,34 @@ async def openalex_retrieval_short_circuit(
 
 @app.default
 async def main(
-    identifier_file: Path,
-    output_directory: Path,
+    identifier_file: Annotated[
+        Path,
+        Parameter(
+            name=["--identifier-file", "-i"],
+            help=(
+                "Path to a newline-separated file containing "
+                "identifiers as strings.",
+            ),
+        ),
+    ],
+    output_directory: Annotated[
+        Path,
+        Parameter(
+            name=["--output-directory", "-o"],
+            help=(
+                "Path to the output directory where full texts "
+                "and results map will be saved.",
+            ),
+        ),
+    ],
     exclude_api: list[ExternalAPI] | None = None,
-    result_file_name: str = "retrieved_fulltexts_map.txt",
+    result_file_name: Annotated[
+        str,
+        Parameter(
+            name=["--result-file-name", "-r"],
+            help="Name of the results map file to write.",
+        ),
+    ] = "retrieved_fulltexts_map.txt",
 ) -> None:
     """
     Define the main entry point for local running.
