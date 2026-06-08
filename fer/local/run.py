@@ -40,7 +40,7 @@ class InvalidIdentifierError(Exception):
 
 async def resolve_openalex_identifiers(
     openalex_identifiers: list[OpenAlexIdentifier], settings: Settings
-) -> tuple[list[DOIStudy], list[OpenAlexStudy]]:
+) -> tuple[list[DOIStudy], list[OpenAlexStudy], dict[str, str]]:
     """
     Resolve OpenAlex IDs to DOIs where possible, splitting into two groups.
 
@@ -50,13 +50,14 @@ async def resolve_openalex_identifiers(
         settings (Settings): The settings to use for the fetcher.
 
     Returns:
-        tuple[list[DOIStudy], list[OpenAlexStudy]]:
-            A tuple containing a list of Study objects with valid DOIs and a
-                list of OpenAlexStudy objects without valid DOIs.
+        tuple[list[DOIStudy], list[OpenAlexStudy], dict[str, str]]:
+            A tuple containing a list of Study objects with valid DOIs, a
+                list of OpenAlexStudy objects without valid DOIs,and a dictionary
+                mapping UIDs to the original supplied identifiers.
 
     """
     if not openalex_identifiers:
-        return [], []
+        return [], [], {}
 
     openalex_fetcher = OpenalexFetcher(settings)
     works = await asyncio.gather(
@@ -68,6 +69,7 @@ async def resolve_openalex_identifiers(
     )
     resolved: list[DOIStudy] = []
     without_doi: list[OpenAlexStudy] = []
+    uid_to_supplied: dict[str, str] = {}
 
     for openalex_id, work in zip(openalex_identifiers, works, strict=False):
         if isinstance(work, BaseException):
@@ -75,13 +77,13 @@ async def resolve_openalex_identifiers(
                 f"Failed to fetch OpenAlex work for {openalex_id.identifier}: {work}. "
                 "Treating as having no valid DOI."
             )
-            without_doi.append(
-                OpenAlexStudy(
-                    uid=uuid5(DOI_NAMESPACE, openalex_id.identifier),
-                    openalex_id=openalex_id,
-                    doi=None,
-                )
+            openalex_study = OpenAlexStudy(
+                uid=uuid5(DOI_NAMESPACE, openalex_id.identifier),
+                openalex_id=openalex_id,
+                doi=None,
             )
+            without_doi.append(openalex_study)
+            uid_to_supplied[str(openalex_study.uid)] = openalex_id.identifier
             continue
         raw_doi = work.get("doi", None)
         doi: DOIIdentifier | None = None
@@ -96,32 +98,40 @@ async def resolve_openalex_identifiers(
                 logger.warning(warning_message)
 
         if doi is not None:
-            resolved.append(
-                DOIStudy(
-                    doi=doi,
-                    uid=uuid5(DOI_NAMESPACE, doi.identifier),
-                    openalex_id=openalex_id,
-                )
+            doi_study = DOIStudy(
+                doi=doi,
+                uid=uuid5(DOI_NAMESPACE, doi.identifier),
+                openalex_id=openalex_id,
             )
+            resolved.append(doi_study)
+            logger.debug(
+                f"Resolved OpenAlex ID {openalex_id.identifier} "
+                f"to DOI {doi.identifier}."
+            )
+            logger.debug(
+                "Preserving the original supplied identifier in "
+                "the UID to supplied map."
+            )
+            uid_to_supplied[str(doi_study.uid)] = openalex_id.identifier
         else:
             logger.warning(
                 f"No valid DOI found for OpenAlex ID {openalex_id.identifier}. "
                 "This item will be treated as having no valid DOI."
                 "Attempting to fetch from _only_ OpenAlex."
             )
-            without_doi.append(
-                OpenAlexStudy(
-                    uid=uuid5(DOI_NAMESPACE, openalex_id.identifier),
-                    openalex_id=openalex_id,
-                    doi=None,
-                )
+            openalex_study = OpenAlexStudy(
+                uid=uuid5(DOI_NAMESPACE, openalex_id.identifier),
+                openalex_id=openalex_id,
+                doi=None,
             )
-    return resolved, without_doi
+            without_doi.append(openalex_study)
+            uid_to_supplied[str(openalex_study.uid)] = openalex_id.identifier
+    return resolved, without_doi, uid_to_supplied
 
 
 async def generate_study_collection(
     settings: Settings, identifier_list: list[OpenAlexIdentifier | DOIIdentifier]
-) -> tuple[DOIStudyCollection, OpenAlexStudyCollection]:
+) -> tuple[DOIStudyCollection, OpenAlexStudyCollection, dict[str, str]]:
     """
     Generate a StudyCollection from a list of identifiers.
 
@@ -139,8 +149,9 @@ async def generate_study_collection(
             List of identifiers to generate the StudyCollection from.
 
     Returns:
-        tuple[DOIStudyCollection, OpenAlexStudyCollection]:
-            A tuple containing a DOIStudyCollection and an OpenAlexStudyCollection.
+        tuple[DOIStudyCollection, OpenAlexStudyCollection, dict[str, str]]:
+            A tuple containing a DOIStudyCollection,an OpenAlexStudyCollection,
+            and a dictionary mapping UIDs to the original supplied identifiers.
 
     """
     extracted_dois = [
@@ -153,15 +164,29 @@ async def generate_study_collection(
         for identifier in identifier_list
         if isinstance(identifier, OpenAlexIdentifier)
     ]
+    uid_to_supplied: dict[str, str] = {}
+
     doi_study_collection = (
         generate_study_collection_from_dois(extracted_dois)
         if len(extracted_dois) > 0
         else DOIStudyCollection(studies=[])
     )
+    logger.debug("Mapping DOI inputs to their study UIDs -> supplied DOI string")
+    for study in doi_study_collection.studies:
+        if getattr(study, "doi", None):
+            d = study.doi
+            uid_to_supplied[str(study.uid)] = (
+                d.identifier if hasattr(d, "identifier") else str(d)
+            )
+
     (
         resolved_studies,
         openalex_id_studies_without_doi,
+        oa_uid_map,
     ) = await resolve_openalex_identifiers(extracted_openalex_ids, settings)
+
+    logger.debug("Merging uid->supplied mappings from OpenAlex resolution")
+    uid_to_supplied.update(oa_uid_map)
 
     study_collection = DOIStudyCollection(
         studies=doi_study_collection.studies + resolved_studies
@@ -170,7 +195,7 @@ async def generate_study_collection(
     openalex_collection = OpenAlexStudyCollection(
         studies=openalex_id_studies_without_doi
     )
-    return study_collection, openalex_collection
+    return study_collection, openalex_collection, uid_to_supplied
 
 
 def generate_study_collection_from_dois(doi_list: list[str]) -> DOIStudyCollection:
@@ -321,10 +346,43 @@ async def process_identifiers(
     return processed_identifiers
 
 
+def build_uid_to_supplied_map(
+    study_collection: DOIStudyCollection | OpenAlexStudyCollection,
+) -> dict[str, str]:
+    """
+    Build a mapping from study UID to the supplied identifier (DOI or OpenAlex ID).
+
+    Args:
+        study_collection (DOIStudyCollection | OpenAlexStudyCollection):
+            The collection of studies for which to build the mapping.
+
+    Returns:
+        dict[str, str]: A dictionary mapping study UIDs to their corresponding
+            supplied identifiers.
+
+    """
+    uid_to_supplied: dict[str, str] = {}
+    for study in study_collection.studies:
+        supplied: str | None = None
+        oa = getattr(study, "openalex_id", None)
+        if oa is not None:
+            supplied = getattr(oa, "identifier", str(oa))
+        else:
+            d = getattr(study, "doi", None)
+            if d is not None:
+                supplied = getattr(d, "identifier", str(d))
+        supplied = supplied or str(getattr(study, "uid", ""))
+        uid_to_supplied[str(study.uid)] = supplied
+
+    return uid_to_supplied
+
+
 async def retrieve_fulltexts_from_external_providers(
     processor: FullTextEnhancementProcessor,
     study_collection: DOIStudyCollection,
     output_directory: Path,
+    uid_to_supplied: dict[str, str],
+    result_file_name: str = "retrieved_fulltexts_map.txt",
 ) -> None:
     """
     Retrieve full texts for a given DOIStudyCollection.
@@ -342,6 +400,10 @@ async def retrieve_fulltexts_from_external_providers(
         study_collection (DOIStudyCollection):
             The collection of studies for which to retrieve full texts.
         output_directory (Path): The directory where the full texts should be saved.
+        uid_to_supplied (dict[str, str]): A dictionary mapping study UIDs to their
+            corresponding supplied identifiers.
+        result_file_name (str): The name of the results map file to write.
+             Defaults to "retrieved_fulltexts_map.txt".
 
     """
     try:
@@ -350,10 +412,10 @@ async def retrieve_fulltexts_from_external_providers(
             output_directory=output_directory,
         )
         found_results = [
-            result for result in results if result["fulltext_path"] is not None
+            result for result in results if result.fulltext_path is not None
         ]
         not_found_results = [
-            result for result in results if result["fulltext_path"] is None
+            result for result in results if result.fulltext_path is None
         ]
         logger.info(f"Successfully fetched {len(found_results)} full text PDFs.")
         if len(not_found_results) > 0:
@@ -364,17 +426,55 @@ async def retrieve_fulltexts_from_external_providers(
     except ZeroFullTextsGeneratedError as zero_fulltexts_error:
         logger.error(f"No full texts were generated: {zero_fulltexts_error}")
         sys.exit(1)
-    results_map_file = output_directory / "retrieved_fulltexts_map.txt"
-    with results_map_file.open("w") as f:
+    results_map_file = output_directory / result_file_name
+
+    with results_map_file.open("a") as output_results_file:
         for result in results:
-            doi = result["doi"]
-            filename = (
-                Path(result["fulltext_path"]).name
-                if result["fulltext_path"]
-                else "None"
+            uid = result.uid
+            supplied_identifier = None
+            if uid is not None:
+                supplied_identifier = uid_to_supplied.get(str(uid))
+            if not supplied_identifier:
+                oa = result.openalex_id
+                if oa is not None:
+                    supplied_identifier = (
+                        oa.identifier if hasattr(oa, "identifier") else str(oa)
+                    )
+                else:
+                    doi_r = result.doi
+                    supplied_identifier = doi_r if doi_r else "None"
+
+            matched_study = (
+                next(
+                    (
+                        study
+                        for study in study_collection.studies
+                        if str(study.uid) == str(uid)
+                    ),
+                    None,
+                )
+                if uid is not None
+                else None
             )
-            source = result["source"]
-            f.write(f"{doi}\t{filename}\t{source}\n")
+            work_id = (
+                matched_study.openalex_id
+                if matched_study and matched_study.openalex_id
+                else ""
+            )
+            if not work_id:
+                work_id = result.openalex_id or ""
+            if hasattr(work_id, "identifier"):
+                work_id = work_id.identifier
+
+            doi_value = result.doi or "None"
+
+            filename = (
+                Path(result.fulltext_path).name if result.fulltext_path else "None"
+            )
+            source = result.source or ""
+            output_results_file.write(
+                f"{supplied_identifier}\t{work_id}\t{doi_value}\t{filename}\t{source}\n"
+            )
     logger.info(f"Results map written to {results_map_file}")
 
 
@@ -382,6 +482,8 @@ async def openalex_retrieval_short_circuit(
     processor: FullTextEnhancementProcessor,
     openalex_study_collection: OpenAlexStudyCollection,
     output_directory: Path,
+    uid_to_supplied: dict[str, str],
+    result_file_name: str = "retrieved_fulltexts_map.txt",
 ) -> None:
     """
     Short-circuit to fetch from OpenAlex for valid OpenAlex IDs.
@@ -398,6 +500,12 @@ async def openalex_retrieval_short_circuit(
             The collection of OpenAlex studies for which to retrieve full texts.
         output_directory (Path):
             The directory where the full texts should be saved.
+        uid_to_supplied (dict[str, str]):
+            A dictionary mapping study UIDs to their corresponding supplied identifiers,
+            for logging and results mapping purposes.
+        result_file_name (str):
+            The name of the results map file to write.
+            Defaults to "retrieved_fulltexts_map.txt".
 
     """
     logger.info("Short-circuiting to fetch from OpenAlex for valid OpenAlex IDs.")
@@ -407,13 +515,60 @@ async def openalex_retrieval_short_circuit(
         study_collection=openalex_study_collection,
         output_directory=output_directory,
     )
-    results_map_file = output_directory / "retrieved_fulltexts_map.txt"
-    with results_map_file.open("a") as f:
+    results_map_file = output_directory / result_file_name
+    with results_map_file.open("a") as output_results_file:
         for result in no_doi_openalex_results:
-            identifier = result.openalex_id or result.doi
+            supplied_identifier = uid_to_supplied.get(str(getattr(result, "uid", "")))
+            if not supplied_identifier:
+                oa = getattr(result, "openalex_id", None)
+                if oa is not None:
+                    supplied_identifier = (
+                        oa.identifier if hasattr(oa, "identifier") else str(oa)
+                    )
+                else:
+                    d = getattr(result, "doi", None)
+                    if d is not None:
+                        supplied_identifier = (
+                            d.identifier if hasattr(d, "identifier") else str(d)
+                        )
+
+                supplied_identifier = supplied_identifier or str(
+                    getattr(result, "uid", "")
+                )
+
+            matched_study = next(
+                (
+                    study
+                    for study in openalex_study_collection.studies
+                    if str(study.uid) == str(getattr(result, "uid", ""))
+                ),
+                None,
+            )
+            work_id = (
+                matched_study.openalex_id
+                if matched_study is not None and matched_study.openalex_id is not None
+                else ""
+            )
+            if not work_id:
+                work_id = getattr(result, "openalex_id", "")
+            if hasattr(work_id, "identifier"):
+                work_id = work_id.identifier
+
+            result_doi: DOIIdentifier | None = getattr(result, "doi", None)
+
+            doi_value: str | None = None
+            if result_doi is not None:
+                doi_value = (
+                    result_doi.identifier
+                    if hasattr(result_doi, "identifier")
+                    else str(result_doi)
+                )
+
             filename = result.fulltext_path.name if result.fulltext_path else "None"
             source = "openalex"
-            f.write(f"{identifier}\t{filename}\t{source}\n")
+            output_results_file.write(
+                f"{supplied_identifier}\t{work_id}\t{doi_value}\t{filename}\t{source}\n"
+            )
 
 
 @app.default
@@ -421,6 +576,7 @@ async def main(
     identifier_file: Path,
     output_directory: Path,
     exclude_api: list[ExternalAPI] | None = None,
+    result_file_name: str = "retrieved_fulltexts_map.txt",
 ) -> None:
     """
     Define the main entry point for local running.
@@ -431,6 +587,8 @@ async def main(
         output_directory (Path): Path to the output directory.
         exclude_api (list[ExternalAPI] | None): List of API names to exclude
             from fetching. Defaults to None.
+        result_file_name (str): The name of the results map file to write.
+             Defaults to "retrieved_fulltexts_map.txt".
 
     """
     set_up_logger()
@@ -438,10 +596,17 @@ async def main(
     processor = prepare_processor(settings, exclude_api)
     extracted_identifiers = await process_identifier_file(identifier_file)
     output_directory.mkdir(parents=True, exist_ok=True)
+    output_results_map_file = output_directory / result_file_name
+    with output_results_map_file.open("w") as output_results_file:
+        output_results_file.write(
+            "Supplied Identifier\tOpenAlex ID\tDOI\tFilename\tSource API\n"
+        )
 
-    study_collection, openalex_study_collection = await generate_study_collection(
-        settings, extracted_identifiers
-    )
+    (
+        study_collection,
+        openalex_study_collection,
+        uid_to_supplied,
+    ) = await generate_study_collection(settings, extracted_identifiers)
 
     if study_collection.studies:
         logger.info(
@@ -449,7 +614,7 @@ async def main(
             "studies with valid DOIs."
         )
         await retrieve_fulltexts_from_external_providers(
-            processor, study_collection, output_directory
+            processor, study_collection, output_directory, uid_to_supplied
         )
 
     if openalex_study_collection.studies:
@@ -459,7 +624,7 @@ async def main(
         )
 
         await openalex_retrieval_short_circuit(
-            processor, openalex_study_collection, output_directory
+            processor, openalex_study_collection, output_directory, uid_to_supplied
         )
 
 

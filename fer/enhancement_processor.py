@@ -13,7 +13,11 @@ from loguru import logger
 
 from fer.config import Settings
 from fer.data_models.generic import APIConfig
-from fer.fetch_fulltext import FullTextBatchFetcher, ZeroFullTextsGeneratedError
+from fer.fetch_fulltext import (
+    FullTextBatchFetcher,
+    FullTextResult,
+    ZeroFullTextsGeneratedError,
+)
 from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import DOIStudy, DOIStudyCollection
 
@@ -116,16 +120,15 @@ class FullTextEnhancementProcessor:
     async def generate_fulltext(
         self,
         references: list[Reference],
-    ) -> list[dict[str, str | None]]:
+    ) -> list[FullTextResult]:
         """
-        Generate a dictionary mapping DOIs to fulltext file paths.
+        Generate a list of FullTextResult objects.
 
         Args:
             references (list[Reference]): A list of Reference objects.
 
         Returns:
-            list[dict[str, str | None]]: A list of dictionaries representing
-                the retrieved full texts.
+            list[FullTextResult]: A list of FullTextResult objects.
 
         """
         try:
