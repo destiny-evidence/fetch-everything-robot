@@ -7,7 +7,7 @@ from typing import Literal
 from uuid import UUID
 
 import httpx
-from destiny_sdk.identifiers import DOIIdentifier
+from destiny_sdk.identifiers import DOIIdentifier, OpenAlexIdentifier
 from httpx_socks import AsyncProxyTransport
 from loguru import logger
 from pydantic import AnyUrl, BaseModel, Field, model_validator
@@ -25,41 +25,131 @@ class IncompleteFullTextError(FullTextStreamError):
     """Custom exception to throw when a streamed full text file is incomplete."""
 
 
-class Study(BaseModel):
+class BaseStudy(BaseModel):
+    """Base model representing a study with a unique identifier."""
+
+    uid: UUID = Field(..., description="An internal unique identifier for the study.")
+
+
+class DOIStudy(BaseStudy):
     """
-    Model representing a single study with DOI and unique identifier.
+    Model representing a single study with that uses DOI as a unique identifier.
+
+    It _may_ also have an OpenAlex ID, but this is not required. The DOI is the primary
+    identifier for this model, and the OpenAlex ID is optional metadata.
 
     This is functionally different to a Destiny `Reference`
     as it lacks any other metadata.
     """
 
     doi: DOIIdentifier = Field(..., description="The DOI identifier of the study.")
-    uid: UUID = Field(..., description="A unique identifier for the study.")
+    openalex_id: OpenAlexIdentifier | None = Field(
+        None, description="The OpenAlex identifier of the study, if available."
+    )
 
 
-class StudyCollection(BaseModel):
-    """Model representing a collection of studies."""
+class OpenAlexStudy(BaseStudy):
+    """
+    Model representing a single study that uses OpenAlex ID as a unique identifier.
 
-    studies: list[Study] = Field(
+    It _may_ also have a DOI, but this is not required. The OpenAlex ID is the primary
+    identifier for this model, and the DOI is optional metadata as not all
+    openalex records have DOIs.
+
+    This is functionally different to a Destiny `Reference`
+    as it lacks any other metadata.
+    """
+
+    openalex_id: OpenAlexIdentifier = Field(
+        ..., description="The OpenAlex identifier of the study, if available."
+    )
+    doi: DOIIdentifier | None = Field(
+        None, description="The DOI identifier of the study."
+    )
+
+
+class BaseStudyCollection[T: BaseStudy](BaseModel):
+    """Base model representing a collection of studies."""
+
+    studies: list[T] = Field(
         default_factory=list, description="A collection of studies."
     )
 
-    def remove_study_by_doi(self, doi: str) -> None:
+    def _identifier_of(self, study: T) -> str | None:
         """
-        Remove a study from the collection by its DOI.
+        Get the unique identifier of a study as a string.
+
+        Subclasses should implement this to extract the identifier for the
+        concrete study type `T`.
+        """
+        exception_message = "Subclasses must implement the _identifier_of method."
+        raise NotImplementedError(exception_message)
+
+    def remove_study_by_identifier(self, identifier: str) -> None:
+        """
+        Remove a study from the collection by its unique identifier.
 
         Args:
-            doi (str): The DOI of the study to remove.
+            identifier (str): The unique identifier of the study to remove.
 
         """
-        self.studies = [study for study in self.studies if study.doi.identifier != doi]
+        self.studies = [
+            study for study in self.studies if self._identifier_of(study) != identifier
+        ]
+
+
+class DOIStudyCollection(BaseStudyCollection[DOIStudy]):
+    """Model representing a collection of DOI studies."""
+
+    studies: list[DOIStudy] = Field(
+        default_factory=list, description="A collection of studies."
+    )
+
+    def _identifier_of(self, study: DOIStudy) -> str | None:
+        """
+        Get the DOI identifier of a DOIStudy as a string.
+
+        Args:
+            study (DOIStudy): A DOIStudy object from which
+                to extract the DOI identifier.
+
+        Returns:
+            str | None: The DOI identifier of the study, if available.
+
+        """
+        return study.doi.identifier if study.doi is not None else None
+
+
+class OpenAlexStudyCollection(BaseStudyCollection[OpenAlexStudy]):
+    """Model representing a collection of studies."""
+
+    studies: list[OpenAlexStudy] = Field(
+        default_factory=list, description="A collection of studies."
+    )
+
+    def _identifier_of(self, study: OpenAlexStudy) -> str | None:
+        """
+        Get the OpenAlex ID of an OpenAlexStudy as a string.
+
+        Args:
+            study (OpenAlexStudy): An OpenAlexStudy object from which
+                to extract the OpenAlex ID.
+
+        Returns:
+            str | None: The OpenAlex ID of the study, if available.
+
+        """
+        return study.openalex_id.identifier if study.openalex_id is not None else None
 
 
 class RetrievedFullText(BaseModel):
     """Model representing a retrieved full text file."""
 
-    doi: str = Field(..., description="The DOI of the study.")
+    doi: str | None = Field(None, description="The DOI of the study, if available.")
     uid: UUID = Field(..., description="The unique identifier of the study.")
+    openalex_id: str | None = Field(
+        None, description="The OpenAlex ID of the study, if available."
+    )
     fulltext_path: Path | None = Field(
         None, description="The path to the retrieved full text file, if it exists."
     )

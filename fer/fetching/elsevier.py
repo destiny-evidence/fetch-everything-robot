@@ -17,11 +17,11 @@ from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import (
     AsyncHTTPXRetryClient,
     BaseAuthError,
+    DOIStudy,
+    DOIStudyCollection,
     FullTextStreamError,
     IncompleteFullTextError,
     RetrievedFullText,
-    Study,
-    StudyCollection,
     stream_file,
 )
 
@@ -354,7 +354,7 @@ class ElsevierFetcher(BasePublisherFetcher):
 
     async def _fetch_one_fulltext(
         self,
-        study: Study,
+        study: DOIStudy,
         output_directory: Path,
         elsevier_request_config: ElsevierRequestConfig,
     ) -> RetrievedFullText:
@@ -362,7 +362,7 @@ class ElsevierFetcher(BasePublisherFetcher):
         Fetch a single full text from Elsevier.
 
         Args:
-            study (Study): The study to fetch.
+            study (DOIStudy): The study to fetch.
             output_directory (Path): The output directory path.
             elsevier_request_config (ElsevierRequestConfig): The request
                 configuration containing headers and file extension.
@@ -448,7 +448,7 @@ class ElsevierFetcher(BasePublisherFetcher):
 
     async def fetch_many_full_texts(
         self,
-        study_collection: StudyCollection,
+        study_collection: DOIStudyCollection,
         output_directory: Path,
         **kwargs: object,
     ) -> list[RetrievedFullText]:
@@ -456,7 +456,7 @@ class ElsevierFetcher(BasePublisherFetcher):
         Fetch the full text of an Elsevier article.
 
         Args:
-            study_collection (StudyCollection): The collection of studies to fetch.
+            study_collection (DOIStudyCollection): The collection of studies to fetch.
             output_directory (Path): The output directory path.
 
         Returns:

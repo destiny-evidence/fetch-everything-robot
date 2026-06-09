@@ -10,10 +10,11 @@ from xml.etree.ElementTree import Element
 from defusedxml.ElementTree import ParseError, fromstring
 from destiny_sdk.identifiers import DOIIdentifier
 from loguru import logger
+from pydantic import BaseModel
 
 from fer.config import Settings
 from fer.fetching import BasePublisherFetcher
-from fer.fetching.core import RetrievedFullText, StudyCollection
+from fer.fetching.core import DOIStudyCollection, RetrievedFullText
 from fer.fetching.fetchers import FullTextFetcher, FullTextFetcherError
 from fer.utils import InvalidDOIError, validate_doi
 
@@ -24,6 +25,16 @@ class ZeroFullTextsGeneratedError(Exception):
 
 class FullTextBatchFetcherError(Exception):
     """Custom exception for errors occurring during full text fetching."""
+
+
+class FullTextResult(BaseModel):
+    """A Pydantic model representing the result of a full text fetch attempt."""
+
+    doi: str
+    uid: str
+    openalex_id: str | None
+    fulltext_path: str | None
+    source: str | None
 
 
 class FullTextBatchFetcher:
@@ -123,47 +134,55 @@ class FullTextBatchFetcher:
 
     async def get_many_fulltext_pdfs_cycling_apis(
         self,
-        input_study_collection: StudyCollection,
+        input_study_collection: DOIStudyCollection,
         output_directory: Path | None = None,
         *,
         get_pdf: bool = True,
         get_xml: bool = False,
-    ) -> list[dict[str, str | None]]:
+    ) -> list[FullTextResult]:
         """
         Get many full texts from a list of DOIs, cycling APIs in order of priority.
 
         Args:
-            input_study_collection (StudyCollection): Input collection of studies.
+            input_study_collection (DOIStudyCollection): Input study collection.
             output_directory (Path | None, optional): Directory to save full texts.
             get_pdf (bool, optional): Whether to fetch PDF files. Defaults to True.
             get_xml (bool, optional): Whether to fetch XML files. Defaults to False.
 
         Returns:
-            list[dict[str, str | None]]: A list of dictionaries containing:
-                - 'doi': The DOI string.
-                - 'fulltext_path': Path to the downloaded full text PDF or None.
-                - 'source': The API source name or None.
+            list[FullTextResult]: A list of FullTextResult objects.
 
         """
         input_dois = [study.doi for study in input_study_collection.studies]
         valid_dois, invalid_dois = self.process_doi_list(input_dois)
 
+        invalid_doi_set = set(invalid_dois)
         invalid_doi_response = [
-            {"doi": doi, "fulltext_path": None, "source": None} for doi in invalid_dois
+            FullTextResult(
+                doi=study.doi.identifier,
+                uid=str(study.uid),
+                openalex_id=(
+                    study.openalex_id.identifier if study.openalex_id else None
+                ),
+                fulltext_path=None,
+                source=None,
+            )
+            for study in input_study_collection.studies
+            if study.doi.identifier.lower() in invalid_doi_set
         ]
         valid_references_provided = len(valid_dois)
         logger.info(
             f"Valid references provided: {valid_references_provided} "
             f"of {len(input_study_collection.studies)} studies."
         )
-        valid_study_collection = StudyCollection(
+        valid_study_collection = DOIStudyCollection(
             studies=[
                 study
                 for study in input_study_collection.studies
                 if self.process_doi(study.doi) in valid_dois
             ]
         )
-        retrieved_fulltexts: list[dict] = []
+        retrieved_fulltexts: list[FullTextResult] = []
 
         if output_directory is not None:
             for study in list(valid_study_collection.studies):
@@ -180,15 +199,21 @@ class FullTextBatchFetcher:
                         f"File already exists, skipping DOI {study.doi.identifier}"
                     )
                     retrieved_fulltexts.append(
-                        {
-                            "doi": study.doi.identifier,
-                            "fulltext_path": str(fulltext_path),
-                            "source": "Already downloaded",
-                        }
+                        FullTextResult(
+                            doi=study.doi.identifier,
+                            uid=str(study.uid),
+                            openalex_id=(
+                                study.openalex_id.identifier
+                                if study.openalex_id
+                                else None
+                            ),
+                            fulltext_path=str(fulltext_path),
+                            source="Already downloaded",
+                        )
                     )
                     doi_to_remove = self.process_doi(study.doi.identifier)
                     valid_dois.remove(doi_to_remove)
-                    valid_study_collection.remove_study_by_doi(doi_to_remove)
+                    valid_study_collection.remove_study_by_identifier(doi_to_remove)
 
         for api_name in self.all_api_configs["fulltext"]:
             if len(valid_dois) == 0:
@@ -220,21 +245,34 @@ class FullTextBatchFetcher:
                     if item.fulltext_path is not None:
                         found_responses = True
                         doi_to_remove = self.process_doi(item.doi)
-
+                        matched_study = next(
+                            (
+                                s
+                                for s in valid_study_collection.studies
+                                if self.process_doi(s.doi) == doi_to_remove
+                            ),
+                            None,
+                        )
                         logger.info(f"Full text found for {item.doi} from {api_name}.")
                         valid_dois.remove(doi_to_remove)
-                        valid_study_collection.remove_study_by_doi(doi_to_remove)
+                        valid_study_collection.remove_study_by_identifier(doi_to_remove)
                         logger.info(
                             f"Got full text for doi {doi_to_remove} from {api_name}. "
                             "Removing from master list."
                         )
                         api_count += 1
                         retrieved_fulltexts.append(
-                            {
-                                "doi": item.doi,
-                                "fulltext_path": str(item.fulltext_path),
-                                "source": api_name,
-                            }
+                            FullTextResult(
+                                doi=item.doi,
+                                uid=str(item.uid),
+                                openalex_id=(
+                                    matched_study.openalex_id.identifier
+                                    if matched_study and matched_study.openalex_id
+                                    else None
+                                ),
+                                fulltext_path=str(item.fulltext_path),
+                                source=api_name,
+                            )
                         )
             if not found_responses:
                 error_message = f"No full texts found in {api_name}."
@@ -259,7 +297,16 @@ class FullTextBatchFetcher:
         if len(valid_dois) > 0:
             logger.info(f"Full texts not retrieved for {len(valid_dois)} valid DOIs.")
         fulltexts_not_found = [
-            {"doi": doi, "fulltext_path": None, "source": None} for doi in valid_dois
+            FullTextResult(
+                doi=study.doi.identifier,
+                uid=str(study.uid),
+                openalex_id=(
+                    study.openalex_id.identifier if study.openalex_id else None
+                ),
+                fulltext_path=None,
+                source=None,
+            )
+            for study in valid_study_collection.studies
         ]
         retrieved_fulltexts.extend(invalid_doi_response)
         retrieved_fulltexts.extend(fulltexts_not_found)

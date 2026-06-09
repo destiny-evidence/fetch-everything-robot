@@ -23,7 +23,7 @@ from fer.data_models.generic import (
 from fer.data_models.scopus import ScopusAPIConfig
 from fer.enhancement_processor import FullTextEnhancementProcessor
 from fer.fetching import BasePublisherFetcher
-from fer.fetching.core import RetrievedFullText, StudyCollection, stream_file
+from fer.fetching.core import DOIStudyCollection, RetrievedFullText, stream_file
 
 pytest_plugins = [
     "tests.fixtures.generic",
@@ -226,7 +226,7 @@ class DummyPublisherFetcher(BasePublisherFetcher):
 
     async def fetch_many_full_texts(
         self,
-        study_collection: StudyCollection,
+        study_collection: DOIStudyCollection,
         output_directory: Path,
         **kwargs: object,
     ) -> list[RetrievedFullText]:
@@ -297,6 +297,16 @@ def test_reference_ids() -> list[uuid.UUID]:
 def test_dois() -> list[str]:
     """Create a list of test DOIs."""
     return ["10.1000/xyz123", "10.1000/xyz456"]
+
+
+@pytest.fixture
+def test_openalex_ids() -> list[destiny_sdk.identifiers.OpenAlexIdentifier]:
+    """Create a list of test OpenAlex IDs."""
+    test_ids = ["W1234567890", "W0987654321"]
+    return [
+        destiny_sdk.identifiers.OpenAlexIdentifier(identifier=test_id)
+        for test_id in test_ids
+    ]
 
 
 @pytest.fixture

@@ -202,31 +202,27 @@ async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_non_none_fulltext_p
         " are either found or all APIs are exhausted."
     )
 
-    found_fulltext = [
-        result for result in results if result["fulltext_path"] is not None
-    ]
-    not_found_fulltext = [
-        result for result in results if result["fulltext_path"] is None
-    ]
+    found_fulltext = [result for result in results if result.fulltext_path is not None]
+    not_found_fulltext = [result for result in results if result.fulltext_path is None]
 
     assert len(found_fulltext) == unique_expected_successes
     assert len(not_found_fulltext) == unique_expected_failures
 
     assert all(
-        found_result["fulltext_path"]
+        found_result.fulltext_path
         == str(test_fetch_results_single_success[0].fulltext_path)
         for found_result in found_fulltext
     )
     assert all(
-        found_result["source"] in test_prepared_available_api_configs["fulltext"]
+        found_result.source in test_prepared_available_api_configs["fulltext"]
         for found_result in found_fulltext
     )
     assert all(
-        not_found_result["fulltext_path"] is None
+        not_found_result.fulltext_path is None
         for not_found_result in not_found_fulltext
     )
     assert all(
-        not_found_result["source"] is None for not_found_result in not_found_fulltext
+        not_found_result.source is None for not_found_result in not_found_fulltext
     )
 
 

@@ -7,10 +7,12 @@ from pytest_httpx import IteratorStream
 
 from fer.fetching.core import (
     AsyncHTTPXRetryClient,
+    DOIStudy,
+    DOIStudyCollection,
     FullTextStreamError,
     IncompleteFullTextError,
-    Study,
-    StudyCollection,
+    OpenAlexStudy,
+    OpenAlexStudyCollection,
     download_temporary_file,
     stream_file,
 )
@@ -22,14 +24,55 @@ def test_study_collection_iterable():
         DOIIdentifier(identifier=doi_string, identifier_type=ExternalIdentifierType.DOI)
         for doi_string in ["10.1000/xyz123", "10.1000/xyz456"]
     ]
-    study1 = Study(doi=test_dois[0], uid=uuid4())
-    study2 = Study(doi=test_dois[1], uid=uuid4())
-    collection = StudyCollection(studies=[study1, study2])
+    study1 = DOIStudy(doi=test_dois[0], uid=uuid4())
+    study2 = DOIStudy(doi=test_dois[1], uid=uuid4())
+    collection = DOIStudyCollection(studies=[study1, study2])
 
     collected_dois = [study.doi.identifier for study in collection.studies]
     collected_uids = [str(study.uid) for study in collection.studies]
     assert collected_uids == [str(study.uid) for study in collection.studies]
     assert collected_dois == [doi.identifier for doi in test_dois]
+
+
+def test_study_collection_remove_study_by_doi(test_dois):
+    test_doi_identifiers = [
+        DOIIdentifier(identifier=doi_string, identifier_type=ExternalIdentifierType.DOI)
+        for doi_string in test_dois
+    ]
+    test_studies = [
+        DOIStudy(doi=test_doi, uid=test_uid)
+        for test_doi, test_uid in zip(
+            test_doi_identifiers, [uuid4(), uuid4()], strict=False
+        )
+    ]
+    collection = DOIStudyCollection(studies=test_studies)
+
+    collection.remove_study_by_identifier(test_dois[0])
+
+    remaining_dois = [study.doi.identifier for study in collection.studies]
+    assert remaining_dois == test_dois[1:], "All but the first DOI should remain."
+
+
+def test_openalex_study_collection_remove_study_by_openalex_id(test_openalex_ids):
+    openalex_string_ids = [
+        str(openalex_id.identifier) for openalex_id in test_openalex_ids
+    ]
+    test_openalex_studies = [
+        OpenAlexStudy(uid=test_uid, openalex_id=openalex_id)
+        for test_uid, openalex_id in zip(
+            [uuid4(), uuid4()], test_openalex_ids, strict=False
+        )
+    ]
+    collection = OpenAlexStudyCollection(studies=test_openalex_studies)
+
+    collection.remove_study_by_identifier(openalex_string_ids[0])
+
+    remaining_openalex_ids = [
+        str(study.openalex_id.identifier) for study in collection.studies
+    ]
+    assert (
+        remaining_openalex_ids == openalex_string_ids[1:]
+    ), "All but the first OpenAlex ID should remain."
 
 
 @pytest.mark.asyncio

@@ -12,9 +12,9 @@ from fer.config import Settings
 from fer.data_models.crossref import get_crossref_api_config
 from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import (
+    DOIStudyCollection,
     FullTextStreamError,
     RetrievedFullText,
-    StudyCollection,
     stream_file,
 )
 
@@ -144,7 +144,7 @@ class CrossrefFetcher(BasePublisherFetcher):
 
     async def fetch_many_full_texts(
         self,
-        study_collection: StudyCollection,
+        study_collection: DOIStudyCollection,
         output_directory: Path,
         **kwargs: object,
     ) -> list[RetrievedFullText]:
@@ -152,7 +152,7 @@ class CrossrefFetcher(BasePublisherFetcher):
         Fetch full texts using the CrossRef API.
 
         Args:
-            study_collection (StudyCollection): The collection of studies to fetch.
+            study_collection (DOIStudyCollection): The collection of studies to fetch.
             output_directory (Path): The directory to save the fetched full texts.
 
         Returns:

@@ -2,6 +2,7 @@ import pytest
 
 from fer.fetching import BasePublisherFetcher
 from fer.fetching.fetchers import FullTextFetcher, FullTextFetcherError
+from fer.fetching.openalex import OpenalexFetcher
 
 
 def test_full_text_fetcher_init(mocker, test_publisher_dict):
@@ -20,12 +21,12 @@ def test_full_text_fetcher_init(mocker, test_publisher_dict):
 
 
 @pytest.mark.asyncio
-async def test_fetch_calls_correct_fetcher(mocker, test_publisher_dict):
+async def test_fetch_calls_correct_fetcher_doi_study_collection(
+    mocker, tmp_path, test_publisher_dict, test_study_collection
+):
     settings = mocker.MagicMock()
     fetcher_instance = FullTextFetcher(settings, publisher_dict=test_publisher_dict)
 
-    mock_study_collection = mocker.MagicMock()
-    mock_output_directory = mocker.MagicMock()
     publisher_name = "test_publisher"
 
     mock_publisher_fetcher = mocker.MagicMock(spec=BasePublisherFetcher)
@@ -33,13 +34,36 @@ async def test_fetch_calls_correct_fetcher(mocker, test_publisher_dict):
 
     await fetcher_instance.fetch(
         publisher_name,
-        mock_study_collection,
-        mock_output_directory,
+        test_study_collection,
+        tmp_path,
     )
 
     mock_publisher_fetcher.fetch_many_full_texts.assert_awaited_once_with(
-        mock_study_collection,
-        mock_output_directory,
+        test_study_collection,
+        tmp_path,
+    )
+
+
+@pytest.mark.asyncio
+async def test_fetch_calls_correct_fetcher_openalex_study_collection(
+    mocker, tmp_path, test_publisher_dict, test_openalex_study_collection
+):
+    settings = mocker.MagicMock()
+    fetcher_instance = FullTextFetcher(settings, publisher_dict=test_publisher_dict)
+
+    publisher_name = "openalex"
+    mock_openalex_fetcher = mocker.MagicMock(spec=OpenalexFetcher)
+    fetcher_instance.fetchers[publisher_name] = mock_openalex_fetcher
+
+    await fetcher_instance.fetch(
+        publisher_name,
+        test_openalex_study_collection,
+        tmp_path,
+    )
+
+    mock_openalex_fetcher.fetch_many_full_texts.assert_awaited_once_with(
+        test_openalex_study_collection,
+        tmp_path,
     )
 
 
