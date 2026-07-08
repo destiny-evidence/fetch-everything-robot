@@ -26,11 +26,8 @@ async def _one_chunk_data(data: bytes) -> AsyncGenerator[bytes]:
     Args:
         data (bytes): The data to yield as a single chunk.
 
-    Returns:
-        AsyncGenerator[bytes, None]: A generator yielding the single chunk of data.
-
     Yields:
-        Iterator[AsyncGenerator[bytes, None]]: The single chunk of data.
+        bytes: The single chunk of data.
 
     """
     yield data
@@ -44,11 +41,8 @@ async def _many_chunk_data(chunks: list[bytes]) -> AsyncGenerator[bytes]:
     Args:
         chunks (list[bytes]): The list of chunks to yield.
 
-    Returns:
-        AsyncGenerator[bytes, None]: A generator yielding the chunks of data.
-
     Yields:
-        Iterator[AsyncGenerator[bytes, None]]: The chunks of data.
+        bytes: The chunks of data.
 
     """
     for chunk in chunks:
@@ -192,7 +186,7 @@ async def test_stream_file_success(mocker, temporary_test_file):
 
 @pytest.mark.asyncio
 async def test_stream_file_destination_exists(mocker, caplog, temporary_test_file):
-    mocked_httpx_stream = mocker.patch("httpx2.stream")
+    mocked_httpx_stream = mocker.patch("httpx2.AsyncClient.stream")
     test_url = "http://example.com/streamfile"
     temporary_test_file.write_text("Existing content")
 
@@ -208,7 +202,7 @@ async def test_stream_file_destination_exists(mocker, caplog, temporary_test_fil
 
     assert (
         mocked_httpx_stream.call_count == 0
-    ), "Expect that httpx2.stream should not be called"
+    ), "Expect that httpx2.AsyncClient.stream should not be called"
 
 
 @pytest.mark.asyncio
