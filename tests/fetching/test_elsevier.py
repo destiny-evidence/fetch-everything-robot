@@ -5,7 +5,6 @@ import httpx2
 import pytest
 from pypdf import PdfWriter
 from pypdf.errors import PyPdfError
-from python_socks import ProxyConnectionError
 
 from fer.fetching.core import (
     FullTextStreamError,
@@ -250,7 +249,7 @@ async def test_fetch_one_fulltext_proxy_connection_error(
         headers={"Accept": "text/xml"}, file_extension=".xml"
     )
     mock_response = mocker.MagicMock()
-    mock_response.raise_for_status.side_effect = ProxyConnectionError(
+    mock_response.raise_for_status.side_effect = httpx2.ProxyError(
         "a test proxy connection error"
     )
     mocker.patch(
@@ -264,6 +263,29 @@ async def test_fetch_one_fulltext_proxy_connection_error(
 
     assert result.fulltext_path is None
     assert "proxy connection error" in result.error
+
+
+@pytest.mark.asyncio
+async def test_fetch_one_fulltext_proxy_error(
+    mocker, test_settings, tmp_path, test_study_collection
+):
+    study = test_study_collection.studies[0]
+    request_config = ElsevierRequestConfig(
+        headers={"Accept": "text/xml"}, file_extension=".xml"
+    )
+    mock_response = mocker.MagicMock()
+    mock_response.raise_for_status.side_effect = httpx2.ProxyError("a test proxy error")
+    mocker.patch(
+        "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
+        new=mocker.AsyncMock(return_value=mock_response),
+    )
+
+    result = await ElsevierFetcher(settings=test_settings)._fetch_one_fulltext(
+        study, tmp_path, request_config
+    )
+
+    assert result.fulltext_path is None
+    assert "proxy error" in result.error
 
 
 @pytest.mark.asyncio
@@ -626,7 +648,7 @@ async def test_get_final_fulltext_content_closed_access_single_page_pdf_returns_
     "elsevier_request_error",
     [
         httpx2.HTTPError("Test HTTP error"),
-        ProxyConnectionError("Test proxy connection error"),
+        httpx2.ProxyError("Test proxy connection error"),
         FullTextStreamError("Test stream error"),
     ],
 )

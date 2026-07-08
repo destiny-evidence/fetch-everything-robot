@@ -206,9 +206,7 @@ class AsyncHTTPXRetryClient(httpx2.AsyncClient):
         if proxy_url is None:
             transport = httpx2.AsyncHTTPTransport(retries=max_retries)
         else:
-            transport = httpx2.AsyncProxyTransport.from_url(
-                proxy_url, retries=max_retries
-            )
+            transport = httpx2.AsyncHTTPTransport(proxy=proxy_url, retries=max_retries)
         super().__init__(
             timeout=httpx2.Timeout(timeout_seconds),
             transport=transport,

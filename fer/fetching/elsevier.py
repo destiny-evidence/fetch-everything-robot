@@ -9,7 +9,6 @@ from loguru import logger
 from pydantic import AnyUrl, BaseModel
 from pypdf import PdfReader
 from pypdf.errors import PyPdfError
-from python_socks import ProxyConnectionError
 
 from fer.config import Settings
 from fer.data_models.scopus import ScopusAPIConfig, get_scopus_batch_api_config
@@ -243,12 +242,12 @@ class ElsevierFetcher(BasePublisherFetcher):
 
         try:
             response = await self._elsevier_request(
-                url=url, elsevier_request_config=xml_request_config, doi=doi, uid=uid
+                url=url, elsevier_request_config=xml_request_config, doi=doi
             )
         except (
             httpx2.HTTPError,
             FullTextStreamError,
-            ProxyConnectionError,
+            httpx2.ProxyError,
         ) as elsevier_request_error:
             error_message = (
                 "Elsevier request error when fetching XML after PDF fetch"
@@ -315,7 +314,6 @@ class ElsevierFetcher(BasePublisherFetcher):
         url: str,
         elsevier_request_config: ElsevierRequestConfig,
         doi: str,
-        uid: UUID,
     ) -> httpx2.Response:
         """
         Make an API request to Elsevier.
@@ -327,7 +325,6 @@ class ElsevierFetcher(BasePublisherFetcher):
             elsevier_request_config (ElsevierRequestConfig): The request configuration
                 containing headers and file extension.
             doi (str): The DOI of the study.
-            uid (UUID): The unique identifier of the study.
 
         Returns:
             httpx2.Response: The HTTP response from the Elsevier API.
@@ -347,8 +344,10 @@ class ElsevierFetcher(BasePublisherFetcher):
             logger.error(error_message)
             raise
 
-        except ProxyConnectionError as proxy_error:
-            error_message = f"Proxy connection failed for {doi}, {uid}: {proxy_error}"
+        except httpx2.ProxyError as proxy_error:
+            error_message = (
+                f"Proxy error fetching Elsevier data for {doi}: {proxy_error}"
+            )
             logger.error(error_message)
             raise
 
@@ -372,7 +371,7 @@ class ElsevierFetcher(BasePublisherFetcher):
 
         Raises:
             httpx2.HTTPError: If an HTTP error occurs during the API request.
-            ProxyConnectionError: If a proxy connection error occurs.
+            httpx2.ProxyError: If a proxy error occurs during the API request.
 
         """
         doi = study.doi.identifier.lower()
@@ -411,11 +410,10 @@ class ElsevierFetcher(BasePublisherFetcher):
                 url=url,
                 elsevier_request_config=elsevier_request_config,
                 doi=doi,
-                uid=uid,
             )
         except (
             httpx2.HTTPError,
-            ProxyConnectionError,
+            httpx2.ProxyError,
         ) as elsevier_request_error:
             error_message = (
                 f"Elsevier request error for {doi=}: {elsevier_request_error}"

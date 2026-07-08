@@ -256,7 +256,13 @@ async def test_crossref_works_timeout_error(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("http_exception"),
-    [httpx2.HTTPError, httpx2.NetworkError, httpx2.RequestError, httpx2.TransportError],
+    [
+        httpx2.HTTPError,
+        httpx2.NetworkError,
+        httpx2.RequestError,
+        httpx2.TransportError,
+        httpx2.ProxyError,
+    ],
 )
 async def test_crossref_works_generic_http_error(
     mocker, caplog, http_exception, test_settings, test_study_collection, tmp_path

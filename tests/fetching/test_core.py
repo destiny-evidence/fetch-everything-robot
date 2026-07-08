@@ -119,6 +119,34 @@ async def test_async_httpx_retry_client_context_manager():
         assert client.max_retries == test_max_retries
 
 
+def test_async_httpx_retry_client_uses_proxy_transport(mocker):
+    test_max_retries = 5
+    test_proxy_url = "socks5://127.0.0.1:1080"
+    mocked_transport = mocker.sentinel.transport
+
+    patched_transport = mocker.patch(
+        "fer.fetching.core.httpx2.AsyncHTTPTransport",
+        return_value=mocked_transport,
+    )
+    patched_client_init = mocker.patch(
+        "fer.fetching.core.httpx2.AsyncClient.__init__",
+        return_value=None,
+    )
+
+    client = AsyncHTTPXRetryClient(
+        max_retries=test_max_retries,
+        proxy_url=test_proxy_url,
+    )
+
+    patched_transport.assert_called_once_with(
+        proxy=test_proxy_url,
+        retries=test_max_retries,
+    )
+    patched_client_init.assert_called_once()
+    assert patched_client_init.call_args.kwargs["transport"] is mocked_transport
+    assert client.max_retries == test_max_retries
+
+
 @pytest.mark.asyncio
 async def test_download_temporary_file(mocker, tmp_path):
     temp_file = tmp_path / "mocked_temp_file"
