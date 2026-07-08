@@ -1,6 +1,7 @@
+from collections.abc import AsyncGenerator
 from uuid import uuid4
 
-import httpx
+import httpx2
 import pytest
 from pypdf import PdfWriter
 from pypdf.errors import PyPdfError
@@ -23,7 +24,7 @@ async def test_elsevier_fetcher_fetch_many_full_texts_pdf_success(
         "fer.fetching.elsevier.stream_file", side_effect=fake_stream_file
     )
     mock_response = mocker.MagicMock()
-    mock_response.status_code = httpx.codes.OK
+    mock_response.status_code = httpx2.codes.OK
     mock_response.raise_for_status.return_value = None
 
     await fetcher.fetch_many_full_texts(
@@ -39,7 +40,7 @@ async def test_elsevier_fetcher_fetch_many_full_texts_xml_success(
 ):
     fetcher = ElsevierFetcher(settings=test_settings)
     mock_response = mocker.MagicMock()
-    mock_response.status_code = httpx.codes.OK
+    mock_response.status_code = httpx2.codes.OK
     mock_response.raise_for_status.return_value = None
     mock_response.content = b"<xml>content</xml>"
     mocked_get = mocker.patch(
@@ -64,7 +65,7 @@ async def test_elsevier_fetcher_fetch_many_full_texts_xml_non_http_200(
     dois = [study.doi.identifier.lower() for study in test_study_collection.studies]
     fetcher = ElsevierFetcher(settings=test_settings)
 
-    test_status_code = httpx.codes.ACCEPTED
+    test_status_code = httpx2.codes.ACCEPTED
     mock_response = mocker.MagicMock()
     mock_response.status_code = test_status_code
     mock_response.raise_for_status.return_value = None
@@ -95,7 +96,7 @@ async def test_elsevier_fetcher_fetch_many_full_texts_xml_http_error(
     mocker.patch("fer.fetching.elsevier.stream_file", side_effect=fake_stream_file)
 
     mock_response = mocker.MagicMock()
-    mock_response.raise_for_status.side_effect = httpx.HTTPError("Test HTTP error")
+    mock_response.raise_for_status.side_effect = httpx2.HTTPError("Test HTTP error")
 
     mock_get = mocker.patch(
         "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
@@ -126,7 +127,7 @@ async def test_elsevier_fetcher_fetch_many_full_texts_pdf_stream_error(
     )
 
     mock_response = mocker.MagicMock()
-    mock_response.status_code = httpx.codes.OK
+    mock_response.status_code = httpx2.codes.OK
     mock_response.raise_for_status.return_value = None
 
     with caplog.at_level("ERROR"):
@@ -202,7 +203,7 @@ async def test_fetch_one_fulltext_returns_retrieved_full_text_on_success(
     )
     mocker.patch("fer.fetching.elsevier.stream_file", side_effect=fake_stream_file)
     mock_response = mocker.MagicMock()
-    mock_response.status_code = httpx.codes.OK
+    mock_response.status_code = httpx2.codes.OK
     mock_response.raise_for_status.return_value = None
     mocker.patch(
         "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
@@ -226,7 +227,7 @@ async def test_fetch_one_fulltext_http_error(
     )
     mock_response = mocker.MagicMock()
     expected_error_text = "a test http error"
-    mock_response.raise_for_status.side_effect = httpx.HTTPError(expected_error_text)
+    mock_response.raise_for_status.side_effect = httpx2.HTTPError(expected_error_text)
     mocker.patch(
         "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
         new=mocker.AsyncMock(return_value=mock_response),
@@ -278,7 +279,7 @@ async def test_fetch_one_fulltext_stream_error(
         side_effect=FullTextStreamError("a test stream error"),
     )
     mock_response = mocker.MagicMock()
-    mock_response.status_code = httpx.codes.OK
+    mock_response.status_code = httpx2.codes.OK
     mock_response.raise_for_status.return_value = None
     mocker.patch(
         "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
@@ -312,8 +313,8 @@ async def test_fetch_many_full_texts_single_page_incomplete_pdf_falls_back_to_xm
         response
         for _ in studies
         for response in (
-            httpx.Response(status_code=httpx.codes.OK, content=b"PDF content"),
-            httpx.Response(status_code=httpx.codes.OK, content=b"<xml>content</xml>"),
+            httpx2.Response(status_code=httpx2.codes.OK, content=b"PDF content"),
+            httpx2.Response(status_code=httpx2.codes.OK, content=b"<xml>content</xml>"),
         )
     ]
     mocked_stream = mocker.patch(
@@ -373,7 +374,7 @@ async def test_fetch_many_full_texts_single_page_complete_pdf_returns_gracefully
         response
         for _ in studies
         for response in (
-            httpx.Response(status_code=httpx.codes.OK, content=b"PDF content"),
+            httpx2.Response(status_code=httpx2.codes.OK, content=b"PDF content"),
         )
     ]
     mocked_stream = mocker.patch(
@@ -435,7 +436,7 @@ async def test_fetch_many_full_texts_multi_page_complete_pdf_returns_gracefully(
         response
         for _ in studies
         for response in (
-            httpx.Response(status_code=httpx.codes.OK, content=b"PDF content"),
+            httpx2.Response(status_code=httpx2.codes.OK, content=b"PDF content"),
         )
     ]
     mock_stream = mocker.patch(
@@ -501,7 +502,7 @@ async def test_fetch_many_full_texts_single_page_closed_access_pdf_orphan_file_i
         raise IncompleteFullTextError(test_error_message)
 
     xml_responses = [
-        httpx.Response(status_code=httpx.codes.OK, content=b"<xml>content</xml>")
+        httpx2.Response(status_code=httpx2.codes.OK, content=b"<xml>content</xml>")
         for _ in studies
     ]
 
@@ -544,7 +545,7 @@ async def test_get_final_fulltext_content_happy_path_multi_page_pdf(
     temp_file.write_bytes(b"PDF content")
 
     mock_responses = [
-        httpx.Response(status_code=httpx.codes.OK, content=b"PDF content"),
+        httpx2.Response(status_code=httpx2.codes.OK, content=b"PDF content"),
     ]
     mocker.patch("fer.fetching.elsevier.stream_file", return_value=temp_file)
     fetcher = ElsevierFetcher(settings=test_settings)
@@ -573,7 +574,7 @@ async def test_get_final_fulltext_content_happy_path_single_page_pdf(
     temp_file.write_bytes(b"PDF content")
 
     mock_responses = [
-        httpx.Response(status_code=httpx.codes.OK, content=b"PDF content"),
+        httpx2.Response(status_code=httpx2.codes.OK, content=b"PDF content"),
     ]
     mocker.patch("fer.fetching.elsevier.stream_file", return_value=temp_file)
     fetcher = ElsevierFetcher(settings=test_settings)
@@ -602,7 +603,7 @@ async def test_get_final_fulltext_content_closed_access_single_page_pdf_returns_
     temp_file.write_bytes(b"PDF content")
 
     mock_responses = [
-        httpx.Response(status_code=httpx.codes.OK, content=b"PDF content"),
+        httpx2.Response(status_code=httpx2.codes.OK, content=b"PDF content"),
     ]
     mocker.patch("fer.fetching.elsevier.stream_file", return_value=temp_file)
     fetcher = ElsevierFetcher(settings=test_settings)
@@ -624,7 +625,7 @@ async def test_get_final_fulltext_content_closed_access_single_page_pdf_returns_
 @pytest.mark.parametrize(
     "elsevier_request_error",
     [
-        httpx.HTTPError("Test HTTP error"),
+        httpx2.HTTPError("Test HTTP error"),
         ProxyConnectionError("Test proxy connection error"),
         FullTextStreamError("Test stream error"),
     ],
@@ -659,16 +660,23 @@ async def test_get_final_fulltext_content_fails(
 
 @pytest.mark.asyncio
 async def test_download_one_pdf_empty_downloaded_file_elsevier_els_status_not_ok(
-    httpx_mock, temporary_test_file, caplog, test_settings
+    mocker, temporary_test_file, caplog, test_settings
 ):
+    async def one_chunk_data(data: bytes) -> AsyncGenerator[bytes]:
+        yield data
+
     test_url = "http://example.com/elsevier/streamfile"
 
-    httpx_mock.add_response(
-        method="GET",
-        url=test_url,
-        content=b"",
-        headers={"X-ELS-Status": "PDF_RESTRICTED"},
-    )
+    test_content = b""
+    mock_response = mocker.MagicMock()
+    mock_response.__aenter__.return_value = mock_response
+    mock_response.__aexit__.return_value = None
+    mock_response.raise_for_status.return_value = None
+    mock_response.aiter_bytes.return_value = one_chunk_data(test_content)
+    mock_response.headers = {"X-ELS-Status": "PDF_RESTRICTED"}
+
+    mocker.patch("httpx2.AsyncClient.stream", return_value=mock_response)
+
     fetcher = ElsevierFetcher(settings=test_settings)
 
     with (

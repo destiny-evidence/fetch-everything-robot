@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Literal
 from uuid import UUID
 
-import httpx
+import httpx2
 from loguru import logger
 from pydantic import AnyUrl, BaseModel
 from pypdf import PdfReader
@@ -246,7 +246,7 @@ class ElsevierFetcher(BasePublisherFetcher):
                 url=url, elsevier_request_config=xml_request_config, doi=doi, uid=uid
             )
         except (
-            httpx.HTTPError,
+            httpx2.HTTPError,
             FullTextStreamError,
             ProxyConnectionError,
         ) as elsevier_request_error:
@@ -263,7 +263,7 @@ class ElsevierFetcher(BasePublisherFetcher):
                 error=error_message,
             )
 
-        if response.status_code == httpx.codes.OK:
+        if response.status_code == httpx2.codes.OK:
             xml_file_path = output_file_path.with_suffix(".xml")
             xml_file_path.write_bytes(response.content)
             logger.info(f"Elsevier XML content saved {uid}: {xml_file_path}")
@@ -289,7 +289,7 @@ class ElsevierFetcher(BasePublisherFetcher):
         )
 
     @staticmethod
-    def _check_els_status(headers: httpx.Headers) -> None:
+    def _check_els_status(headers: httpx2.Headers) -> None:
         """
         Check the X-ELS-Status header in the response.
 
@@ -297,7 +297,7 @@ class ElsevierFetcher(BasePublisherFetcher):
         hints at whether we're returning an incomplete full text.
 
         Args:
-            headers (httpx.Headers): Headers from the HTTP response.
+            headers (httpx2.Headers): Headers from the HTTP response.
 
         """
         els_status = headers.get("X-ELS-Status", None)
@@ -316,11 +316,11 @@ class ElsevierFetcher(BasePublisherFetcher):
         elsevier_request_config: ElsevierRequestConfig,
         doi: str,
         uid: UUID,
-    ) -> httpx.Response:
+    ) -> httpx2.Response:
         """
         Make an API request to Elsevier.
 
-        Uses a retrying Async HTTPX client to handle errors and proxy issues.
+        Uses a retrying Async HTTPX2 client to handle errors and proxy issues.
 
         Args:
             url (str): The URL to make the request to.
@@ -330,7 +330,7 @@ class ElsevierFetcher(BasePublisherFetcher):
             uid (UUID): The unique identifier of the study.
 
         Returns:
-            httpx.Response: The HTTP response from the Elsevier API.
+            httpx2.Response: The HTTP response from the Elsevier API.
 
         """
         try:
@@ -342,7 +342,7 @@ class ElsevierFetcher(BasePublisherFetcher):
                 )
                 response.raise_for_status()
                 return response
-        except httpx.HTTPError as http_error:
+        except httpx2.HTTPError as http_error:
             error_message = f"HTTP error fetching Elsevier data for {doi}: {http_error}"
             logger.error(error_message)
             raise
@@ -371,7 +371,7 @@ class ElsevierFetcher(BasePublisherFetcher):
             RetrievedFullText: A single RetrievedFullText instance.
 
         Raises:
-            httpx.HTTPError: If an HTTP error occurs during the API request.
+            httpx2.HTTPError: If an HTTP error occurs during the API request.
             ProxyConnectionError: If a proxy connection error occurs.
 
         """
@@ -414,7 +414,7 @@ class ElsevierFetcher(BasePublisherFetcher):
                 uid=uid,
             )
         except (
-            httpx.HTTPError,
+            httpx2.HTTPError,
             ProxyConnectionError,
         ) as elsevier_request_error:
             error_message = (
@@ -425,7 +425,7 @@ class ElsevierFetcher(BasePublisherFetcher):
                 doi=doi, uid=uid, fulltext_path=None, error=error_message
             )
 
-        if response.status_code == httpx.codes.OK:
+        if response.status_code == httpx2.codes.OK:
             file_path.write_bytes(response.content)
             logger.info(f"Elsevier content saved {uid}: {file_path}")
             return RetrievedFullText(

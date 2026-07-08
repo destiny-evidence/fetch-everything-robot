@@ -6,9 +6,8 @@ from pathlib import Path
 from typing import Literal
 from uuid import UUID
 
-import httpx
+import httpx2
 from destiny_sdk.identifiers import DOIIdentifier, OpenAlexIdentifier
-from httpx_socks import AsyncProxyTransport
 from loguru import logger
 from pydantic import AnyUrl, BaseModel, Field, model_validator
 
@@ -187,8 +186,8 @@ class RetrievedFullText(BaseModel):
         return self
 
 
-class AsyncHTTPXRetryClient(httpx.AsyncClient):
-    """An HTTPX Client with retry logic for transient errors."""
+class AsyncHTTPXRetryClient(httpx2.AsyncClient):
+    """An HTTPX2 Client with retry logic for transient errors."""
 
     def __init__(
         self,
@@ -205,21 +204,23 @@ class AsyncHTTPXRetryClient(httpx.AsyncClient):
 
         """
         if proxy_url is None:
-            transport = httpx.AsyncHTTPTransport(retries=max_retries)
+            transport = httpx2.AsyncHTTPTransport(retries=max_retries)
         else:
-            transport = AsyncProxyTransport.from_url(proxy_url, retries=max_retries)
+            transport = httpx2.AsyncProxyTransport.from_url(
+                proxy_url, retries=max_retries
+            )
         super().__init__(
-            timeout=httpx.Timeout(timeout_seconds),
+            timeout=httpx2.Timeout(timeout_seconds),
             transport=transport,
         )
         self.max_retries = max_retries
 
     async def __aenter__(self) -> "AsyncHTTPXRetryClient":
         """
-        Define a context manager for an async HTTPX client with retries.
+        Define a context manager for an async HTTPX2 client with retries.
 
         Returns:
-            AsyncHTTPXRetryClient: The async HTTPX client instance.
+            AsyncHTTPXRetryClient: The async HTTPX2 client instance.
 
         """
         await super().__aenter__()
@@ -266,7 +267,7 @@ async def stream_file(
     url: AnyUrl,
     destination: Path,
     headers: dict | None = None,
-    response_validator: Callable[[httpx.Headers], None] | None = None,
+    response_validator: Callable[[httpx2.Headers], None] | None = None,
 ) -> Path | None:
     """
     Stream bytes from a file from a URL and save it to the specified destination.
@@ -275,7 +276,7 @@ async def stream_file(
         url (AnyUrl): The URL of the file to download.
         destination (Path): The destination file path.
         headers (dict | None): Optional headers to include. Defaults to None.
-        response_validator (Callable[[httpx.Headers], None] | None):
+        response_validator (Callable[[httpx2.Headers], None] | None):
             Optional function to validate the response headers. Defaults to None.
 
     Returns:
@@ -288,7 +289,7 @@ async def stream_file(
 
     try:
         async with (
-            httpx.AsyncClient(follow_redirects=True) as client,
+            httpx2.AsyncClient(follow_redirects=True) as client,
             client.stream("GET", str(url), headers=headers) as response,
         ):
             response.raise_for_status()
@@ -305,11 +306,11 @@ async def stream_file(
                     logger.warning(f"Removing incomplete file at {destination}.")
                 raise
         logger.info(f"File downloaded successfully: {destination}")
-    except httpx.HTTPError as http_error:
+    except httpx2.HTTPError as http_error:
         logger.error(f"Error downloading {url}: {http_error}")
         error_message = f"Error downloading {url}: {http_error}"
         raise FullTextStreamError(error_message) from http_error
-    except httpx.StreamError as stream_error:
+    except httpx2.StreamError as stream_error:
         logger.error(f"Streaming error for {url}: {stream_error}")
         error_message = f"Streaming error for {url}: {stream_error}"
         raise FullTextStreamError(error_message) from stream_error

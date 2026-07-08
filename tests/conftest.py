@@ -5,12 +5,10 @@ from collections.abc import Generator
 from pathlib import Path
 
 import destiny_sdk
-import httpx
+import httpx2
 import pytest
-from fastapi import status
 from loguru import logger
 from pydantic import AnyUrl
-from pytest_httpx import HTTPXMock, IteratorStream
 
 from fer.config import ExternalAPIPriority, Settings
 from fer.data_models.generic import (
@@ -218,7 +216,7 @@ class DummyPublisherFetcher(BasePublisherFetcher):
             Path | None: The path to the downloaded PDF or None if download failed.
 
         """
-        async with httpx.AsyncClient() as client:
+        async with httpx2.AsyncClient() as client:
             response = await client.get(pdf_url)
         response.raise_for_status()
         await stream_file(url=pdf_url, destination=filepath)
@@ -237,7 +235,7 @@ class DummyPublisherFetcher(BasePublisherFetcher):
             dict: A dummy response.
 
         """
-        async with httpx.AsyncClient() as client:
+        async with httpx2.AsyncClient() as client:
             response = await client.get("https://example.com/test")
         response.raise_for_status()
         return response.json()
@@ -311,7 +309,7 @@ def test_openalex_ids() -> list[destiny_sdk.identifiers.OpenAlexIdentifier]:
 
 @pytest.fixture
 def mock_reference_file_stream(
-    httpx_mock: HTTPXMock, test_reference_ids: list[uuid.UUID], test_dois: list[str]
+    test_reference_ids: list[uuid.UUID], test_dois: list[str]
 ):
     """Mock a stream for a file containing references."""
     stream_response = []
@@ -321,36 +319,7 @@ def mock_reference_file_stream(
             identifiers=[destiny_sdk.identifiers.DOIIdentifier(identifier=doi)],
         )
         stream_response.append(bytes(reference.to_jsonl() + "\n", "utf-8"))
-    httpx_mock.add_response(stream=IteratorStream(stream_response))
-
-
-@pytest.fixture
-def mock_destiny_repository_response(
-    httpx_mock: HTTPXMock,
-    test_request_id: uuid.UUID,
-    test_reference_ids: list[uuid.UUID],
-):
-    """Mock a successful enhancement post to destiny repository."""
-    create_enhancement_response = destiny_sdk.robots.EnhancementRequestRead(
-        id=test_request_id,
-        reference_ids=test_reference_ids,
-        enhancement_parameters={},
-        robot_id=uuid.uuid4(),
-        request_status=destiny_sdk.robots.EnhancementRequestStatus.COMPLETED,
-    )
-
-    # Mock out our callback
-    httpx_mock.add_response(
-        method="POST",
-        status_code=status.HTTP_200_OK,
-        json=create_enhancement_response.model_dump(mode="json"),
-    )
-
-
-@pytest.fixture
-def mock_enhancement_put(httpx_mock: HTTPXMock):
-    """Mock the putting of references to the results url."""
-    httpx_mock.add_response(method="PUT", status_code=status.HTTP_200_OK)
+    return stream_response
 
 
 @pytest.fixture

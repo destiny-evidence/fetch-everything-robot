@@ -1,6 +1,6 @@
 """tests for the core fetch_fulltext module in fer/fetch_fulltext.py."""
 
-import httpx
+import httpx2
 import pytest
 
 from fer.data_models.generic import prepare_api_config
@@ -87,7 +87,7 @@ async def test_fetch_success(
     mock_response.raise_for_status.return_value = None
     mock_response.json = mocker.MagicMock(return_value={"foo": "bar"})
 
-    mock_get = mocker.patch("httpx.AsyncClient.get", return_value=mock_response)
+    mock_get = mocker.patch("httpx2.AsyncClient.get", return_value=mock_response)
     result = await fetcher.fetch(
         "test_publisher", test_study_collection, output_directory=None
     )
@@ -104,10 +104,10 @@ async def test_fetch_http_error(
         test_publisher_dict,
     )
     mock_response = mocker.MagicMock()
-    mock_response.raise_for_status.side_effect = httpx.HTTPError("fail")
-    mocker.patch("httpx.AsyncClient.get", return_value=mock_response)
+    mock_response.raise_for_status.side_effect = httpx2.HTTPError("fail")
+    mocker.patch("httpx2.AsyncClient.get", return_value=mock_response)
     with (
-        pytest.raises(httpx.HTTPError),
+        pytest.raises(httpx2.HTTPError),
     ):
         await fetcher.fetch(
             "test_publisher", test_study_collection, output_directory=None

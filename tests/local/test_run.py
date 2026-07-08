@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from uuid import uuid5
 
-import httpx
+import httpx2
 import pytest
 from destiny_sdk.identifiers import DOIIdentifier, OpenAlexIdentifier
 
@@ -375,14 +375,14 @@ async def test_resolve_openalex_identifiers_all_without_doi(
 @pytest.mark.parametrize(
     "error",
     [
-        httpx.HTTPStatusError(
+        httpx2.HTTPStatusError(
             "500 Internal Server Error",
-            request=httpx.Request("GET", "https://api.openalex.org/W123"),
-            response=httpx.Response(500),
+            request=httpx2.Request("GET", "https://api.openalex.org/W123"),
+            response=httpx2.Response(500),
         ),
-        httpx.ConnectError("Connection refused"),
-        httpx.TimeoutException("Request timed out"),
-        httpx.ReadError("Read error"),
+        httpx2.ConnectError("Connection refused"),
+        httpx2.TimeoutException("Request timed out"),
+        httpx2.ReadError("Read error"),
         json.JSONDecodeError("Malformed JSON response", doc="", pos=0),
     ],
 )
