@@ -6,12 +6,13 @@ import os
 import platform
 import time
 from pathlib import Path
-from typing import Any, Final
+from typing import Final
 
 from loguru import logger
 from pydantic import BaseModel, Field
 
 from fer.config import ExternalAPI, Settings, external_api_priority
+from fer.fetch_fulltext import FullTextResult
 
 BADGE_OUTPUT_PATH = Path("metrics/fetch_badge.json")
 HISTORY_JSON_PATH = Path("metrics/metrics.json")
@@ -118,7 +119,7 @@ class EvaluationRunEntry(BaseModel):
 
     @classmethod
     def from_results(
-        cls, results: list[dict[str, Any]], settings: Settings
+        cls, results: list[FullTextResult], settings: Settings
     ) -> "EvaluationRunEntry":
         """Create metrics instance from results of running local robot."""
         total_count = len(results)
@@ -126,7 +127,7 @@ class EvaluationRunEntry(BaseModel):
             no_results = "Cannot generate evaluation entry from empty results list."
             raise ValueError(no_results)
 
-        success_count = sum(1 for r in results if r.get("fulltext_path") is not None)
+        success_count = sum(1 for r in results if r.fulltext_path is not None)
         success_rate = success_count / total_count
         overall_metrics = GlobalMetrics(
             total_dois=total_count,
@@ -144,9 +145,9 @@ class EvaluationRunEntry(BaseModel):
         }
 
         for r in results:
-            raw_source = r.get("source")
+            raw_source = r.source
             winning_source = str(raw_source).strip().lower() if raw_source else None
-            is_success = r.get("fulltext_path") is not None
+            is_success = r.fulltext_path is not None
 
             for api_str, counts in strategy_counts.items():
                 if is_success and winning_source == api_str:
