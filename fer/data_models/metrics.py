@@ -14,8 +14,8 @@ from pydantic import BaseModel, Field
 from fer.config import ExternalAPI, Settings, external_api_priority
 from fer.fetch_fulltext import FullTextResult
 
-BADGE_OUTPUT_PATH = Path("metrics/fetch_badge.json")
-HISTORY_JSON_PATH = Path("metrics/metrics.json")
+BADGE_OUTPUT_PATH = Path(__file__).parents[2] / "metrics" / "fetch_badge.json"
+HISTORY_JSON_PATH = Path(__file__).parents[2] / "metrics" / "metrics.json"
 
 BADGE_THRESHOLDS: Final[list[tuple[float, str]]] = [
     (80.0, "brightgreen"),
