@@ -25,7 +25,7 @@ BADGE_THRESHOLDS: Final[list[tuple[float, str]]] = [
 
 
 class ConfigSnapshot(BaseModel):
-    """Captures context where test was run."""
+    """Capture context where test was run."""
 
     runner: str = Field(
         description="The execution context (e.g., GitHub Actions or local user machine)"
@@ -45,7 +45,16 @@ class ConfigSnapshot(BaseModel):
 
     @classmethod
     def capture(cls, settings: Settings) -> "ConfigSnapshot":
-        """Discover and snapshot the current running environment."""
+        """
+        Discover and snapshot the current running environment.
+
+        Args:
+            settings (Settings): Pydantic settings object.
+
+        Returns:
+            ConfigSnapshot: A snapshot of the current configuration context.
+
+        """
         if os.environ.get("GITHUB_ACTIONS") == "true":
             runner_profile = "GitHub Actions"
         else:
@@ -79,7 +88,7 @@ class ConfigSnapshot(BaseModel):
 
 
 class GlobalMetrics(BaseModel):
-    """Total pdf retrieval metrics across sources."""
+    """Represent the total pdf retrieval metrics across sources."""
 
     total_dois: int = Field(
         description="Total count of DOIs evaluated in this flight run"
@@ -91,7 +100,7 @@ class GlobalMetrics(BaseModel):
 
 
 class SourceMetrics(BaseModel):
-    """Metrics for each source."""
+    """Represent metrics for each source."""
 
     attempts: int = Field(description="Number of times this specific API was invoked")
     successes: int = Field(
@@ -101,7 +110,7 @@ class SourceMetrics(BaseModel):
 
 
 class EvaluationRunEntry(BaseModel):
-    """An entry of an evaluation run."""
+    """Represent an entry of an evaluation run."""
 
     timestamp: str = Field(
         description="Date and time mark of the evaluation run execution"
