@@ -4,7 +4,7 @@ import asyncio
 from pathlib import Path
 
 from habanero import Crossref, RequestError
-from httpx import HTTPError, TimeoutException
+from httpx2 import HTTPError, TimeoutException
 from loguru import logger
 from pydantic import AnyUrl
 

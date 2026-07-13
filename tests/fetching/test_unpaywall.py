@@ -1,4 +1,4 @@
-import httpx
+import httpx2
 import pytest
 from pydantic import HttpUrl
 
@@ -20,7 +20,7 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_success_pdf_found(
     fetcher = UnpaywallFetcher(settings=test_settings)
     mocker.patch("fer.fetching.unpaywall.stream_file", side_effect=fake_stream_file)
     mock_response = mocker.MagicMock()
-    mock_response.status_code = httpx.codes.OK
+    mock_response.status_code = httpx2.codes.OK
     mock_response.raise_for_status.return_value = None
     mock_response.json = mocker.MagicMock(return_value=test_data)
 
@@ -62,7 +62,7 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_no_pdf_found_publisher(
     fetcher = UnpaywallFetcher(settings=test_settings)
     mocker.patch("fer.fetching.unpaywall.stream_file")
     mock_response = mocker.MagicMock()
-    mock_response.status_code = httpx.codes.OK
+    mock_response.status_code = httpx2.codes.OK
     mock_response.raise_for_status.return_value = None
     mock_response.json = mocker.MagicMock(return_value=test_data)
 
@@ -106,7 +106,7 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_no_pdf_found_taylor_and_f
     fetcher = UnpaywallFetcher(settings=test_settings)
     mocker.patch("fer.fetching.unpaywall.stream_file")
     mock_response = mocker.MagicMock()
-    mock_response.status_code = httpx.codes.OK
+    mock_response.status_code = httpx2.codes.OK
     mock_response.raise_for_status.return_value = None
     mock_response.json = mocker.MagicMock(return_value=test_data)
 
@@ -139,7 +139,7 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_http_error(
     fetcher = UnpaywallFetcher(settings=test_settings)
 
     mock_response = mocker.MagicMock()
-    mock_response.raise_for_status.side_effect = httpx.HTTPError("HTTP error occurred")
+    mock_response.raise_for_status.side_effect = httpx2.HTTPError("HTTP error occurred")
 
     mock_get = mocker.patch(
         "fer.fetching.unpaywall.AsyncHTTPXRetryClient.get",
@@ -173,7 +173,7 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_fulltextstreamerror(
         side_effect=FullTextStreamError("test error"),
     )
     mock_response = mocker.MagicMock()
-    mock_response.status_code = httpx.codes.OK
+    mock_response.status_code = httpx2.codes.OK
     mock_response.raise_for_status.return_value = None
     mock_response.json = mocker.MagicMock(return_value=test_data)
 
@@ -210,7 +210,7 @@ async def test_unpaywall_fetcher_fetch_many_full_texts_no_best_oa_location(
         "fer.fetching.unpaywall.stream_file", return_value=tmp_path / "dummy.pdf"
     )
     mock_response = mocker.MagicMock()
-    mock_response.status_code = httpx.codes.OK
+    mock_response.status_code = httpx2.codes.OK
     mock_response.raise_for_status.return_value = None
     mock_response.json = mocker.MagicMock(return_value=test_data)
 
@@ -312,7 +312,7 @@ async def test_process_single_study_response_pdf_found(
         "publisher": "Test Publisher",
     }
     mock_response = mocker.AsyncMock()
-    mock_response.status_code = httpx.codes.OK
+    mock_response.status_code = httpx2.codes.OK
     mock_response.raise_for_status = mocker.MagicMock(return_value=None)
     mock_response.json = mocker.MagicMock(return_value=mock_response_data)
 
@@ -356,7 +356,7 @@ async def test_process_single_study_response_fails_no_pdf_strategy(
         "publisher": "Test Publisher",
     }
     mock_response = mocker.AsyncMock()
-    mock_response.status_code = httpx.codes.OK
+    mock_response.status_code = httpx2.codes.OK
     mock_response.raise_for_status = mocker.MagicMock(return_value=None)
     mock_response.json = mocker.MagicMock(return_value=mock_response_data)
 
@@ -387,7 +387,7 @@ async def test_process_single_study_response_fails_no_pdf_url(
         "publisher": "Test Publisher",
     }
     mock_response = mocker.AsyncMock()
-    mock_response.status_code = httpx.codes.OK
+    mock_response.status_code = httpx2.codes.OK
     mock_response.raise_for_status = mocker.MagicMock(return_value=None)
     mock_response.json = mocker.MagicMock(return_value=mock_response_data)
 
@@ -427,7 +427,7 @@ async def test_process_single_study_response_fails_pdf_not_found_publisher_url(
         "publisher": publisher,
     }
     mock_response = mocker.AsyncMock()
-    mock_response.status_code = httpx.codes.OK
+    mock_response.status_code = httpx2.codes.OK
     mock_response.raise_for_status = mocker.MagicMock(return_value=None)
     mock_response.json = mocker.MagicMock(return_value=mock_response_data)
 
@@ -457,7 +457,7 @@ async def test_process_single_study_response_fails_no_output_file_path(
         "publisher": "Test Publisher",
     }
     mock_response = mocker.AsyncMock()
-    mock_response.status_code = httpx.codes.OK
+    mock_response.status_code = httpx2.codes.OK
     mock_response.raise_for_status = mocker.MagicMock(return_value=None)
     mock_response.json = mocker.MagicMock(return_value=mock_response_data)
 
@@ -487,7 +487,7 @@ async def test_process_single_study_response_fails_http_error(
 
     mocker.patch(
         "fer.fetching.unpaywall.AsyncHTTPXRetryClient.get",
-        side_effect=httpx.HTTPError("Test HTTP error"),
+        side_effect=httpx2.HTTPError("Test HTTP error"),
     )
 
     retrieved_fulltext = await fetcher.process_single_study_response(

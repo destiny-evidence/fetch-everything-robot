@@ -1,6 +1,6 @@
 """Generation functions for single and batch fulltext enhancements."""
 
-import httpx
+import httpx2
 from destiny_sdk.enhancements import (
     Enhancement,
 )
@@ -185,7 +185,7 @@ class FullTextEnhancementProcessor:
         """
         references = []
         async with (
-            httpx.AsyncClient() as client,
+            httpx2.AsyncClient() as client,
             client.stream("GET", reference_storage_url) as response,
         ):
             response.raise_for_status()
@@ -211,7 +211,7 @@ class FullTextEnhancementProcessor:
         for enhancement in enhancements:
             file_content += (enhancement.to_jsonl() + "\n").encode("utf-8")
 
-        async with httpx.AsyncClient() as client:
+        async with httpx2.AsyncClient() as client:
             response = await client.put(
                 result_storage_url,
                 content=file_content,

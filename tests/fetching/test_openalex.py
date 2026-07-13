@@ -1,7 +1,7 @@
 """Unit tests for fer/fetching/openalex.py."""
 
 import pytest
-from httpx import HTTPError, Response
+from httpx2 import HTTPError, Response
 
 from fer.fetching.core import FullTextStreamError
 from fer.fetching.openalex import OpenalexFetcher

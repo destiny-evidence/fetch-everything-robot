@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-import httpx
+import httpx2
 from loguru import logger
 from pydantic import AnyUrl, HttpUrl, ValidationError
 
@@ -188,7 +188,7 @@ class UnpaywallFetcher(BasePublisherFetcher):
                     doi=doi, uid=uid, fulltext_path=None, error=warning_message
                 )
 
-        except httpx.HTTPError as http_error:
+        except httpx2.HTTPError as http_error:
             error_message = (
                 f"HTTP error fetching Unpaywall data for {doi}: {http_error}"
             )

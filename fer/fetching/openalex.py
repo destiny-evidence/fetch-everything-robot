@@ -4,7 +4,7 @@ import asyncio
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from httpx import HTTPError
+from httpx2 import HTTPError
 from loguru import logger
 from pydantic import AnyUrl
 
