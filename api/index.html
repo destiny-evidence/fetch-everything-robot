@@ -7731,7 +7731,7 @@ this will be omitted from the overall API config.</p>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">references</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">async</span> <span class="k">with</span> <span class="p">(</span>
-            <span class="n">httpx</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">,</span>
+            <span class="n">httpx2</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">,</span>
             <span class="n">client</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="n">reference_storage_url</span><span class="p">)</span> <span class="k">as</span> <span class="n">response</span><span class="p">,</span>
         <span class="p">):</span>
             <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
@@ -7757,7 +7757,7 @@ this will be omitted from the overall API config.</p>
         <span class="k">for</span> <span class="n">enhancement</span> <span class="ow">in</span> <span class="n">enhancements</span><span class="p">:</span>
             <span class="n">file_content</span> <span class="o">+=</span> <span class="p">(</span><span class="n">enhancement</span><span class="o">.</span><span class="n">to_jsonl</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
 
-        <span class="k">async</span> <span class="k">with</span> <span class="n">httpx</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="n">httpx2</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
             <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">put</span><span class="p">(</span>
                 <span class="n">result_storage_url</span><span class="p">,</span>
                 <span class="n">content</span><span class="o">=</span><span class="n">file_content</span><span class="p">,</span>
@@ -8233,7 +8233,7 @@ this may be done in the background, depending on API config).</p>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">references</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">async</span> <span class="k">with</span> <span class="p">(</span>
-        <span class="n">httpx</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">,</span>
+        <span class="n">httpx2</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">,</span>
         <span class="n">client</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="n">reference_storage_url</span><span class="p">)</span> <span class="k">as</span> <span class="n">response</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
@@ -8931,7 +8931,7 @@ this may be done in the background, depending on API config).</p>
     <span class="k">for</span> <span class="n">enhancement</span> <span class="ow">in</span> <span class="n">enhancements</span><span class="p">:</span>
         <span class="n">file_content</span> <span class="o">+=</span> <span class="p">(</span><span class="n">enhancement</span><span class="o">.</span><span class="n">to_jsonl</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
 
-    <span class="k">async</span> <span class="k">with</span> <span class="n">httpx</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">with</span> <span class="n">httpx2</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
         <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">put</span><span class="p">(</span>
             <span class="n">result_storage_url</span><span class="p">,</span>
             <span class="n">content</span><span class="o">=</span><span class="n">file_content</span><span class="p">,</span>
@@ -11445,11 +11445,11 @@ representing the saved full text files.</p>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="httpx.AsyncClient">AsyncClient</span></code></p>
+              Bases: <code><span title="httpx2.AsyncClient">AsyncClient</span></code></p>
 
 
 
-        <p>An HTTPX Client with retry logic for transient errors.</p>
+        <p>An HTTPX2 Client with retry logic for transient errors.</p>
 
 
 
@@ -11460,7 +11460,8 @@ representing the saved full text files.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/core.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">190</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">189</span>
+<span class="normal">190</span>
 <span class="normal">191</span>
 <span class="normal">192</span>
 <span class="normal">193</span>
@@ -11495,9 +11496,8 @@ representing the saved full text files.</p>
 <span class="normal">222</span>
 <span class="normal">223</span>
 <span class="normal">224</span>
-<span class="normal">225</span>
-<span class="normal">226</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">AsyncHTTPXRetryClient</span><span class="p">(</span><span class="n">httpx</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;An HTTPX Client with retry logic for transient errors.&quot;&quot;&quot;</span>
+<span class="normal">225</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">AsyncHTTPXRetryClient</span><span class="p">(</span><span class="n">httpx2</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;An HTTPX2 Client with retry logic for transient errors.&quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -11514,21 +11514,21 @@ representing the saved full text files.</p>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">proxy_url</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">transport</span> <span class="o">=</span> <span class="n">httpx</span><span class="o">.</span><span class="n">AsyncHTTPTransport</span><span class="p">(</span><span class="n">retries</span><span class="o">=</span><span class="n">max_retries</span><span class="p">)</span>
+            <span class="n">transport</span> <span class="o">=</span> <span class="n">httpx2</span><span class="o">.</span><span class="n">AsyncHTTPTransport</span><span class="p">(</span><span class="n">retries</span><span class="o">=</span><span class="n">max_retries</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">transport</span> <span class="o">=</span> <span class="n">AsyncProxyTransport</span><span class="o">.</span><span class="n">from_url</span><span class="p">(</span><span class="n">proxy_url</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="n">max_retries</span><span class="p">)</span>
+            <span class="n">transport</span> <span class="o">=</span> <span class="n">httpx2</span><span class="o">.</span><span class="n">AsyncHTTPTransport</span><span class="p">(</span><span class="n">proxy</span><span class="o">=</span><span class="n">proxy_url</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="n">max_retries</span><span class="p">)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
-            <span class="n">timeout</span><span class="o">=</span><span class="n">httpx</span><span class="o">.</span><span class="n">Timeout</span><span class="p">(</span><span class="n">timeout_seconds</span><span class="p">),</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="n">httpx2</span><span class="o">.</span><span class="n">Timeout</span><span class="p">(</span><span class="n">timeout_seconds</span><span class="p">),</span>
             <span class="n">transport</span><span class="o">=</span><span class="n">transport</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_retries</span> <span class="o">=</span> <span class="n">max_retries</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="fm">__aenter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;AsyncHTTPXRetryClient&quot;</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Define a context manager for an async HTTPX client with retries.</span>
+<span class="sd">        Define a context manager for an async HTTPX2 client with retries.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            AsyncHTTPXRetryClient: The async HTTPX client instance.</span>
+<span class="sd">            AsyncHTTPXRetryClient: The async HTTPX2 client instance.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">await</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__aenter__</span><span class="p">()</span>
@@ -11564,7 +11564,7 @@ representing the saved full text files.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Define a context manager for an async HTTPX client with retries.</p>
+        <p>Define a context manager for an async HTTPX2 client with retries.</p>
 
 
     <p><span class="doc-section-title">Returns:</span></p>
@@ -11582,7 +11582,7 @@ representing the saved full text files.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The async HTTPX client instance.</p>
+                <p>The async HTTPX2 client instance.</p>
               </div>
             </td>
           </tr>
@@ -11592,7 +11592,8 @@ representing the saved full text files.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">217</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">216</span>
+<span class="normal">217</span>
 <span class="normal">218</span>
 <span class="normal">219</span>
 <span class="normal">220</span>
@@ -11600,13 +11601,12 @@ representing the saved full text files.</p>
 <span class="normal">222</span>
 <span class="normal">223</span>
 <span class="normal">224</span>
-<span class="normal">225</span>
-<span class="normal">226</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="fm">__aenter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;AsyncHTTPXRetryClient&quot;</span><span class="p">:</span>
+<span class="normal">225</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="fm">__aenter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;AsyncHTTPXRetryClient&quot;</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Define a context manager for an async HTTPX client with retries.</span>
+<span class="sd">    Define a context manager for an async HTTPX2 client with retries.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        AsyncHTTPXRetryClient: The async HTTPX client instance.</span>
+<span class="sd">        AsyncHTTPXRetryClient: The async HTTPX2 client instance.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">await</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__aenter__</span><span class="p">()</span>
@@ -11680,7 +11680,8 @@ representing the saved full text files.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">193</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">192</span>
+<span class="normal">193</span>
 <span class="normal">194</span>
 <span class="normal">195</span>
 <span class="normal">196</span>
@@ -11701,8 +11702,7 @@ representing the saved full text files.</p>
 <span class="normal">211</span>
 <span class="normal">212</span>
 <span class="normal">213</span>
-<span class="normal">214</span>
-<span class="normal">215</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">214</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">timeout_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">360</span><span class="p">,</span>
     <span class="n">max_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
@@ -11717,11 +11717,11 @@ representing the saved full text files.</p>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">proxy_url</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">transport</span> <span class="o">=</span> <span class="n">httpx</span><span class="o">.</span><span class="n">AsyncHTTPTransport</span><span class="p">(</span><span class="n">retries</span><span class="o">=</span><span class="n">max_retries</span><span class="p">)</span>
+        <span class="n">transport</span> <span class="o">=</span> <span class="n">httpx2</span><span class="o">.</span><span class="n">AsyncHTTPTransport</span><span class="p">(</span><span class="n">retries</span><span class="o">=</span><span class="n">max_retries</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">transport</span> <span class="o">=</span> <span class="n">AsyncProxyTransport</span><span class="o">.</span><span class="n">from_url</span><span class="p">(</span><span class="n">proxy_url</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="n">max_retries</span><span class="p">)</span>
+        <span class="n">transport</span> <span class="o">=</span> <span class="n">httpx2</span><span class="o">.</span><span class="n">AsyncHTTPTransport</span><span class="p">(</span><span class="n">proxy</span><span class="o">=</span><span class="n">proxy_url</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="n">max_retries</span><span class="p">)</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
-        <span class="n">timeout</span><span class="o">=</span><span class="n">httpx</span><span class="o">.</span><span class="n">Timeout</span><span class="p">(</span><span class="n">timeout_seconds</span><span class="p">),</span>
+        <span class="n">timeout</span><span class="o">=</span><span class="n">httpx2</span><span class="o">.</span><span class="n">Timeout</span><span class="p">(</span><span class="n">timeout_seconds</span><span class="p">),</span>
         <span class="n">transport</span><span class="o">=</span><span class="n">transport</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">max_retries</span> <span class="o">=</span> <span class="n">max_retries</span>
@@ -11767,8 +11767,8 @@ representing the saved full text files.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/core.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">16</span>
-<span class="normal">17</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">BaseAuthError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">15</span>
+<span class="normal">16</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">BaseAuthError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raise when fetcher API authentication fails.&quot;&quot;&quot;</span>
 </code></pre></div></td></tr></table></div>
               </details>
@@ -11805,10 +11805,10 @@ representing the saved full text files.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/core.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">28</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">27</span>
+<span class="normal">28</span>
 <span class="normal">29</span>
-<span class="normal">30</span>
-<span class="normal">31</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">BaseStudy</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="normal">30</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">BaseStudy</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Base model representing a study with a unique identifier.&quot;&quot;&quot;</span>
 
     <span class="n">uid</span><span class="p">:</span> <span class="n">UUID</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;An internal unique identifier for the study.&quot;</span><span class="p">)</span>
@@ -11864,7 +11864,8 @@ representing the saved full text files.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/core.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">71</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">70</span>
+<span class="normal">71</span>
 <span class="normal">72</span>
 <span class="normal">73</span>
 <span class="normal">74</span>
@@ -11890,8 +11891,7 @@ representing the saved full text files.</p>
 <span class="normal">94</span>
 <span class="normal">95</span>
 <span class="normal">96</span>
-<span class="normal">97</span>
-<span class="normal">98</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">BaseStudyCollection</span><span class="p">[</span><span class="n">T</span><span class="p">:</span> <span class="n">BaseStudy</span><span class="p">](</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="normal">97</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">BaseStudyCollection</span><span class="p">[</span><span class="n">T</span><span class="p">:</span> <span class="n">BaseStudy</span><span class="p">](</span><span class="n">BaseModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Base model representing a collection of studies.&quot;&quot;&quot;</span>
 
     <span class="n">studies</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">T</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
@@ -11982,7 +11982,8 @@ representing the saved full text files.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">88</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">87</span>
+<span class="normal">88</span>
 <span class="normal">89</span>
 <span class="normal">90</span>
 <span class="normal">91</span>
@@ -11991,8 +11992,7 @@ representing the saved full text files.</p>
 <span class="normal">94</span>
 <span class="normal">95</span>
 <span class="normal">96</span>
-<span class="normal">97</span>
-<span class="normal">98</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">remove_study_by_identifier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">identifier</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">97</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">remove_study_by_identifier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">identifier</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Remove a study from the collection by its unique identifier.</span>
 
@@ -12049,7 +12049,8 @@ as it lacks any other metadata.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/core.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">34</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">33</span>
+<span class="normal">34</span>
 <span class="normal">35</span>
 <span class="normal">36</span>
 <span class="normal">37</span>
@@ -12062,8 +12063,7 @@ as it lacks any other metadata.</p>
 <span class="normal">44</span>
 <span class="normal">45</span>
 <span class="normal">46</span>
-<span class="normal">47</span>
-<span class="normal">48</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DOIStudy</span><span class="p">(</span><span class="n">BaseStudy</span><span class="p">):</span>
+<span class="normal">47</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DOIStudy</span><span class="p">(</span><span class="n">BaseStudy</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Model representing a single study with that uses DOI as a unique identifier.</span>
 
@@ -12130,7 +12130,8 @@ as it lacks any other metadata.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/core.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">101</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">100</span>
+<span class="normal">101</span>
 <span class="normal">102</span>
 <span class="normal">103</span>
 <span class="normal">104</span>
@@ -12148,8 +12149,7 @@ as it lacks any other metadata.</p>
 <span class="normal">116</span>
 <span class="normal">117</span>
 <span class="normal">118</span>
-<span class="normal">119</span>
-<span class="normal">120</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DOIStudyCollection</span><span class="p">(</span><span class="n">BaseStudyCollection</span><span class="p">[</span><span class="n">DOIStudy</span><span class="p">]):</span>
+<span class="normal">119</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DOIStudyCollection</span><span class="p">(</span><span class="n">BaseStudyCollection</span><span class="p">[</span><span class="n">DOIStudy</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Model representing a collection of DOI studies.&quot;&quot;&quot;</span>
 
     <span class="n">studies</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DOIStudy</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
@@ -12221,8 +12221,8 @@ as it lacks any other metadata.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/core.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">20</span>
-<span class="normal">21</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">FullTextStreamError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">19</span>
+<span class="normal">20</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">FullTextStreamError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom exception to throw when full text streaming fails.&quot;&quot;&quot;</span>
 </code></pre></div></td></tr></table></div>
               </details>
@@ -12259,8 +12259,8 @@ as it lacks any other metadata.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/core.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">24</span>
-<span class="normal">25</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">IncompleteFullTextError</span><span class="p">(</span><span class="n">FullTextStreamError</span><span class="p">):</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">23</span>
+<span class="normal">24</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">IncompleteFullTextError</span><span class="p">(</span><span class="n">FullTextStreamError</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom exception to throw when a streamed full text file is incomplete.&quot;&quot;&quot;</span>
 </code></pre></div></td></tr></table></div>
               </details>
@@ -12302,7 +12302,8 @@ as it lacks any other metadata.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/core.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">51</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">50</span>
+<span class="normal">51</span>
 <span class="normal">52</span>
 <span class="normal">53</span>
 <span class="normal">54</span>
@@ -12318,8 +12319,7 @@ as it lacks any other metadata.</p>
 <span class="normal">64</span>
 <span class="normal">65</span>
 <span class="normal">66</span>
-<span class="normal">67</span>
-<span class="normal">68</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">OpenAlexStudy</span><span class="p">(</span><span class="n">BaseStudy</span><span class="p">):</span>
+<span class="normal">67</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">OpenAlexStudy</span><span class="p">(</span><span class="n">BaseStudy</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Model representing a single study that uses OpenAlex ID as a unique identifier.</span>
 
@@ -12389,7 +12389,8 @@ as it lacks any other metadata.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/core.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">123</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">122</span>
+<span class="normal">123</span>
 <span class="normal">124</span>
 <span class="normal">125</span>
 <span class="normal">126</span>
@@ -12407,8 +12408,7 @@ as it lacks any other metadata.</p>
 <span class="normal">138</span>
 <span class="normal">139</span>
 <span class="normal">140</span>
-<span class="normal">141</span>
-<span class="normal">142</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">OpenAlexStudyCollection</span><span class="p">(</span><span class="n">BaseStudyCollection</span><span class="p">[</span><span class="n">OpenAlexStudy</span><span class="p">]):</span>
+<span class="normal">141</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">OpenAlexStudyCollection</span><span class="p">(</span><span class="n">BaseStudyCollection</span><span class="p">[</span><span class="n">OpenAlexStudy</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Model representing a collection of studies.&quot;&quot;&quot;</span>
 
     <span class="n">studies</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">OpenAlexStudy</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
@@ -12480,7 +12480,8 @@ as it lacks any other metadata.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/core.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">145</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">144</span>
+<span class="normal">145</span>
 <span class="normal">146</span>
 <span class="normal">147</span>
 <span class="normal">148</span>
@@ -12521,8 +12522,7 @@ as it lacks any other metadata.</p>
 <span class="normal">183</span>
 <span class="normal">184</span>
 <span class="normal">185</span>
-<span class="normal">186</span>
-<span class="normal">187</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">RetrievedFullText</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="normal">186</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">RetrievedFullText</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Model representing a retrieved full text file.&quot;&quot;&quot;</span>
 
     <span class="n">doi</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;The DOI of the study, if available.&quot;</span><span class="p">)</span>
@@ -12623,7 +12623,8 @@ created, the path does not exist and an error message should be set instead.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">163</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">162</span>
+<span class="normal">163</span>
 <span class="normal">164</span>
 <span class="normal">165</span>
 <span class="normal">166</span>
@@ -12646,8 +12647,7 @@ created, the path does not exist and an error message should be set instead.</p>
 <span class="normal">183</span>
 <span class="normal">184</span>
 <span class="normal">185</span>
-<span class="normal">186</span>
-<span class="normal">187</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">&quot;after&quot;</span><span class="p">)</span>
+<span class="normal">186</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">&quot;after&quot;</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">check_fulltext_path_or_error</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;RetrievedFullText&quot;</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Validate that either fulltext_path or error is set.</span>
@@ -12734,7 +12734,8 @@ created, the path does not exist and an error message should be set instead.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">248</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">247</span>
+<span class="normal">248</span>
 <span class="normal">249</span>
 <span class="normal">250</span>
 <span class="normal">251</span>
@@ -12747,8 +12748,7 @@ created, the path does not exist and an error message should be set instead.</p>
 <span class="normal">258</span>
 <span class="normal">259</span>
 <span class="normal">260</span>
-<span class="normal">261</span>
-<span class="normal">262</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete_temporary_file</span><span class="p">(</span><span class="n">temp_file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">261</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete_temporary_file</span><span class="p">(</span><span class="n">temp_file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Delete a temporary file.</span>
 
@@ -12844,7 +12844,8 @@ By some definition of "temporary", since the file will persist until deleted.</p
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">229</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">228</span>
+<span class="normal">229</span>
 <span class="normal">230</span>
 <span class="normal">231</span>
 <span class="normal">232</span>
@@ -12859,8 +12860,7 @@ By some definition of "temporary", since the file will persist until deleted.</p
 <span class="normal">241</span>
 <span class="normal">242</span>
 <span class="normal">243</span>
-<span class="normal">244</span>
-<span class="normal">245</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">download_temporary_file</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="n">AnyUrl</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">244</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">download_temporary_file</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="n">AnyUrl</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Stream bytes from a file from a URL and save it to a temporary file.</span>
 <span class="sd">    By some definition of &quot;temporary&quot;, since the file will persist until deleted.</span>
@@ -12965,7 +12965,7 @@ By some definition of "temporary", since the file will persist until deleted.</p
                 <code>response_validator</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-external" title="collections.abc.Callable" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable">Callable</a>[[<span title="httpx.Headers">Headers</span>], None] | None</code>
+                  <code><a class="autorefs autorefs-external" title="collections.abc.Callable" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable">Callable</a>[[<span title="httpx2.Headers">Headers</span>], None] | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -13005,7 +13005,8 @@ By some definition of "temporary", since the file will persist until deleted.</p
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/core.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">265</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">264</span>
+<span class="normal">265</span>
 <span class="normal">266</span>
 <span class="normal">267</span>
 <span class="normal">268</span>
@@ -13062,12 +13063,11 @@ By some definition of "temporary", since the file will persist until deleted.</p
 <span class="normal">319</span>
 <span class="normal">320</span>
 <span class="normal">321</span>
-<span class="normal">322</span>
-<span class="normal">323</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">stream_file</span><span class="p">(</span>
+<span class="normal">322</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">stream_file</span><span class="p">(</span>
     <span class="n">url</span><span class="p">:</span> <span class="n">AnyUrl</span><span class="p">,</span>
     <span class="n">destination</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
     <span class="n">headers</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">response_validator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">httpx</span><span class="o">.</span><span class="n">Headers</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">response_validator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">httpx2</span><span class="o">.</span><span class="n">Headers</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Stream bytes from a file from a URL and save it to the specified destination.</span>
@@ -13076,7 +13076,7 @@ By some definition of "temporary", since the file will persist until deleted.</p
 <span class="sd">        url (AnyUrl): The URL of the file to download.</span>
 <span class="sd">        destination (Path): The destination file path.</span>
 <span class="sd">        headers (dict | None): Optional headers to include. Defaults to None.</span>
-<span class="sd">        response_validator (Callable[[httpx.Headers], None] | None):</span>
+<span class="sd">        response_validator (Callable[[httpx2.Headers], None] | None):</span>
 <span class="sd">            Optional function to validate the response headers. Defaults to None.</span>
 
 <span class="sd">    Returns:</span>
@@ -13089,7 +13089,7 @@ By some definition of "temporary", since the file will persist until deleted.</p
 
     <span class="k">try</span><span class="p">:</span>
         <span class="k">async</span> <span class="k">with</span> <span class="p">(</span>
-            <span class="n">httpx</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">(</span><span class="n">follow_redirects</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">,</span>
+            <span class="n">httpx2</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">(</span><span class="n">follow_redirects</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">,</span>
             <span class="n">client</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">url</span><span class="p">),</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span> <span class="k">as</span> <span class="n">response</span><span class="p">,</span>
         <span class="p">):</span>
             <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
@@ -13106,11 +13106,11 @@ By some definition of "temporary", since the file will persist until deleted.</p
                     <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Removing incomplete file at </span><span class="si">{</span><span class="n">destination</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
                 <span class="k">raise</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File downloaded successfully: </span><span class="si">{</span><span class="n">destination</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="k">except</span> <span class="n">httpx</span><span class="o">.</span><span class="n">HTTPError</span> <span class="k">as</span> <span class="n">http_error</span><span class="p">:</span>
+    <span class="k">except</span> <span class="n">httpx2</span><span class="o">.</span><span class="n">HTTPError</span> <span class="k">as</span> <span class="n">http_error</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error downloading </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">http_error</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">error_message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Error downloading </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">http_error</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">raise</span> <span class="n">FullTextStreamError</span><span class="p">(</span><span class="n">error_message</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">http_error</span>
-    <span class="k">except</span> <span class="n">httpx</span><span class="o">.</span><span class="n">StreamError</span> <span class="k">as</span> <span class="n">stream_error</span><span class="p">:</span>
+    <span class="k">except</span> <span class="n">httpx2</span><span class="o">.</span><span class="n">StreamError</span> <span class="k">as</span> <span class="n">stream_error</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Streaming error for </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">stream_error</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">error_message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Streaming error for </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">stream_error</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">raise</span> <span class="n">FullTextStreamError</span><span class="p">(</span><span class="n">error_message</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">stream_error</span>
@@ -14633,8 +14633,8 @@ This is expected to have 'content_type' and 'url' keys.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/elsevier.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">29</span>
-<span class="normal">30</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ElsevierAuthError</span><span class="p">(</span><span class="n">BaseAuthError</span><span class="p">):</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">28</span>
+<span class="normal">29</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ElsevierAuthError</span><span class="p">(</span><span class="n">BaseAuthError</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raise when Elsevier API authentication fails.&quot;&quot;&quot;</span>
 </code></pre></div></td></tr></table></div>
               </details>
@@ -14671,7 +14671,8 @@ This is expected to have 'content_type' and 'url' keys.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/elsevier.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 40</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 39</span>
+<span class="normal"> 40</span>
 <span class="normal"> 41</span>
 <span class="normal"> 42</span>
 <span class="normal"> 43</span>
@@ -15113,9 +15114,7 @@ This is expected to have 'content_type' and 'url' keys.</p>
 <span class="normal">479</span>
 <span class="normal">480</span>
 <span class="normal">481</span>
-<span class="normal">482</span>
-<span class="normal">483</span>
-<span class="normal">484</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ElsevierFetcher</span><span class="p">(</span><span class="n">BasePublisherFetcher</span><span class="p">):</span>
+<span class="normal">482</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ElsevierFetcher</span><span class="p">(</span><span class="n">BasePublisherFetcher</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Define a concrete fetcher for Elsevier full texts.&quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Settings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -15321,12 +15320,12 @@ This is expected to have 'content_type' and 'url' keys.</p>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_elsevier_request</span><span class="p">(</span>
-                <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span> <span class="n">elsevier_request_config</span><span class="o">=</span><span class="n">xml_request_config</span><span class="p">,</span> <span class="n">doi</span><span class="o">=</span><span class="n">doi</span><span class="p">,</span> <span class="n">uid</span><span class="o">=</span><span class="n">uid</span>
+                <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span> <span class="n">elsevier_request_config</span><span class="o">=</span><span class="n">xml_request_config</span><span class="p">,</span> <span class="n">doi</span><span class="o">=</span><span class="n">doi</span>
             <span class="p">)</span>
         <span class="k">except</span> <span class="p">(</span>
-            <span class="n">httpx</span><span class="o">.</span><span class="n">HTTPError</span><span class="p">,</span>
+            <span class="n">httpx2</span><span class="o">.</span><span class="n">HTTPError</span><span class="p">,</span>
             <span class="n">FullTextStreamError</span><span class="p">,</span>
-            <span class="n">ProxyConnectionError</span><span class="p">,</span>
+            <span class="n">httpx2</span><span class="o">.</span><span class="n">ProxyError</span><span class="p">,</span>
         <span class="p">)</span> <span class="k">as</span> <span class="n">elsevier_request_error</span><span class="p">:</span>
             <span class="n">error_message</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="s2">&quot;Elsevier request error when fetching XML after PDF fetch&quot;</span>
@@ -15341,7 +15340,7 @@ This is expected to have 'content_type' and 'url' keys.</p>
                 <span class="n">error</span><span class="o">=</span><span class="n">error_message</span><span class="p">,</span>
             <span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="n">httpx</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">OK</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="n">httpx2</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">OK</span><span class="p">:</span>
             <span class="n">xml_file_path</span> <span class="o">=</span> <span class="n">output_file_path</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.xml&quot;</span><span class="p">)</span>
             <span class="n">xml_file_path</span><span class="o">.</span><span class="n">write_bytes</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Elsevier XML content saved </span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">xml_file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -15367,7 +15366,7 @@ This is expected to have 'content_type' and 'url' keys.</p>
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_check_els_status</span><span class="p">(</span><span class="n">headers</span><span class="p">:</span> <span class="n">httpx</span><span class="o">.</span><span class="n">Headers</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_els_status</span><span class="p">(</span><span class="n">headers</span><span class="p">:</span> <span class="n">httpx2</span><span class="o">.</span><span class="n">Headers</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Check the X-ELS-Status header in the response.</span>
 
@@ -15375,7 +15374,7 @@ This is expected to have 'content_type' and 'url' keys.</p>
 <span class="sd">        hints at whether we&#39;re returning an incomplete full text.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            headers (httpx.Headers): Headers from the HTTP response.</span>
+<span class="sd">            headers (httpx2.Headers): Headers from the HTTP response.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">els_status</span> <span class="o">=</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;X-ELS-Status&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
@@ -15393,22 +15392,20 @@ This is expected to have 'content_type' and 'url' keys.</p>
         <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">elsevier_request_config</span><span class="p">:</span> <span class="n">ElsevierRequestConfig</span><span class="p">,</span>
         <span class="n">doi</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">uid</span><span class="p">:</span> <span class="n">UUID</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">httpx</span><span class="o">.</span><span class="n">Response</span><span class="p">:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">httpx2</span><span class="o">.</span><span class="n">Response</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Make an API request to Elsevier.</span>
 
-<span class="sd">        Uses a retrying Async HTTPX client to handle errors and proxy issues.</span>
+<span class="sd">        Uses a retrying Async HTTPX2 client to handle errors and proxy issues.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            url (str): The URL to make the request to.</span>
 <span class="sd">            elsevier_request_config (ElsevierRequestConfig): The request configuration</span>
 <span class="sd">                containing headers and file extension.</span>
 <span class="sd">            doi (str): The DOI of the study.</span>
-<span class="sd">            uid (UUID): The unique identifier of the study.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            httpx.Response: The HTTP response from the Elsevier API.</span>
+<span class="sd">            httpx2.Response: The HTTP response from the Elsevier API.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">try</span><span class="p">:</span>
@@ -15420,13 +15417,15 @@ This is expected to have 'content_type' and 'url' keys.</p>
                 <span class="p">)</span>
                 <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
                 <span class="k">return</span> <span class="n">response</span>
-        <span class="k">except</span> <span class="n">httpx</span><span class="o">.</span><span class="n">HTTPError</span> <span class="k">as</span> <span class="n">http_error</span><span class="p">:</span>
+        <span class="k">except</span> <span class="n">httpx2</span><span class="o">.</span><span class="n">HTTPError</span> <span class="k">as</span> <span class="n">http_error</span><span class="p">:</span>
             <span class="n">error_message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;HTTP error fetching Elsevier data for </span><span class="si">{</span><span class="n">doi</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">http_error</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error_message</span><span class="p">)</span>
             <span class="k">raise</span>
 
-        <span class="k">except</span> <span class="n">ProxyConnectionError</span> <span class="k">as</span> <span class="n">proxy_error</span><span class="p">:</span>
-            <span class="n">error_message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Proxy connection failed for </span><span class="si">{</span><span class="n">doi</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">proxy_error</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">except</span> <span class="n">httpx2</span><span class="o">.</span><span class="n">ProxyError</span> <span class="k">as</span> <span class="n">proxy_error</span><span class="p">:</span>
+            <span class="n">error_message</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Proxy error fetching Elsevier data for </span><span class="si">{</span><span class="n">doi</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">proxy_error</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error_message</span><span class="p">)</span>
             <span class="k">raise</span>
 
@@ -15449,8 +15448,8 @@ This is expected to have 'content_type' and 'url' keys.</p>
 <span class="sd">            RetrievedFullText: A single RetrievedFullText instance.</span>
 
 <span class="sd">        Raises:</span>
-<span class="sd">            httpx.HTTPError: If an HTTP error occurs during the API request.</span>
-<span class="sd">            ProxyConnectionError: If a proxy connection error occurs.</span>
+<span class="sd">            httpx2.HTTPError: If an HTTP error occurs during the API request.</span>
+<span class="sd">            httpx2.ProxyError: If a proxy error occurs during the API request.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">doi</span> <span class="o">=</span> <span class="n">study</span><span class="o">.</span><span class="n">doi</span><span class="o">.</span><span class="n">identifier</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
@@ -15489,11 +15488,10 @@ This is expected to have 'content_type' and 'url' keys.</p>
                 <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span>
                 <span class="n">elsevier_request_config</span><span class="o">=</span><span class="n">elsevier_request_config</span><span class="p">,</span>
                 <span class="n">doi</span><span class="o">=</span><span class="n">doi</span><span class="p">,</span>
-                <span class="n">uid</span><span class="o">=</span><span class="n">uid</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">except</span> <span class="p">(</span>
-            <span class="n">httpx</span><span class="o">.</span><span class="n">HTTPError</span><span class="p">,</span>
-            <span class="n">ProxyConnectionError</span><span class="p">,</span>
+            <span class="n">httpx2</span><span class="o">.</span><span class="n">HTTPError</span><span class="p">,</span>
+            <span class="n">httpx2</span><span class="o">.</span><span class="n">ProxyError</span><span class="p">,</span>
         <span class="p">)</span> <span class="k">as</span> <span class="n">elsevier_request_error</span><span class="p">:</span>
             <span class="n">error_message</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Elsevier request error for </span><span class="si">{</span><span class="n">doi</span><span class="si">=}</span><span class="s2">: </span><span class="si">{</span><span class="n">elsevier_request_error</span><span class="si">}</span><span class="s2">&quot;</span>
@@ -15503,7 +15501,7 @@ This is expected to have 'content_type' and 'url' keys.</p>
                 <span class="n">doi</span><span class="o">=</span><span class="n">doi</span><span class="p">,</span> <span class="n">uid</span><span class="o">=</span><span class="n">uid</span><span class="p">,</span> <span class="n">fulltext_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="n">error_message</span>
             <span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="n">httpx</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">OK</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="n">httpx2</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">OK</span><span class="p">:</span>
             <span class="n">file_path</span><span class="o">.</span><span class="n">write_bytes</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Elsevier content saved </span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">RetrievedFullText</span><span class="p">(</span>
@@ -15623,7 +15621,8 @@ This is expected to have 'content_type' and 'url' keys.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/elsevier.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">43</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">42</span>
+<span class="normal">43</span>
 <span class="normal">44</span>
 <span class="normal">45</span>
 <span class="normal">46</span>
@@ -15632,8 +15631,7 @@ This is expected to have 'content_type' and 'url' keys.</p>
 <span class="normal">49</span>
 <span class="normal">50</span>
 <span class="normal">51</span>
-<span class="normal">52</span>
-<span class="normal">53</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Settings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">52</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Settings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Initialise an ElsevierFetcher.</span>
 
@@ -15756,7 +15754,8 @@ This is expected to have 'content_type' and 'url' keys.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/elsevier.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 83</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 82</span>
+<span class="normal"> 83</span>
 <span class="normal"> 84</span>
 <span class="normal"> 85</span>
 <span class="normal"> 86</span>
@@ -15778,8 +15777,7 @@ This is expected to have 'content_type' and 'url' keys.</p>
 <span class="normal">102</span>
 <span class="normal">103</span>
 <span class="normal">104</span>
-<span class="normal">105</span>
-<span class="normal">106</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">download_one_pdf</span><span class="p">(</span>
+<span class="normal">105</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">download_one_pdf</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">pdf_url</span><span class="p">:</span> <span class="n">AnyUrl</span><span class="p">,</span>
     <span class="n">filepath</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
@@ -15900,7 +15898,9 @@ representing the saved output files.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/elsevier.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">449</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">447</span>
+<span class="normal">448</span>
+<span class="normal">449</span>
 <span class="normal">450</span>
 <span class="normal">451</span>
 <span class="normal">452</span>
@@ -15933,9 +15933,7 @@ representing the saved output files.</p>
 <span class="normal">479</span>
 <span class="normal">480</span>
 <span class="normal">481</span>
-<span class="normal">482</span>
-<span class="normal">483</span>
-<span class="normal">484</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">fetch_many_full_texts</span><span class="p">(</span>
+<span class="normal">482</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">fetch_many_full_texts</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">study_collection</span><span class="p">:</span> <span class="n">DOIStudyCollection</span><span class="p">,</span>
     <span class="n">output_directory</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
@@ -16118,7 +16116,8 @@ In this case, we should attempt to fetch the XML fulltext instead.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/elsevier.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">180</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">179</span>
+<span class="normal">180</span>
 <span class="normal">181</span>
 <span class="normal">182</span>
 <span class="normal">183</span>
@@ -16226,8 +16225,7 @@ In this case, we should attempt to fetch the XML fulltext instead.</p>
 <span class="normal">285</span>
 <span class="normal">286</span>
 <span class="normal">287</span>
-<span class="normal">288</span>
-<span class="normal">289</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_final_fulltext_content</span><span class="p">(</span>
+<span class="normal">288</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_final_fulltext_content</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">output_file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
@@ -16293,12 +16291,12 @@ In this case, we should attempt to fetch the XML fulltext instead.</p>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_elsevier_request</span><span class="p">(</span>
-            <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span> <span class="n">elsevier_request_config</span><span class="o">=</span><span class="n">xml_request_config</span><span class="p">,</span> <span class="n">doi</span><span class="o">=</span><span class="n">doi</span><span class="p">,</span> <span class="n">uid</span><span class="o">=</span><span class="n">uid</span>
+            <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span> <span class="n">elsevier_request_config</span><span class="o">=</span><span class="n">xml_request_config</span><span class="p">,</span> <span class="n">doi</span><span class="o">=</span><span class="n">doi</span>
         <span class="p">)</span>
     <span class="k">except</span> <span class="p">(</span>
-        <span class="n">httpx</span><span class="o">.</span><span class="n">HTTPError</span><span class="p">,</span>
+        <span class="n">httpx2</span><span class="o">.</span><span class="n">HTTPError</span><span class="p">,</span>
         <span class="n">FullTextStreamError</span><span class="p">,</span>
-        <span class="n">ProxyConnectionError</span><span class="p">,</span>
+        <span class="n">httpx2</span><span class="o">.</span><span class="n">ProxyError</span><span class="p">,</span>
     <span class="p">)</span> <span class="k">as</span> <span class="n">elsevier_request_error</span><span class="p">:</span>
         <span class="n">error_message</span> <span class="o">=</span> <span class="p">(</span>
             <span class="s2">&quot;Elsevier request error when fetching XML after PDF fetch&quot;</span>
@@ -16313,7 +16311,7 @@ In this case, we should attempt to fetch the XML fulltext instead.</p>
             <span class="n">error</span><span class="o">=</span><span class="n">error_message</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="n">httpx</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">OK</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="n">httpx2</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">OK</span><span class="p">:</span>
         <span class="n">xml_file_path</span> <span class="o">=</span> <span class="n">output_file_path</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.xml&quot;</span><span class="p">)</span>
         <span class="n">xml_file_path</span><span class="o">.</span><span class="n">write_bytes</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Elsevier XML content saved </span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">xml_file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -16453,7 +16451,8 @@ headers and file extension.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/elsevier.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">108</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">107</span>
+<span class="normal">108</span>
 <span class="normal">109</span>
 <span class="normal">110</span>
 <span class="normal">111</span>
@@ -16522,8 +16521,7 @@ headers and file extension.</p>
 <span class="normal">174</span>
 <span class="normal">175</span>
 <span class="normal">176</span>
-<span class="normal">177</span>
-<span class="normal">178</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">prepare_request_config</span><span class="p">(</span>
+<span class="normal">177</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">prepare_request_config</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">get_pdf</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">get_xml</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ElsevierRequestConfig</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -16636,11 +16634,11 @@ headers and file extension.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>fer/fetching/elsevier.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">33</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">32</span>
+<span class="normal">33</span>
 <span class="normal">34</span>
 <span class="normal">35</span>
-<span class="normal">36</span>
-<span class="normal">37</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ElsevierRequestConfig</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="normal">36</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ElsevierRequestConfig</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Configuration for Elsevier API requests.&quot;&quot;&quot;</span>
 
     <span class="n">headers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
@@ -19259,7 +19257,7 @@ corresponding fetcher instances.</p>
                     <span class="n">doi</span><span class="o">=</span><span class="n">doi</span><span class="p">,</span> <span class="n">uid</span><span class="o">=</span><span class="n">uid</span><span class="p">,</span> <span class="n">fulltext_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="n">warning_message</span>
                 <span class="p">)</span>
 
-        <span class="k">except</span> <span class="n">httpx</span><span class="o">.</span><span class="n">HTTPError</span> <span class="k">as</span> <span class="n">http_error</span><span class="p">:</span>
+        <span class="k">except</span> <span class="n">httpx2</span><span class="o">.</span><span class="n">HTTPError</span> <span class="k">as</span> <span class="n">http_error</span><span class="p">:</span>
             <span class="n">error_message</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;HTTP error fetching Unpaywall data for </span><span class="si">{</span><span class="n">doi</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">http_error</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
@@ -19980,7 +19978,7 @@ representing the saved PDF files.</p>
                 <span class="n">doi</span><span class="o">=</span><span class="n">doi</span><span class="p">,</span> <span class="n">uid</span><span class="o">=</span><span class="n">uid</span><span class="p">,</span> <span class="n">fulltext_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="n">warning_message</span>
             <span class="p">)</span>
 
-    <span class="k">except</span> <span class="n">httpx</span><span class="o">.</span><span class="n">HTTPError</span> <span class="k">as</span> <span class="n">http_error</span><span class="p">:</span>
+    <span class="k">except</span> <span class="n">httpx2</span><span class="o">.</span><span class="n">HTTPError</span> <span class="k">as</span> <span class="n">http_error</span><span class="p">:</span>
         <span class="n">error_message</span> <span class="o">=</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;HTTP error fetching Unpaywall data for </span><span class="si">{</span><span class="n">doi</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">http_error</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="p">)</span>
