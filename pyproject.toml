@@ -61,8 +61,9 @@ explicit_package_bases = true
 plugins = ["pydantic.mypy"]
 
 [tool.pytest]
-addopts = ["--color=yes", "--import-mode=importlib", "--verbose"]
+addopts = ["--color=yes", "--import-mode=importlib", "--verbose", "-m", "not eval"]
 asyncio_mode = "auto"
+markers = ["eval: Benchmarks for assessing PDF retrieval rate"]
 pythonpath = ["."]
 testpaths = ["tests"]
 

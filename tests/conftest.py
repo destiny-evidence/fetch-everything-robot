@@ -1,7 +1,9 @@
 # ruff: noqa: E501, S106, ANN002, ANN003, ARG002
 import logging
+import os
 import uuid
 from collections.abc import Generator
+from datetime import UTC, datetime
 from pathlib import Path
 
 import destiny_sdk
@@ -46,9 +48,14 @@ def temporary_test_file(tmp_path):
 
 @pytest.fixture(autouse=True)
 def set_test_environment_variables(
+    request: pytest.FixtureRequest,
     monkeypatch: pytest.MonkeyPatch,
 ) -> Generator[None]:
-    """Configure the pytest environment."""
+    """Configure the pytest environment, skipping for evaluation benchmarks."""
+    if request.node.get_closest_marker("eval"):
+        yield
+        return
+
     monkeypatch.setenv("ENV", "test")
     monkeypatch.setenv("DESTINY_REPOSITORY_URL", "http://localhost:8001/enhancement/")
     monkeypatch.setenv("ROBOT_ID", "e0aba318-eee9-4b4c-b503-7f72547063d8")
@@ -345,3 +352,21 @@ def test_references() -> list[destiny_sdk.references.Reference]:
             ],
         ),
     ]
+
+
+@pytest.fixture(scope="session")
+def eval_config():
+    """
+    Generate sampling parameters for evaluation.
+
+    Default to a daily rotating seed and small sample size.
+    """
+    daily_seed = int(datetime.now(UTC).strftime("%Y%m%d"))
+
+    env_seed = os.environ.get("FER_EVAL_SEED", "").strip()
+    env_size = os.environ.get("FER_EVAL_SAMPLE_SIZE", "").strip()
+
+    seed = int(env_seed) if env_seed else daily_seed
+    sample_size = int(env_size) if env_size else 10
+
+    return {"seed": seed, "sample_size": sample_size}

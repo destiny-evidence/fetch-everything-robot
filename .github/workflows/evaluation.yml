@@ -1,0 +1,74 @@
+name: Manual Evaluation and Metrics
+
+on:
+  workflow_dispatch:
+    inputs:
+      sample_size:
+        description: "Number of records to evaluate"
+        required: true
+        default: "100"
+      seed_override:
+        description: "Optional fixed seed (leave blank for dynamic daily seed)"
+        required: false
+        default: ""
+  push:
+    branches:
+      - tests/#59-automated-benchmarking
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  manual-evaluation:
+    runs-on: ubuntu-latest
+
+    env:
+      UV_CACHE_DIR: /tmp/.uv-cache
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: "0.11.16"
+          python-version: "3.13"
+
+      - name: Restore uv cache
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: /tmp/.uv-cache
+          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+            uv-${{ runner.os }}
+
+      - name: Install the project
+        run: uv sync --locked --all-extras
+
+      - name: Run Evaluation Benchmarks
+        env:
+          DESTINY_REPOSITORY_URL: "http://example.com"
+          OPENALEX_KEY: ${{ secrets.OPENALEX_KEY }}
+          ELSEVIER_SCOPUS_KEY: ${{ secrets.ELSEVIER_SCOPUS_KEY }}
+          ELSEVIER_SCOPUS_INST_TOKEN: ${{ secrets.ELSEVIER_SCOPUS_INST_TOKEN }}
+          FER_EVAL_SAMPLE_SIZE: ${{ github.event.inputs.sample_size }}
+          FER_EVAL_SEED: ${{ github.event.inputs.seed_override }}
+        run: |
+          uv run pytest -m eval
+
+      - name: Deploy Metrics to Isolated Branch
+        uses: JamesIves/github-pages-deploy-action@d92aa235d04922e8f08b40ce78cc5442fcfbfa2f # v4.8.0
+        with:
+          folder: metrics
+          branch: metrics
+          single-commit: true
+          clean: false
+
+      - name: Minimize uv cache
+        run: uv cache prune --ci
