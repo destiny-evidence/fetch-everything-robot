@@ -11,9 +11,6 @@ on:
         description: "Optional fixed seed (leave blank for dynamic daily seed)"
         required: false
         default: ""
-  push:
-    branches:
-      - tests/#59-automated-benchmarking
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
