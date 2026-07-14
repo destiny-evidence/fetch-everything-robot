@@ -1,16 +1,16 @@
 # ruff: noqa: E501, S106, ANN002, ANN003, ARG002
 import logging
+import os
 import uuid
 from collections.abc import Generator
+from datetime import UTC, datetime
 from pathlib import Path
 
 import destiny_sdk
-import httpx
+import httpx2
 import pytest
-from fastapi import status
 from loguru import logger
 from pydantic import AnyUrl
-from pytest_httpx import HTTPXMock, IteratorStream
 
 from fer.config import ExternalAPIPriority, Settings
 from fer.data_models.generic import (
@@ -23,7 +23,7 @@ from fer.data_models.generic import (
 from fer.data_models.scopus import ScopusAPIConfig
 from fer.enhancement_processor import FullTextEnhancementProcessor
 from fer.fetching import BasePublisherFetcher
-from fer.fetching.core import RetrievedFullText, StudyCollection, stream_file
+from fer.fetching.core import DOIStudyCollection, RetrievedFullText, stream_file
 
 pytest_plugins = [
     "tests.fixtures.generic",
@@ -49,9 +49,14 @@ def temporary_test_file(tmp_path):
 
 @pytest.fixture(autouse=True)
 def set_test_environment_variables(
+    request: pytest.FixtureRequest,
     monkeypatch: pytest.MonkeyPatch,
 ) -> Generator[None]:
-    """Configure the pytest environment."""
+    """Configure the pytest environment, skipping for evaluation benchmarks."""
+    if request.node.get_closest_marker("eval"):
+        yield
+        return
+
     monkeypatch.setenv("ENV", "test")
     monkeypatch.setenv("DESTINY_REPOSITORY_URL", "http://localhost:8001/enhancement/")
     monkeypatch.setenv("ROBOT_ID", "e0aba318-eee9-4b4c-b503-7f72547063d8")
@@ -219,7 +224,7 @@ class DummyPublisherFetcher(BasePublisherFetcher):
             Path | None: The path to the downloaded PDF or None if download failed.
 
         """
-        async with httpx.AsyncClient() as client:
+        async with httpx2.AsyncClient() as client:
             response = await client.get(pdf_url)
         response.raise_for_status()
         await stream_file(url=pdf_url, destination=filepath)
@@ -227,7 +232,7 @@ class DummyPublisherFetcher(BasePublisherFetcher):
 
     async def fetch_many_full_texts(
         self,
-        study_collection: StudyCollection,
+        study_collection: DOIStudyCollection,
         output_directory: Path,
         **kwargs: object,
     ) -> list[RetrievedFullText]:
@@ -238,7 +243,7 @@ class DummyPublisherFetcher(BasePublisherFetcher):
             dict: A dummy response.
 
         """
-        async with httpx.AsyncClient() as client:
+        async with httpx2.AsyncClient() as client:
             response = await client.get("https://example.com/test")
         response.raise_for_status()
         return response.json()
@@ -301,8 +306,18 @@ def test_dois() -> list[str]:
 
 
 @pytest.fixture
+def test_openalex_ids() -> list[destiny_sdk.identifiers.OpenAlexIdentifier]:
+    """Create a list of test OpenAlex IDs."""
+    test_ids = ["W1234567890", "W0987654321"]
+    return [
+        destiny_sdk.identifiers.OpenAlexIdentifier(identifier=test_id)
+        for test_id in test_ids
+    ]
+
+
+@pytest.fixture
 def mock_reference_file_stream(
-    httpx_mock: HTTPXMock, test_reference_ids: list[uuid.UUID], test_dois: list[str]
+    test_reference_ids: list[uuid.UUID], test_dois: list[str]
 ):
     """Mock a stream for a file containing references."""
     stream_response = []
@@ -312,36 +327,7 @@ def mock_reference_file_stream(
             identifiers=[destiny_sdk.identifiers.DOIIdentifier(identifier=doi)],
         )
         stream_response.append(bytes(reference.to_jsonl() + "\n", "utf-8"))
-    httpx_mock.add_response(stream=IteratorStream(stream_response))
-
-
-@pytest.fixture
-def mock_destiny_repository_response(
-    httpx_mock: HTTPXMock,
-    test_request_id: uuid.UUID,
-    test_reference_ids: list[uuid.UUID],
-):
-    """Mock a successful enhancement post to destiny repository."""
-    create_enhancement_response = destiny_sdk.robots.EnhancementRequestRead(
-        id=test_request_id,
-        reference_ids=test_reference_ids,
-        enhancement_parameters={},
-        robot_id=uuid.uuid4(),
-        request_status=destiny_sdk.robots.EnhancementRequestStatus.COMPLETED,
-    )
-
-    # Mock out our callback
-    httpx_mock.add_response(
-        method="POST",
-        status_code=status.HTTP_200_OK,
-        json=create_enhancement_response.model_dump(mode="json"),
-    )
-
-
-@pytest.fixture
-def mock_enhancement_put(httpx_mock: HTTPXMock):
-    """Mock the putting of references to the results url."""
-    httpx_mock.add_response(method="PUT", status_code=status.HTTP_200_OK)
+    return stream_response
 
 
 @pytest.fixture
@@ -367,3 +353,21 @@ def test_references() -> list[destiny_sdk.references.Reference]:
             ],
         ),
     ]
+
+
+@pytest.fixture(scope="session")
+def eval_config():
+    """
+    Generate sampling parameters for evaluation.
+
+    Default to a daily rotating seed and small sample size.
+    """
+    daily_seed = int(datetime.now(UTC).strftime("%Y%m%d"))
+
+    env_seed = os.environ.get("FER_EVAL_SEED", "").strip()
+    env_size = os.environ.get("FER_EVAL_SAMPLE_SIZE", "").strip()
+
+    seed = int(env_seed) if env_seed else daily_seed
+    sample_size = int(env_size) if env_size else 10
+
+    return {"seed": seed, "sample_size": sample_size}

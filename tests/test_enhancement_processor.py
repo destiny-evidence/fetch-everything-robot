@@ -10,6 +10,7 @@ from fer.enhancement_processor import (
     FullTextEnhancementProcessor,
     MissingDOIError,
 )
+from fer.fetch_fulltext import FullTextResult
 from fer.fetching.core import RetrievedFullText
 
 
@@ -139,18 +140,22 @@ async def test_generate_fulltext_partial_success_empty_fulltexts_found_for_some_
     test_fetch_results_single_failure,
 ):
     expected_results = [
-        {
-            "doi": test_references[0].identifiers[0].identifier,
-            "fulltext_path": str(test_fetch_results_single_success[0].fulltext_path),
-            "source": test_fulltext_enhancement_processor.available_api_configs[
+        FullTextResult(
+            doi=test_references[0].identifiers[0].identifier,
+            uid=str(test_references[0].id),
+            openalex_id=None,
+            fulltext_path=str(test_fetch_results_single_success[0].fulltext_path),
+            source=test_fulltext_enhancement_processor.available_api_configs[
                 0
             ].name.value.upper(),
-        },
-        {
-            "doi": test_references[1].identifiers[0].identifier,
-            "fulltext_path": None,
-            "source": None,
-        },
+        ),
+        FullTextResult(
+            doi=test_references[1].identifiers[0].identifier,
+            uid=str(test_references[1].id),
+            openalex_id=None,
+            fulltext_path=None,
+            source=None,
+        ),
     ]
 
     n_available_api_configs = len(

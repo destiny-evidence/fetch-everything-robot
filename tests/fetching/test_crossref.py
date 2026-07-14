@@ -1,8 +1,9 @@
-import httpx
+import httpx2
 import pytest
 from habanero import RequestError
 
 from fer.fetching.crossref import CrossrefFetcher
+from tests.fixtures.fetching import fake_stream_file
 
 
 def test_crossref_get_content_type_success(test_settings):
@@ -152,6 +153,10 @@ async def test_fetch_many_full_texts_with_valid_pdf(
 ):
     fetcher = CrossrefFetcher(settings=test_settings)
     mocker.patch("asyncio.sleep")
+    valid_pdf_content = b"test"
+    temp_pdf_path = tmp_path / "dummy.pdf"
+    temp_pdf_path.write_bytes(valid_pdf_content)
+
     patched_crossref_works = mocker.patch("fer.fetching.crossref.Crossref.works")
     patched_url_get_call = mocker.patch.object(
         fetcher,
@@ -164,8 +169,9 @@ async def test_fetch_many_full_texts_with_valid_pdf(
     patched_pdf_url_is_valid = mocker.patch.object(
         fetcher, "pdf_url_is_valid", return_value=True
     )
+
     patched_stream_file = mocker.patch(
-        "fer.fetching.crossref.stream_file", return_value=tmp_path / "dummy.pdf"
+        "fer.fetching.crossref.stream_file", side_effect=fake_stream_file
     )
     await fetcher.fetch_many_full_texts(
         study_collection=test_study_collection, output_directory=tmp_path
@@ -214,12 +220,12 @@ async def test_fetch_many_full_texts_fails_request_error(
 @pytest.mark.parametrize(
     ("timeout_exception"),
     [
-        httpx.ReadTimeout,
-        httpx.ConnectTimeout,
+        httpx2.ReadTimeout,
+        httpx2.ConnectTimeout,
     ],
 )
 async def test_crossref_works_timeout_error(
-    httpx_mock,
+    mocker,
     caplog,
     timeout_exception,
     test_settings,
@@ -230,7 +236,10 @@ async def test_crossref_works_timeout_error(
     dois = [study.doi.identifier for study in test_study_collection.studies]
 
     fetcher = CrossrefFetcher(settings=test_settings)
-    httpx_mock.add_exception(timeout_exception("Simulated timeout"), is_reusable=True)
+    mocker.patch(
+        "fer.fetching.crossref.Crossref.works",
+        side_effect=timeout_exception("Simulated timeout"),
+    )
 
     with caplog.at_level("ERROR"):
         result = await fetcher.fetch_many_full_texts(
@@ -247,15 +256,24 @@ async def test_crossref_works_timeout_error(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("http_exception"),
-    [httpx.HTTPError, httpx.NetworkError, httpx.RequestError, httpx.TransportError],
+    [
+        httpx2.HTTPError,
+        httpx2.NetworkError,
+        httpx2.RequestError,
+        httpx2.TransportError,
+        httpx2.ProxyError,
+    ],
 )
 async def test_crossref_works_generic_http_error(
-    httpx_mock, caplog, http_exception, test_settings, test_study_collection, tmp_path
+    mocker, caplog, http_exception, test_settings, test_study_collection, tmp_path
 ):
     uids = [str(study.uid) for study in test_study_collection.studies]
     dois = [study.doi.identifier for study in test_study_collection.studies]
     fetcher = CrossrefFetcher(settings=test_settings)
-    httpx_mock.add_exception(http_exception("Test HTTP exception"), is_reusable=True)
+    mocker.patch(
+        "fer.fetching.crossref.Crossref.works",
+        side_effect=http_exception("Test HTTP exception"),
+    )
     with caplog.at_level("ERROR"):
         result = await fetcher.fetch_many_full_texts(
             study_collection=test_study_collection, output_directory=tmp_path

@@ -1,53 +1,73 @@
-import httpx
+from collections.abc import AsyncGenerator
+from uuid import uuid4
+
+import httpx2
 import pytest
 from pypdf import PdfWriter
 from pypdf.errors import PyPdfError
-from python_socks import ProxyConnectionError
 
-from fer.fetching.core import FullTextStreamError, RetrievedFullText
+from fer.fetching.core import (
+    FullTextStreamError,
+    IncompleteFullTextError,
+)
 from fer.fetching.elsevier import ElsevierFetcher, ElsevierRequestConfig
+from tests.fixtures.fetching import fake_stream_file
 
 
 @pytest.mark.asyncio
-async def test_elsevier_fetcher_fetch_many_full_texts_success(
+async def test_elsevier_fetcher_fetch_many_full_texts_pdf_success(
     mocker, test_settings, test_study_collection, tmp_path
 ):
     fetcher = ElsevierFetcher(settings=test_settings)
-    mocker.patch(
-        "fer.fetching.elsevier.stream_file", return_value=tmp_path / "test.pdf"
+    mocked_stream = mocker.patch(
+        "fer.fetching.elsevier.stream_file", side_effect=fake_stream_file
     )
     mock_response = mocker.MagicMock()
-    mock_response.status_code = httpx.codes.OK
+    mock_response.status_code = httpx2.codes.OK
     mock_response.raise_for_status.return_value = None
-
-    mock_get = mocker.patch(
-        "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
-        new=mocker.AsyncMock(return_value=mock_response),
-    )
 
     await fetcher.fetch_many_full_texts(
         study_collection=test_study_collection,
         output_directory=tmp_path,
     )
-
-    assert mock_get.call_count == len(test_study_collection.studies)
+    assert mocked_stream.call_count == len(test_study_collection.studies)
 
 
 @pytest.mark.asyncio
-async def test_elsevier_fetcher_fetch_many_full_texts_non_http_200(
+async def test_elsevier_fetcher_fetch_many_full_texts_xml_success(
+    mocker, test_settings, test_study_collection, tmp_path
+):
+    fetcher = ElsevierFetcher(settings=test_settings)
+    mock_response = mocker.MagicMock()
+    mock_response.status_code = httpx2.codes.OK
+    mock_response.raise_for_status.return_value = None
+    mock_response.content = b"<xml>content</xml>"
+    mocked_get = mocker.patch(
+        "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
+        new=mocker.AsyncMock(return_value=mock_response),
+    )
+    result = await fetcher.fetch_many_full_texts(
+        study_collection=test_study_collection,
+        output_directory=tmp_path,
+        get_pdf=False,
+        get_xml=True,
+    )
+    assert mocked_get.call_count == len(test_study_collection.studies)
+    assert all(str(r.fulltext_path).endswith(".xml") for r in result)
+
+
+@pytest.mark.asyncio
+async def test_elsevier_fetcher_fetch_many_full_texts_xml_non_http_200(
     mocker, test_settings, test_study_collection, tmp_path, caplog
 ):
     uids = [str(study.uid).lower() for study in test_study_collection.studies]
     dois = [study.doi.identifier.lower() for study in test_study_collection.studies]
     fetcher = ElsevierFetcher(settings=test_settings)
-    mocker.patch(
-        "fer.fetching.elsevier.stream_file", return_value=tmp_path / "test.pdf"
-    )
-    test_status_code = httpx.codes.ACCEPTED
+
+    test_status_code = httpx2.codes.ACCEPTED
     mock_response = mocker.MagicMock()
     mock_response.status_code = test_status_code
     mock_response.raise_for_status.return_value = None
-
     mock_get = mocker.patch(
         "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
         new=mocker.AsyncMock(return_value=mock_response),
@@ -57,6 +77,8 @@ async def test_elsevier_fetcher_fetch_many_full_texts_non_http_200(
         await fetcher.fetch_many_full_texts(
             study_collection=test_study_collection,
             output_directory=tmp_path,
+            get_pdf=False,
+            get_xml=True,
         )
     assert mock_get.call_count == len(test_study_collection.studies)
     assert all(uid in caplog.text for uid in uids)
@@ -65,17 +87,15 @@ async def test_elsevier_fetcher_fetch_many_full_texts_non_http_200(
 
 
 @pytest.mark.asyncio
-async def test_elsevier_fetcher_fetch_many_full_texts_http_error(
+async def test_elsevier_fetcher_fetch_many_full_texts_xml_http_error(
     mocker, test_settings, test_study_collection, tmp_path, caplog
 ):
     dois = [study.doi.identifier.lower() for study in test_study_collection.studies]
     fetcher = ElsevierFetcher(settings=test_settings)
-    mocker.patch(
-        "fer.fetching.elsevier.stream_file", return_value=tmp_path / "test.pdf"
-    )
+    mocker.patch("fer.fetching.elsevier.stream_file", side_effect=fake_stream_file)
 
     mock_response = mocker.MagicMock()
-    mock_response.raise_for_status.side_effect = httpx.HTTPError("Test HTTP error")
+    mock_response.raise_for_status.side_effect = httpx2.HTTPError("Test HTTP error")
 
     mock_get = mocker.patch(
         "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
@@ -86,6 +106,8 @@ async def test_elsevier_fetcher_fetch_many_full_texts_http_error(
         await fetcher.fetch_many_full_texts(
             study_collection=test_study_collection,
             output_directory=tmp_path,
+            get_pdf=False,
+            get_xml=True,
         )
     assert mock_get.call_count == len(test_study_collection.studies)
     assert all(doi in caplog.text for doi in dois)
@@ -93,31 +115,26 @@ async def test_elsevier_fetcher_fetch_many_full_texts_http_error(
 
 
 @pytest.mark.asyncio
-async def test_elsevier_fetcher_fetch_many_full_texts_stream_error(
+async def test_elsevier_fetcher_fetch_many_full_texts_pdf_stream_error(
     mocker, test_settings, test_study_collection, tmp_path, caplog
 ):
     dois = [study.doi.identifier.lower() for study in test_study_collection.studies]
     fetcher = ElsevierFetcher(settings=test_settings)
-    mocker.patch(
+    mocked_stream_file_call = mocker.patch(
         "fer.fetching.elsevier.stream_file",
         side_effect=FullTextStreamError("Test stream error"),
     )
 
     mock_response = mocker.MagicMock()
-    mock_response.status_code = httpx.codes.OK
+    mock_response.status_code = httpx2.codes.OK
     mock_response.raise_for_status.return_value = None
-
-    mock_get = mocker.patch(
-        "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
-        new=mocker.AsyncMock(return_value=mock_response),
-    )
 
     with caplog.at_level("ERROR"):
         await fetcher.fetch_many_full_texts(
             study_collection=test_study_collection,
             output_directory=tmp_path,
         )
-    assert mock_get.call_count == len(test_study_collection.studies)
+    assert mocked_stream_file_call.call_count == len(test_study_collection.studies)
     assert all(doi in caplog.text for doi in dois)
     assert "Full text download error" in caplog.text
 
@@ -183,11 +200,9 @@ async def test_fetch_one_fulltext_returns_retrieved_full_text_on_success(
     request_config = ElsevierRequestConfig(
         headers={"Accept": "application/pdf"}, file_extension=".pdf"
     )
-    mocker.patch(
-        "fer.fetching.elsevier.stream_file", return_value=tmp_path / f"{study.uid}.pdf"
-    )
+    mocker.patch("fer.fetching.elsevier.stream_file", side_effect=fake_stream_file)
     mock_response = mocker.MagicMock()
-    mock_response.status_code = httpx.codes.OK
+    mock_response.status_code = httpx2.codes.OK
     mock_response.raise_for_status.return_value = None
     mocker.patch(
         "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
@@ -207,11 +222,11 @@ async def test_fetch_one_fulltext_http_error(
 ):
     study = test_study_collection.studies[0]
     request_config = ElsevierRequestConfig(
-        headers={"Accept": "application/pdf"}, file_extension=".pdf"
+        headers={"Accept": "text/xml"}, file_extension=".xml"
     )
     mock_response = mocker.MagicMock()
     expected_error_text = "a test http error"
-    mock_response.raise_for_status.side_effect = httpx.HTTPError(expected_error_text)
+    mock_response.raise_for_status.side_effect = httpx2.HTTPError(expected_error_text)
     mocker.patch(
         "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
         new=mocker.AsyncMock(return_value=mock_response),
@@ -231,10 +246,10 @@ async def test_fetch_one_fulltext_proxy_connection_error(
 ):
     study = test_study_collection.studies[0]
     request_config = ElsevierRequestConfig(
-        headers={"Accept": "application/pdf"}, file_extension=".pdf"
+        headers={"Accept": "text/xml"}, file_extension=".xml"
     )
     mock_response = mocker.MagicMock()
-    mock_response.raise_for_status.side_effect = ProxyConnectionError(
+    mock_response.raise_for_status.side_effect = httpx2.ProxyError(
         "a test proxy connection error"
     )
     mocker.patch(
@@ -251,6 +266,29 @@ async def test_fetch_one_fulltext_proxy_connection_error(
 
 
 @pytest.mark.asyncio
+async def test_fetch_one_fulltext_proxy_error(
+    mocker, test_settings, tmp_path, test_study_collection
+):
+    study = test_study_collection.studies[0]
+    request_config = ElsevierRequestConfig(
+        headers={"Accept": "text/xml"}, file_extension=".xml"
+    )
+    mock_response = mocker.MagicMock()
+    mock_response.raise_for_status.side_effect = httpx2.ProxyError("a test proxy error")
+    mocker.patch(
+        "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
+        new=mocker.AsyncMock(return_value=mock_response),
+    )
+
+    result = await ElsevierFetcher(settings=test_settings)._fetch_one_fulltext(
+        study, tmp_path, request_config
+    )
+
+    assert result.fulltext_path is None
+    assert "proxy error" in result.error
+
+
+@pytest.mark.asyncio
 async def test_fetch_one_fulltext_stream_error(
     mocker, test_settings, tmp_path, test_study_collection
 ):
@@ -263,7 +301,7 @@ async def test_fetch_one_fulltext_stream_error(
         side_effect=FullTextStreamError("a test stream error"),
     )
     mock_response = mocker.MagicMock()
-    mock_response.status_code = httpx.codes.OK
+    mock_response.status_code = httpx2.codes.OK
     mock_response.raise_for_status.return_value = None
     mocker.patch(
         "fer.fetching.elsevier.AsyncHTTPXRetryClient.get",
@@ -279,30 +317,35 @@ async def test_fetch_one_fulltext_stream_error(
 
 
 @pytest.mark.asyncio
-async def test_fetch_many_full_texts_single_page_pdf_falls_back_to_xml(
+async def test_fetch_many_full_texts_single_page_incomplete_pdf_falls_back_to_xml(
     mocker, test_settings, test_study_collection, tmp_path
 ):
     """
     Ensure a mislabelled open access item is handled correctly.
 
     An item mislabelled as open access, but that produces a single text PDF
-    should c ause us to fall back to producing XML output.
+    should cause us to fall back to producing XML output.
     """
     fetcher = ElsevierFetcher(settings=test_settings)
     studies = test_study_collection.studies
-
+    for study in studies:
+        pdf_path = tmp_path / f"{study.uid}.pdf"
+        pdf_path.write_bytes(b"PDF content")
     interleaved_responses = [
         response
         for _ in studies
         for response in (
-            httpx.Response(status_code=httpx.codes.OK, content=b"PDF content"),
-            httpx.Response(status_code=httpx.codes.OK, content=b"<xml>content</xml>"),
+            httpx2.Response(status_code=httpx2.codes.OK, content=b"PDF content"),
+            httpx2.Response(status_code=httpx2.codes.OK, content=b"<xml>content</xml>"),
         )
     ]
-    mocker.patch(
+    mocked_stream = mocker.patch(
         "fer.fetching.elsevier.stream_file",
-        new=mocker.AsyncMock(side_effect=[tmp_path / f"{s.uid}.pdf" for s in studies]),
+        new=mocker.AsyncMock(
+            side_effect=IncompleteFullTextError("Test incomplete PDF error")
+        ),
     )
+
     mock_fetch = mocker.patch.object(
         ElsevierFetcher,
         "_elsevier_request",
@@ -314,17 +357,22 @@ async def test_fetch_many_full_texts_single_page_pdf_falls_back_to_xml(
         study_collection=test_study_collection, output_directory=tmp_path
     )
 
-    all_configs = [
+    elsevier_request_configs = [
         call.kwargs.get("elsevier_request_config") for call in mock_fetch.call_args_list
     ]
+    stream_file_headers = [
+        call.kwargs.get("headers") for call in mocked_stream.call_args_list
+    ]
     pdf_calls = [
-        config
-        for config in all_configs
-        if config.headers.get("Accept") == "application/pdf"
+        header
+        for header in stream_file_headers
+        if header.get("Accept") == "application/pdf"
     ]
 
     xml_calls = [
-        config for config in all_configs if config.headers.get("Accept") == "text/xml"
+        config
+        for config in elsevier_request_configs
+        if config.headers.get("Accept") == "text/xml"
     ]
 
     assert len(pdf_calls) == len(studies)
@@ -332,66 +380,334 @@ async def test_fetch_many_full_texts_single_page_pdf_falls_back_to_xml(
     assert all(str(r.fulltext_path).endswith(".xml") for r in results)
 
 
-@pytest.mark.xfail(reason="Not yet implemented fallback logic")
 @pytest.mark.asyncio
-async def test_fetch_many_full_texts_closed_access_skips_pdf(
+async def test_fetch_many_full_texts_single_page_complete_pdf_returns_gracefully(
     mocker, test_settings, test_study_collection, tmp_path
 ):
-    for study in test_study_collection.studies:
-        study.is_open_access = False
+    """
+    Ensure a single page open access item is handled correctly.
 
+    We can't just assume that single page PDFs are incomplete!
+    """
     fetcher = ElsevierFetcher(settings=test_settings)
-    xml_results = [
-        RetrievedFullText(
-            doi=s.doi.identifier.lower(),
-            uid=s.uid,
-            fulltext_path=tmp_path / f"{s.uid}.xml",
+    studies = test_study_collection.studies
+
+    pdf_responses = [
+        response
+        for _ in studies
+        for response in (
+            httpx2.Response(status_code=httpx2.codes.OK, content=b"PDF content"),
         )
-        for s in test_study_collection.studies
     ]
+    mocked_stream = mocker.patch(
+        "fer.fetching.elsevier.stream_file",
+        new=mocker.AsyncMock(
+            side_effect=[
+                await fake_stream_file(
+                    url="http://example.com/article.pdf",
+                    destination=tmp_path / f"{study.uid}.pdf",
+                    pdf_content=b"PDF content",
+                )
+                for study in test_study_collection.studies
+            ]
+        ),
+    )
     mock_fetch = mocker.patch.object(
         ElsevierFetcher,
-        "_fetch_one_fulltext",
-        new=mocker.AsyncMock(side_effect=xml_results),
-    )
-
-    await fetcher.fetch_many_full_texts(
-        study_collection=test_study_collection, output_directory=tmp_path
-    )
-
-    for call in mock_fetch.call_args_list:
-        assert (
-            call.kwargs.get("elsevier_request_config").headers.get("Accept")
-            == "text/xml"
-        )
-
-
-@pytest.mark.xfail(reason="Not yet implemented fallback logic")
-@pytest.mark.asyncio
-async def test_fetch_many_full_texts_single_page_pdf_orphan_deleted(
-    mocker, test_settings, test_study_collection, tmp_path
-):
-    study = test_study_collection.studies[0]
-    orphan_pdf = tmp_path / f"{study.uid}.pdf"
-    orphan_pdf.write_bytes(b"placeholder")
-    fetcher = ElsevierFetcher(settings=test_settings)
-
-    pdf_result = RetrievedFullText(
-        doi=study.doi.identifier.lower(), uid=study.uid, fulltext_path=orphan_pdf
-    )
-    xml_result = RetrievedFullText(
-        doi=study.doi.identifier.lower(),
-        uid=study.uid,
-        fulltext_path=tmp_path / f"{study.uid}.xml",
-    )
-    mocker.patch.object(
-        ElsevierFetcher,
-        "_fetch_one_fulltext",
-        new=mocker.AsyncMock(side_effect=[pdf_result, xml_result]),
+        "_elsevier_request",
+        new=mocker.AsyncMock(side_effect=pdf_responses),
     )
     mocker.patch.object(ElsevierFetcher, "_is_single_page_pdf", return_value=True)
 
-    await fetcher.fetch_many_full_texts(
+    results = await fetcher.fetch_many_full_texts(
         study_collection=test_study_collection, output_directory=tmp_path
     )
-    assert not orphan_pdf.exists()
+
+    elsevier_request_configs = [
+        call.kwargs.get("elsevier_request_config") for call in mock_fetch.call_args_list
+    ]
+    stream_file_headers = [
+        call.kwargs.get("headers") for call in mocked_stream.call_args_list
+    ]
+    pdf_calls = [
+        header
+        for header in stream_file_headers
+        if header.get("Accept") == "application/pdf"
+    ]
+
+    xml_calls = [
+        config
+        for config in elsevier_request_configs
+        if config.headers.get("Accept") == "text/xml"
+    ]
+
+    assert len(pdf_calls) == len(studies)
+    assert len(xml_calls) == 0
+    assert all(str(r.fulltext_path).endswith(".pdf") for r in results)
+
+
+@pytest.mark.asyncio
+async def test_fetch_many_full_texts_multi_page_complete_pdf_returns_gracefully(
+    mocker, test_settings, test_study_collection, tmp_path
+):
+    """Ensure that the normal case of a multi-page open access item is handled correctly."""
+    fetcher = ElsevierFetcher(settings=test_settings)
+    studies = test_study_collection.studies
+
+    pdf_responses = [
+        response
+        for _ in studies
+        for response in (
+            httpx2.Response(status_code=httpx2.codes.OK, content=b"PDF content"),
+        )
+    ]
+    mock_stream = mocker.patch(
+        "fer.fetching.elsevier.stream_file",
+        new=mocker.AsyncMock(
+            side_effect=[
+                await fake_stream_file(
+                    url="http://example.com/article.pdf",
+                    destination=tmp_path / f"{study.uid}.pdf",
+                    pdf_content=b"PDF content",
+                )
+                for study in test_study_collection.studies
+            ]
+        ),
+    )
+    mock_fetch = mocker.patch.object(
+        ElsevierFetcher,
+        "_elsevier_request",
+        new=mocker.AsyncMock(side_effect=pdf_responses),
+    )
+    mocker.patch.object(ElsevierFetcher, "_is_single_page_pdf", return_value=False)
+
+    results = await fetcher.fetch_many_full_texts(
+        study_collection=test_study_collection, output_directory=tmp_path
+    )
+
+    elsevier_request_configs = [
+        call.kwargs.get("elsevier_request_config") for call in mock_fetch.call_args_list
+    ]
+    stream_file_headers = [
+        call.kwargs.get("headers") for call in mock_stream.call_args_list
+    ]
+    pdf_calls = [
+        header
+        for header in stream_file_headers
+        if header.get("Accept") == "application/pdf"
+    ]
+
+    xml_calls = [
+        config
+        for config in elsevier_request_configs
+        if config.headers.get("Accept") == "text/xml"
+    ]
+
+    assert len(pdf_calls) == len(studies)
+    assert len(xml_calls) == 0
+    assert all(str(r.fulltext_path).endswith(".pdf") for r in results)
+
+
+@pytest.mark.asyncio
+async def test_fetch_many_full_texts_single_page_closed_access_pdf_orphan_file_is_deleted(
+    mocker, test_settings, test_study_collection, tmp_path
+):
+    orphan_pdf = tmp_path / f"{test_study_collection.studies[0].uid}.pdf"
+    fetcher = ElsevierFetcher(settings=test_settings)
+    studies = test_study_collection.studies
+
+    async def restricted_stream_file(url, destination, **kwargs) -> None:
+        """Simulate stream_file writing a PDF, detecting a restricted header, and cleaning up."""
+        destination.write_bytes(b"PDF content")
+        destination.unlink()
+        test_error_message = "PDF_RESTRICTED"
+        raise IncompleteFullTextError(test_error_message)
+
+    xml_responses = [
+        httpx2.Response(status_code=httpx2.codes.OK, content=b"<xml>content</xml>")
+        for _ in studies
+    ]
+
+    mocked_stream = mocker.patch(
+        "fer.fetching.elsevier.stream_file",
+        side_effect=restricted_stream_file,
+    )
+    mock_fetch = mocker.patch.object(
+        ElsevierFetcher,
+        "_elsevier_request",
+        new=mocker.AsyncMock(side_effect=xml_responses),
+    )
+
+    results = await fetcher.fetch_many_full_texts(
+        study_collection=test_study_collection, output_directory=tmp_path
+    )
+
+    xml_calls = [
+        call.kwargs.get("elsevier_request_config")
+        for call in mock_fetch.call_args_list
+        if call.kwargs.get("elsevier_request_config").headers.get("Accept")
+        == "text/xml"
+    ]
+
+    assert mocked_stream.call_count == len(studies)
+    assert len(xml_calls) == len(studies)
+    assert (
+        not orphan_pdf.exists()
+    ), "Orphan PDF should be deleted after restricted header detected."
+    assert all(str(r.fulltext_path).endswith(".xml") for r in results)
+
+
+async def test_get_final_fulltext_content_happy_path_multi_page_pdf(
+    mocker, test_settings, tmp_path
+):
+    test_uuid = uuid4()
+    test_doi = "10.1234/testdoi"
+    url = "http://example.com/file.pdf"
+    temp_file = tmp_path / "temp.pdf"
+    temp_file.write_bytes(b"PDF content")
+
+    mock_responses = [
+        httpx2.Response(status_code=httpx2.codes.OK, content=b"PDF content"),
+    ]
+    mocker.patch("fer.fetching.elsevier.stream_file", return_value=temp_file)
+    fetcher = ElsevierFetcher(settings=test_settings)
+
+    mocker.patch.object(ElsevierFetcher, "_is_single_page_pdf", return_value=False)
+    mocker.patch.object(
+        ElsevierFetcher,
+        "_elsevier_request",
+        new=mocker.AsyncMock(side_effect=mock_responses),
+    )
+    fulltext = await fetcher.get_final_fulltext_content(
+        url, temp_file, test_doi, test_uuid
+    )
+    assert fulltext.fulltext_path.exists()
+    assert fulltext.file_format == "pdf"
+    assert fulltext.error is None
+
+
+async def test_get_final_fulltext_content_happy_path_single_page_pdf(
+    mocker, test_settings, tmp_path
+):
+    test_uuid = uuid4()
+    test_doi = "10.1234/testdoi"
+    url = "http://example.com/file.pdf"
+    temp_file = tmp_path / "temp.pdf"
+    temp_file.write_bytes(b"PDF content")
+
+    mock_responses = [
+        httpx2.Response(status_code=httpx2.codes.OK, content=b"PDF content"),
+    ]
+    mocker.patch("fer.fetching.elsevier.stream_file", return_value=temp_file)
+    fetcher = ElsevierFetcher(settings=test_settings)
+
+    mocker.patch.object(ElsevierFetcher, "_is_single_page_pdf", return_value=True)
+    mocker.patch.object(
+        ElsevierFetcher,
+        "_elsevier_request",
+        new=mocker.AsyncMock(side_effect=mock_responses),
+    )
+    fulltext = await fetcher.get_final_fulltext_content(
+        url, temp_file, test_doi, test_uuid
+    )
+    assert fulltext.fulltext_path.exists()
+    assert fulltext.file_format == "pdf"
+    assert fulltext.error is None
+
+
+async def test_get_final_fulltext_content_closed_access_single_page_pdf_returns_xml(
+    mocker, test_settings, tmp_path
+):
+    test_uuid = uuid4()
+    test_doi = "10.1234/testdoi"
+    url = "http://example.com/file.pdf"
+    temp_file = tmp_path / "temp.pdf"
+    temp_file.write_bytes(b"PDF content")
+
+    mock_responses = [
+        httpx2.Response(status_code=httpx2.codes.OK, content=b"PDF content"),
+    ]
+    mocker.patch("fer.fetching.elsevier.stream_file", return_value=temp_file)
+    fetcher = ElsevierFetcher(settings=test_settings)
+
+    mocker.patch.object(ElsevierFetcher, "_is_single_page_pdf", return_value=True)
+    mocker.patch.object(
+        ElsevierFetcher,
+        "_elsevier_request",
+        new=mocker.AsyncMock(side_effect=mock_responses),
+    )
+    fulltext = await fetcher.get_final_fulltext_content(
+        url, temp_file, test_doi, test_uuid, is_incomplete_pdf=True
+    )
+    assert fulltext.fulltext_path.exists()
+    assert fulltext.file_format == "xml"
+    assert fulltext.error is None
+
+
+@pytest.mark.parametrize(
+    "elsevier_request_error",
+    [
+        httpx2.HTTPError("Test HTTP error"),
+        httpx2.ProxyError("Test proxy connection error"),
+        FullTextStreamError("Test stream error"),
+    ],
+)
+async def test_get_final_fulltext_content_fails(
+    mocker, test_settings, tmp_path, elsevier_request_error
+):
+    test_uuid = uuid4()
+    test_doi = "10.1234/testdoi"
+    url = "http://example.com/file.pdf"
+    temp_file = tmp_path / "temp.pdf"
+    temp_file.write_bytes(b"PDF content")
+
+    mocker.patch("fer.fetching.elsevier.stream_file", return_value=temp_file)
+    fetcher = ElsevierFetcher(settings=test_settings)
+
+    mocker.patch.object(ElsevierFetcher, "_is_single_page_pdf", return_value=True)
+    mocker.patch.object(
+        ElsevierFetcher,
+        "_elsevier_request",
+        new=mocker.AsyncMock(side_effect=elsevier_request_error),
+    )
+    response = await fetcher.get_final_fulltext_content(
+        url, temp_file, test_doi, test_uuid, is_incomplete_pdf=True
+    )
+
+    assert response.fulltext_path is None
+    assert response.error is not None
+    error_text = str(elsevier_request_error)
+    assert error_text in response.error
+
+
+@pytest.mark.asyncio
+async def test_download_one_pdf_empty_downloaded_file_elsevier_els_status_not_ok(
+    mocker, temporary_test_file, caplog, test_settings
+):
+    async def one_chunk_data(data: bytes) -> AsyncGenerator[bytes]:
+        yield data
+
+    test_url = "http://example.com/elsevier/streamfile"
+
+    test_content = b""
+    mock_response = mocker.MagicMock()
+    mock_response.__aenter__.return_value = mock_response
+    mock_response.__aexit__.return_value = None
+    mock_response.raise_for_status.return_value = None
+    mock_response.aiter_bytes.return_value = one_chunk_data(test_content)
+    mock_response.headers = {"X-ELS-Status": "PDF_RESTRICTED"}
+
+    mocker.patch("httpx2.AsyncClient.stream", return_value=mock_response)
+
+    fetcher = ElsevierFetcher(settings=test_settings)
+
+    with (
+        pytest.raises(IncompleteFullTextError) as error_info,
+        caplog.at_level("WARNING"),
+    ):
+        await fetcher.download_one_pdf(test_url, temporary_test_file)
+
+    assert "Elsevier download returned restricted response" in str(
+        error_info.value
+    ), "Expect a warning message about incomplete Elsevier full text"
+    assert not temporary_test_file.exists(), "Incomplete file should be deleted"

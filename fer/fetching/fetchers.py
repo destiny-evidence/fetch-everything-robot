@@ -5,8 +5,14 @@ from pathlib import Path
 
 from fer.config import Settings
 from fer.fetching import BasePublisherFetcher
-from fer.fetching.core import BaseAuthError, RetrievedFullText, StudyCollection
+from fer.fetching.core import (
+    BaseAuthError,
+    DOIStudyCollection,
+    OpenAlexStudyCollection,
+    RetrievedFullText,
+)
 from fer.fetching.elsevier import ElsevierFetcher
+from fer.fetching.openalex import OpenalexFetcher
 
 
 class FullTextFetcherError(Exception):
@@ -42,7 +48,7 @@ class FullTextFetcher:
     async def fetch(
         self,
         publisher_name: str,
-        study_collection: StudyCollection,
+        study_collection: DOIStudyCollection | OpenAlexStudyCollection,
         output_directory: Path | None = None,
         *,
         get_pdf: bool = True,
@@ -53,7 +59,8 @@ class FullTextFetcher:
 
         Args:
             publisher_name (str): The name of the publisher.
-            study_collection (StudyCollection): A collection of studies.
+            study_collection (DOIStudyCollection | OpenAlexStudyCollection):
+                A collection of studies.
             output_directory (Path | None, optional): The directory to save the
                 fetched articles. Defaults to None.
             get_pdf (bool, optional): Whether to fetch PDF files. Defaults to True.
@@ -71,6 +78,16 @@ class FullTextFetcher:
         if output_directory is None:
             output_directory = Path(tempfile.TemporaryDirectory(delete=False).name)
         try:
+            if isinstance(fetcher, OpenalexFetcher):
+                return await fetcher.fetch_many_full_texts(
+                    study_collection, output_directory
+                )
+            if not isinstance(study_collection, DOIStudyCollection):
+                error_message = (
+                    f"Fetcher for '{publisher_name}' requires a "
+                    "DOI-based DOIStudyCollection."
+                )
+                raise FullTextFetcherError(error_message)
             if isinstance(fetcher, ElsevierFetcher):
                 return await fetcher.fetch_many_full_texts(
                     study_collection,

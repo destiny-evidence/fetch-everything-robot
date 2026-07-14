@@ -1,6 +1,6 @@
 """tests for the core fetch_fulltext module in fer/fetch_fulltext.py."""
 
-import httpx
+import httpx2
 import pytest
 
 from fer.data_models.generic import prepare_api_config
@@ -87,7 +87,7 @@ async def test_fetch_success(
     mock_response.raise_for_status.return_value = None
     mock_response.json = mocker.MagicMock(return_value={"foo": "bar"})
 
-    mock_get = mocker.patch("httpx.AsyncClient.get", return_value=mock_response)
+    mock_get = mocker.patch("httpx2.AsyncClient.get", return_value=mock_response)
     result = await fetcher.fetch(
         "test_publisher", test_study_collection, output_directory=None
     )
@@ -104,10 +104,10 @@ async def test_fetch_http_error(
         test_publisher_dict,
     )
     mock_response = mocker.MagicMock()
-    mock_response.raise_for_status.side_effect = httpx.HTTPError("fail")
-    mocker.patch("httpx.AsyncClient.get", return_value=mock_response)
+    mock_response.raise_for_status.side_effect = httpx2.HTTPError("fail")
+    mocker.patch("httpx2.AsyncClient.get", return_value=mock_response)
     with (
-        pytest.raises(httpx.HTTPError),
+        pytest.raises(httpx2.HTTPError),
     ):
         await fetcher.fetch(
             "test_publisher", test_study_collection, output_directory=None
@@ -202,31 +202,27 @@ async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_non_none_fulltext_p
         " are either found or all APIs are exhausted."
     )
 
-    found_fulltext = [
-        result for result in results if result["fulltext_path"] is not None
-    ]
-    not_found_fulltext = [
-        result for result in results if result["fulltext_path"] is None
-    ]
+    found_fulltext = [result for result in results if result.fulltext_path is not None]
+    not_found_fulltext = [result for result in results if result.fulltext_path is None]
 
     assert len(found_fulltext) == unique_expected_successes
     assert len(not_found_fulltext) == unique_expected_failures
 
     assert all(
-        found_result["fulltext_path"]
+        found_result.fulltext_path
         == str(test_fetch_results_single_success[0].fulltext_path)
         for found_result in found_fulltext
     )
     assert all(
-        found_result["source"] in test_prepared_available_api_configs["fulltext"]
+        found_result.source in test_prepared_available_api_configs["fulltext"]
         for found_result in found_fulltext
     )
     assert all(
-        not_found_result["fulltext_path"] is None
+        not_found_result.fulltext_path is None
         for not_found_result in not_found_fulltext
     )
     assert all(
-        not_found_result["source"] is None for not_found_result in not_found_fulltext
+        not_found_result.source is None for not_found_result in not_found_fulltext
     )
 
 
