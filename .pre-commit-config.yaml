@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 01a675ea018f2fb714478a5ffb83fcea8374bb06 # v0.15.21 # pragma: allowlist secret
+    rev: 751b8b57ba617d78eec57b4ec91753568a8a496c # v0.8.5 # pragma: allowlist secret
     hooks:
       - id: ruff
         args:
