@@ -1,5 +1,5 @@
-variable "app_name" {
-  description = "Name of the app being deployed."
+variable "robot_name" {
+  description = "Name of the robot being deployed."
   default = "fetch-everything-robot"
   type = string
 }
@@ -55,10 +55,19 @@ variable "key_vault_resource_group_name" {
   type = string
 }
 
-variable "environment" {
+variable "github_actions_service_principal_object_id" {
+  description = "The Object ID of the Azure Service Principal used by GitHub Actions to deploy the Incremental Updater App and App Job."
+  type = string
+}
+
+variable "deployment_environment" {
   description = "Environment for the Fetch Everything Robot, should be either development, staging or production."
   default     = "development"
-  type        = string
+  type = string
+  validation {
+    condition     = contains(["development", "staging", "production"], var.deployment_environment)
+    error_message = "Environment must be one of 'development', 'staging' or 'production'."
+  }
 }
 
 variable "owner_name" {
@@ -69,6 +78,10 @@ variable "owner_name" {
 variable "owner_email" {
   description = "Email of the owner of the robot."
   type = string
+}
+
+variable "budget_code" {
+  description = "Budget code for the robot."
 }
 
 variable "environment_description" {
@@ -93,4 +106,16 @@ variable "batch_size" {
   description = "Number of enhancement requests to fetch in each batch."
   default     = "10"
   type = string
+}
+
+locals {
+  minimum_resource_tags = {
+    "Created by"  = var.owner_name
+    "Environment" = var.deployment_environment
+    "Owner"       = var.owner_email
+    "Region" = var.region_friendly_name
+  }
+  extended_resource_tags = merge(local.minimum_resource_tags, {
+    "Budget code" = var.budget_code
+  })
 }
