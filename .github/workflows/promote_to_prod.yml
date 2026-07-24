@@ -1,0 +1,81 @@
+name: Manual production deployment of fetch-everything-robot to Azure Container Apps
+
+concurrency: promote-to-prod
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: fetch-everything-robot
+
+jobs:
+  tag-image-for-prod:
+    if: github.ref == 'refs/heads/main'
+    name: "Add production tag to image"
+    runs-on: ubuntu-latest
+    environment: production
+
+    outputs:
+      unique_tag: ${{ steps.save-tag.outputs.unique_tag }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          sparse-checkout: .
+
+      - name: Log in to Azure
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Tag image with production tag
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          registry: ${{ secrets.REPOSITORY_LOGIN_SERVER }}
+          username: ${{ secrets.DEPLOYMENT_CLIENT_ID }}
+          password: ${{ secrets.DEPLOYMENT_CLIENT_SECRET }}
+        env:
+          DOCKER_BUILDKIT: 1
+      - run: |
+          sha_short=$(git rev-parse --short HEAD)
+          unique_tag="${sha_short}-prod"
+          docker pull ${{ secrets.REPOSITORY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${sha_short}
+          docker tag ${{ secrets.REPOSITORY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${sha_short} ${{ secrets.REPOSITORY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${unique_tag}
+          docker push ${{ secrets.REPOSITORY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${unique_tag}
+          echo "UNIQUE_TAG=${unique_tag}" >> $GITHUB_ENV
+        id: tag-image
+      - name: Save unique tag for deployment
+        id: save-tag
+        run: echo "unique_tag=${{ env.UNIQUE_TAG }}" >> $GITHUB_OUTPUT
+
+  deploy-to-production:
+    if: github.ref == 'refs/heads/main'
+    name: Deploy the Fetch Everything Robot to Production
+    runs-on: ubuntu-latest
+    needs: [tag-image-for-prod]
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Log in to Azure
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy production image to Azure Container App
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          registry: ${{ secrets.REPOSITORY_LOGIN_SERVER }}
+          username: ${{ secrets.DEPLOYMENT_CLIENT_ID }}
+          password: ${{ secrets.DEPLOYMENT_CLIENT_SECRET }}
+      - run: |
+          az containerapp update \
+            --name ${{ secrets.CONTAINER_APP_NAME_PRODUCTION }} \
+            --resource-group ${{ secrets.RESOURCE_GROUP_PRODUCTION }} \
+            --image ${{ secrets.REPOSITORY_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ needs.tag-image-for-prod.outputs.unique_tag }}
