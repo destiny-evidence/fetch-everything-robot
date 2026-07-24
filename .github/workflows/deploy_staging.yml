@@ -1,6 +1,9 @@
-name: Manual staging deployment of fetch-everything-robot to Azure Container Apps
+name: Automatic staging deployment of fetch-everything-robot to Azure Container Apps
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -8,6 +11,7 @@ permissions:
 
 jobs:
   build-and-deploy-staging:
+    name: Deploy the Fetch Everything Robot to Staging
     runs-on: ubuntu-latest
     environment: staging
 
