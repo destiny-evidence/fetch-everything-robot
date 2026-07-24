@@ -3,37 +3,88 @@ data "azurerm_container_registry" "destiny_shared_infra" {
   resource_group_name = var.container_registry_resource_group_name
 }
 
+data "azurerm_key_vault" "destiny_data_ingest_shared_kv" {
+  name                = var.key_vault_name
+  resource_group_name = var.key_vault_resource_group_name
+}
+
 # This might exist for you if your robot has already been deployed.
 # In this case, you can use a data resource instead https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/resource_group
 resource "azurerm_resource_group" "robot_resource_group" {
-  name     = "rg-${var.app_name}-${var.environment}"
+  name     = "rg-${var.robot_name}-${var.deployment_environment}"
   location = "swedencentral"
-  tags = {
-    "Budget Code" = "destiny-evidence"
-    "Created by" = "${var.owner_name}"
-    "Owner" = "${var.owner_email}"
-    "Environment" = "${var.environment_description}"
-    "Region" = "${var.region_friendly_name}"
-  }
+  tags = local.extended_resource_tags
 }
+
+resource "azurerm_role_assignment" "github_actions_sp_contributor_role" {
+  scope                = azurerm_resource_group.robot_resource_group.id
+  role_definition_name = "Contributor"
+  principal_id         = var.github_actions_service_principal_object_id
+}
+
 
 # Create a user assigned identity for our robot. This is the identity used when authenticating.
 resource "azurerm_user_assigned_identity" "fetch_everything_robot" {
   location            = azurerm_resource_group.robot_resource_group.location
-  name                = var.app_name
+  name                = var.robot_name
   resource_group_name = azurerm_resource_group.robot_resource_group.name
+}
+
+resource "azurerm_role_assignment" "fetch_everything_robot_role_assignment" {
+  scope                = data.azurerm_key_vault.destiny_data_ingest_shared_kv.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_user_assigned_identity.fetch_everything_robot.principal_id
+}
+
+resource "azurerm_network_security_group" "fetch_everything_robot_nsg" {
+  name                = "nsg-${var.robot_name}-${var.deployment_environment}"
+  location            = azurerm_resource_group.robot_resource_group.location
+  resource_group_name = azurerm_resource_group.robot_resource_group.name
+  tags = local.minimum_resource_tags
+}
+
+resource "azurerm_virtual_network" "fetch_everything_robot_vnet" {
+  name                = "vnet-${var.robot_name}-${var.deployment_environment}"
+  location            = azurerm_resource_group.robot_resource_group.location
+  resource_group_name = azurerm_resource_group.robot_resource_group.name
+  address_space       = ["10.0.0.0/21"]
+
+  tags = local.minimum_resource_tags
+}
+
+resource "azurerm_subnet" "fetch_everything_robot_subnet" {
+  name                 = "subnet-${var.robot_name}-${var.deployment_environment}"
+  resource_group_name  = azurerm_resource_group.robot_resource_group.name
+  virtual_network_name = azurerm_virtual_network.fetch_everything_robot_vnet.name
+  address_prefixes     = ["10.0.0.0/21"]
+
+  delegation {
+    name = "containerappenv"
+    service_delegation {
+      name = "Microsoft.App/environments"
+      actions = [
+        "Microsoft.Network/virtualNetworks/subnets/action"
+      ]
+    }
+  }
+}
+
+resource "azurerm_subnet_network_security_group_association" "fetch_everything_robot_subnet_nsg_association" {
+  subnet_id                 = azurerm_subnet.fetch_everything_robot_subnet.id
+  network_security_group_id = azurerm_network_security_group.fetch_everything_robot_nsg.id
 }
 
 # This creates a container app to run the fetch everything robot in
 module "container_app_fetch_everything_robot" {
   source                          = "app.terraform.io/destiny-evidence/container-app/azure"
-  version                         = "1.6.2"
-  app_name                        = var.app_name
-  environment                     = var.environment
+  version                         = "1.8.2"
+  app_name                        = var.robot_name
+  environment                     = var.deployment_environment
   container_registry_id           = data.azurerm_container_registry.destiny_shared_infra.id
   container_registry_login_server = data.azurerm_container_registry.destiny_shared_infra.login_server
   resource_group_name             = azurerm_resource_group.robot_resource_group.name
   region                          = azurerm_resource_group.robot_resource_group.location
+  infrastructure_subnet_id       = azurerm_subnet.fetch_everything_robot_subnet.id
 
   # We're the api url for the destiny repository here, which the fetch everything robot will use to authenticate against.
   # The necessaary `AZURE_CLIENT_ID` environment variable is set by the container app module.
@@ -48,11 +99,11 @@ module "container_app_fetch_everything_robot" {
     },
     {
       name        = "ROBOT_SECRET"
-      secret_name = "robot-secret"
+      secret_name = "robot-secret" # pragma: allowlist secret
     },
     {
       name        = "ENV"
-      value = var.environment
+      value = var.deployment_environment
     },
     {
       name        = "ELSEVIER_SCOPUS_KEY"
@@ -103,6 +154,8 @@ module "container_app_fetch_everything_robot" {
       percentage      = 100
     }
   }
+
+  tags = local.extended_resource_tags
 
   # You can see here that we're passing the user assigned identity that we created above to the client application.
   # This identity has the robot role assignment and will allow the robot to authenticate with destiny repository.
