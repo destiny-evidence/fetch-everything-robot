@@ -546,9 +546,6 @@ class FullTextEnhancementProcessor:
         for enhancement in enhancements:
             file_content += (enhancement.to_jsonl() + "\n").encode("utf-8")
 
-        # Some work in here needed to upload the PDF to blob storage
-        # and have a file path field pointing to it
-
         async with httpx2.AsyncClient() as client:
             response = await client.put(
                 result_storage_url,
