@@ -203,7 +203,7 @@ class FullTextBatchFetcher:
                             study.openalex_id.identifier if study.openalex_id else None
                         ),
                         fulltext_path=str(fulltext_path),
-                        source="Already downloaded",
+                        source=self.settings.robot_title,
                     )
                 )
                 doi_to_remove = self.process_doi(study.doi.identifier)

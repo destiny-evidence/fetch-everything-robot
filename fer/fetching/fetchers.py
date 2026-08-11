@@ -70,6 +70,7 @@ class FullTextFetcher:
 
         """
         fetcher = self.fetchers.get(publisher_name.lower())
+        output_directory.mkdir(parents=True, exist_ok=True)
         if not fetcher:
             error_message = f"Unknown publisher: {publisher_name}"
             raise FullTextFetcherError(error_message)

@@ -18,7 +18,7 @@ from destiny_sdk.robots import (
 )
 from destiny_sdk.visibility import Visibility
 from loguru import logger
-from pydantic import HttpUrl
+from pydantic import HttpUrl, ValidationError
 
 from fer.config import Settings
 from fer.data_models.generic import APIConfig
@@ -287,7 +287,7 @@ class FullTextEnhancementProcessor:
 
         successful_enhancements = 0
         for reference in references:
-            enhancement = full_text_results_map.get(reference.id)
+            enhancement = full_text_results_map.get(str(reference.id))
             if not enhancement:
                 error_message = (
                     f"Enhancement generation error for {reference.id}."
@@ -320,13 +320,14 @@ class FullTextEnhancementProcessor:
 
             visibility_level = Visibility.HIDDEN
 
-            # REMOVE this is the hook into the blob storage componentry
-            fulltext_url = self.generate_file_url(fulltext_path, self.settings)
-
-            if not fulltext_url:
+            try:
+                fulltext_url = await self.generate_file_url(
+                    fulltext_path, self.settings
+                )
+            except Exception as error:  # noqa: BLE001 # holding pattern until we define a custom exception
                 error_message = (
                     f"Failed to generate file URL for {reference.id} "
-                    f"from source {enhancement_source_short}."
+                    f"from source {enhancement_source_short}: {error}"
                 )
                 logger.warning(error_message)
                 linked_robot_error = LinkedRobotError(
@@ -336,22 +337,35 @@ class FullTextEnhancementProcessor:
                 enhancements_out.append(linked_robot_error)
                 continue
 
-            full_text_enhancement_content = FullTextEnhancement(
-                file_url=fulltext_url,
-                source=enhancement_source_short,
-                visibility=visibility_level,
-            )
-            enhancements_out.append(
-                Enhancement(
-                    reference_id=reference.id,
-                    source=app_title,
+            try:
+                full_text_enhancement_content = FullTextEnhancement(
+                    file_url=fulltext_url,
+                    source=enhancement_source_short,
                     visibility=visibility_level,
-                    robot_version=version_number,
-                    content_version=f"{uuid.uuid4()}",
-                    content=full_text_enhancement_content,
                 )
-            )
-            successful_enhancements += 1
+                enhancements_out.append(
+                    Enhancement(
+                        reference_id=reference.id,
+                        source=app_title,
+                        visibility=visibility_level,
+                        robot_version=version_number,
+                        content_version=f"{uuid.uuid4()}",
+                        content=full_text_enhancement_content,
+                    )
+                )
+                successful_enhancements += 1
+            except ValidationError as validation_error:
+                error_message = (
+                    f"Validation error for enhancement of {reference.id} "
+                    f"from source {enhancement_source_short}: {validation_error}"
+                )
+                logger.error(error_message)
+                linked_robot_error = LinkedRobotError(
+                    message=error_message,
+                    reference_id=reference.id,
+                )
+                enhancements_out.append(linked_robot_error)
+                continue
 
         progress_message = (
             f"Successfully generated enhancements for "
@@ -421,9 +435,6 @@ class FullTextEnhancementProcessor:
         file_content = b""
         for enhancement in enhancements:
             file_content += (enhancement.to_jsonl() + "\n").encode("utf-8")
-
-        # Some work in here needed to upload the PDF to blob storage
-        # and have a file path field pointing to it
 
         async with httpx2.AsyncClient() as client:
             response = await client.put(

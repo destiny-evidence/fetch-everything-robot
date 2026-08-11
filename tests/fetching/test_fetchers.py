@@ -68,6 +68,33 @@ async def test_fetch_calls_correct_fetcher_openalex_study_collection(
 
 
 @pytest.mark.asyncio
+async def test_fetch_creates_output_directory_if_not_exists(
+    mocker, tmp_path, test_publisher_dict, test_study_collection
+):
+    settings = mocker.MagicMock()
+    fetcher_instance = FullTextFetcher(settings, publisher_dict=test_publisher_dict)
+
+    publisher_name = "test_publisher"
+    output_directory = tmp_path / "nested" / "output"
+
+    mock_publisher_fetcher = mocker.MagicMock(spec=BasePublisherFetcher)
+    fetcher_instance.fetchers[publisher_name] = mock_publisher_fetcher
+    assert output_directory.exists() is False
+
+    await fetcher_instance.fetch(
+        publisher_name,
+        test_study_collection,
+        output_directory,
+    )
+
+    assert output_directory.exists()
+    mock_publisher_fetcher.fetch_many_full_texts.assert_awaited_once_with(
+        test_study_collection,
+        output_directory,
+    )
+
+
+@pytest.mark.asyncio
 async def test_fetch_raises_error_for_unknown_publisher(mocker, test_publisher_dict):
     settings = mocker.MagicMock()
     fetcher_instance = FullTextFetcher(settings, publisher_dict=test_publisher_dict)
