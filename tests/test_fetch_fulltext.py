@@ -5,7 +5,7 @@ import pytest
 
 from fer.data_models.generic import prepare_api_config
 from fer.fetch_fulltext import FullTextBatchFetcher, ZeroFullTextsGeneratedError
-from fer.fetching.core import BaseAuthError
+from fer.fetching.core import BaseAuthError, RetrievedFullText
 from fer.fetching.fetchers import FullTextFetcher
 
 
@@ -232,6 +232,58 @@ async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_non_none_fulltext_p
 
 
 @pytest.mark.asyncio
+async def test_get_many_fulltext_pdfs_cycling_apis_uses_provided_output_directory(
+    mocker,
+    test_settings,
+    test_study_collection,
+    test_publisher_dict,
+    tmp_path,
+):
+    output_directory = tmp_path / "custom-output"
+    output_directory.mkdir()
+    existing_path = output_directory / f"{test_study_collection.studies[0].uid}.pdf"
+    existing_path.write_bytes(b"already present")
+
+    test_settings.robot_title = "Test Fetch Everything Robot"
+    new_path = output_directory / "new.pdf"
+    new_path.write_bytes(b"fresh pdf")
+
+    mock_fetch = mocker.patch(
+        "fer.fetching.fetchers.FullTextFetcher.fetch",
+        return_value=[
+            RetrievedFullText(
+                doi=test_study_collection.studies[1].doi.identifier,
+                uid=test_study_collection.studies[1].uid,
+                fulltext_path=new_path,
+                error=None,
+            )
+        ],
+    )
+
+    fetcher = FullTextBatchFetcher(
+        test_settings,
+        {"fulltext": {"test_publisher": None}},
+        test_publisher_dict,
+    )
+
+    results = await fetcher.get_many_fulltext_pdfs_cycling_apis(
+        input_study_collection=test_study_collection,
+        output_directory=output_directory,
+    )
+
+    assert mock_fetch.call_count == 1
+    assert any(
+        result.fulltext_path == str(existing_path)
+        and result.source == test_settings.robot_title
+        for result in results
+    )
+    assert any(
+        result.fulltext_path == str(new_path) and result.source == "test_publisher"
+        for result in results
+    )
+
+
+@pytest.mark.asyncio
 async def test_get_many_fulltext_pdfs_cycling_apis_error_with_individual_api(
     mocker,
     test_settings,
@@ -259,3 +311,33 @@ async def test_get_many_fulltext_pdfs_cycling_apis_error_with_individual_api(
         )
 
     assert "Authentication error for publisher" in caplog.text
+
+
+@pytest.mark.asyncio
+@pytest.mark.asyncio
+async def test_get_many_fulltext_pdfs_cycling_apis_error_all_references(
+    mocker,
+    test_fetch_two_results_full_error,
+    test_available_api_configs,
+    test_settings,
+    test_publisher_dict,
+    test_study_collection,
+    tmp_path,
+):
+    all_api_configs = prepare_api_config(test_available_api_configs, test_settings)
+    fetcher = FullTextBatchFetcher(test_settings, all_api_configs, test_publisher_dict)
+    test_output_directory = tmp_path / "output"
+    test_output_directory.mkdir()
+
+    fetch_mock = mocker.patch(
+        "fer.fetching.fetchers.FullTextFetcher.fetch",
+        return_value=test_fetch_two_results_full_error,
+    )
+
+    with pytest.raises(ZeroFullTextsGeneratedError):
+        await fetcher.get_many_fulltext_pdfs_cycling_apis(
+            input_study_collection=test_study_collection,
+            output_directory=test_output_directory,
+        )
+
+    assert fetch_mock.call_count == len(all_api_configs["fulltext"])
