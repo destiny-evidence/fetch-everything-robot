@@ -524,7 +524,7 @@ wheels = [
 
 [[package]]
 name = "cyclopts"
-version = "4.22.2"
+version = "4.22.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
@@ -532,9 +532,9 @@ dependencies = [
     { name = "rich" },
     { name = "rich-rst" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/69/98/ca72a91d5c25a2ae1baf19d27b31f12288cb9d8a3168b65b3cd54d40d277/cyclopts-4.22.2.tar.gz", hash = "sha256:0721e90e7209885e78f7637cfba255c12e89206b633e35d185305e349ba20ecd", size = 194511, upload-time = "2026-07-24T20:53:08.739Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/be/05/689617b7e86503417c172f577d791524cb13b9697303d5d44409a971ba10/cyclopts-4.22.5.tar.gz", hash = "sha256:94044506317462cad90fb01a917dadce1f48a0915ba3605dc8d178dea1229e24", size = 195144, upload-time = "2026-08-04T13:53:00.303Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bd/75/a11bfb5045e58b4ef69337b848985918e829fe9a90572a761d17c1a992f5/cyclopts-4.22.2-py3-none-any.whl", hash = "sha256:9c2cdf6a621886cd0af631a67437eb7d0084f33f9e8fba2d2562a1aecf75f2ff", size = 233906, upload-time = "2026-07-24T20:53:07.064Z" },
+    { url = "https://files.pythonhosted.org/packages/83/58/bcab9c33fb7a25a1f5970f357c5b19729bc81d50615d2f737b20c4255909/cyclopts-4.22.5-py3-none-any.whl", hash = "sha256:cf9ce285836053d156730ea4ea0ad0c75cf63beb3f3d8edf222a795bc57666ab", size = 234557, upload-time = "2026-08-04T13:52:58.509Z" },
 ]
 
 [[package]]
@@ -548,7 +548,7 @@ wheels = [
 
 [[package]]
 name = "destiny-sdk"
-version = "0.13.0"
+version = "0.14.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "authlib" },
@@ -559,9 +559,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "python-jose", extra = ["cryptography"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cb/d7/4e58f6bb76f804dbd6b9d2b0e9dc2fa295a82aa130c6ba6660e9ab6c231b/destiny_sdk-0.13.0.tar.gz", hash = "sha256:d6bb2e4b2e8d17e6e0cf5f10e8941410bf95f44ec288bd746eda71c189163f6c", size = 125976, upload-time = "2026-06-23T06:02:31.972Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/47/35/acce36a3c5fc055c11d246eac433ba013673032711ac65052e5135f1c2e0/destiny_sdk-0.14.1.tar.gz", hash = "sha256:d5786c38a3e8f51c14ba3614415465be59f7b91e05b46db72fc10160b4d2b33e", size = 127608, upload-time = "2026-08-03T23:21:19.492Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c9/67/33fb98f8e1776aec4baed294322f79c7aa1dcfbb5d7adc27b6baf92d725d/destiny_sdk-0.13.0-py3-none-any.whl", hash = "sha256:87c963c22e9c3b5335a8ad7ff03b6cf4e17ed4f956ab0172c98e68a17d6d98a8", size = 43188, upload-time = "2026-06-23T06:02:32.806Z" },
+    { url = "https://files.pythonhosted.org/packages/77/1a/84036c6eb62654a19206db826bccbb465214bac8b010a1012fd3400fe0f4/destiny_sdk-0.14.1-py3-none-any.whl", hash = "sha256:34af3fee4ccb3ea487ab2321789de954538bf4ca28a9d1caf938471c4a5fa61e", size = 44669, upload-time = "2026-08-03T23:21:18.268Z" },
 ]
 
 [[package]]
@@ -798,9 +798,9 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.14.3" },
-    { name = "cyclopts", specifier = ">=4.22.2" },
+    { name = "cyclopts", specifier = ">=4.22.5" },
     { name = "defusedxml", specifier = ">=0.7.1" },
-    { name = "destiny-sdk", specifier = ">=0.13.0,<1.0" },
+    { name = "destiny-sdk", specifier = ">=0.14.1,<1.0" },
     { name = "detect-secrets", marker = "extra == 'dev'", specifier = ">=1.5.0" },
     { name = "fastapi", extras = ["standard"], marker = "extra == 'test'", specifier = ">=0.141.1" },
     { name = "habanero", specifier = ">=2.9.2" },
