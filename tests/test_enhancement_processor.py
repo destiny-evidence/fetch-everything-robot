@@ -188,6 +188,80 @@ async def test_generate_fulltext_success(
 
 
 @pytest.mark.asyncio
+async def test_generate_fulltext_partial_success(
+    mocker,
+    test_fulltext_enhancement_processor: FullTextEnhancementProcessor,
+    test_fetch_results_single_success: list[RetrievedFullText],
+    test_fetch_results_single_failure: list[RetrievedFullText],
+    test_references: list[Reference],
+    tmp_path,
+):
+    n_available_api_configs = len(
+        test_fulltext_enhancement_processor.available_api_configs
+    )
+    expected_fetch_results_array = [test_fetch_results_single_success] + [
+        test_fetch_results_single_failure
+    ] * (n_available_api_configs - 1)
+    fetch_mock = mocker.patch(
+        "fer.fetching.fetchers.FullTextFetcher.fetch",
+        side_effect=expected_fetch_results_array,
+    )
+
+    results = await test_fulltext_enhancement_processor.generate_fulltext(
+        references=test_references,
+        output_directory=tmp_path,
+    )
+
+    assert fetch_mock.call_count == n_available_api_configs, (
+        "Expect that the fetcher is called for each available API until all fulltexts"
+        " are either found or all APIs are exhausted."
+    )
+    assert (
+        results[0].fulltext_path is not None
+    ), "Expect that the first reference has a fulltext path since it was successfully fetched."
+    assert (
+        results[1].fulltext_path is None
+    ), "Expect that the second reference has no fulltext path since it failed to fetch."
+
+
+@pytest.mark.asyncio
+async def test_generate_fulltext_enhancement_batch_request_success(
+    mocker,
+    test_fulltext_enhancement_processor: FullTextEnhancementProcessor,
+    test_references: list[Reference],
+    tmp_path,
+):
+    full_text_results_map = {
+        str(test_references[0].id): {
+            "fulltext_path": tmp_path / "example.pdf",
+            "source": "SCOPUS",
+        }
+    }
+    mocker.patch.object(
+        test_fulltext_enhancement_processor,
+        "generate_file_url",
+        return_value="http://example.com/fulltext.pdf",
+    )
+
+    result = await test_fulltext_enhancement_processor.generate_fulltext_enhancement_batch_request(
+        references=[test_references[0]],
+        full_text_results_map=full_text_results_map,
+        available_api_configs=test_fulltext_enhancement_processor.available_api_configs,
+        app_title=test_fulltext_enhancement_processor.source_name,
+    )
+
+    assert len(result) == len(
+        full_text_results_map
+    ), "Expect that the result list has the same length as the input references."
+    assert isinstance(
+        result[0], Enhancement
+    ), "Expect that the result is an Enhancement instance when the fulltext path is valid."
+    assert (
+        result[0].reference_id == test_references[0].id
+    ), "Expect that the reference ID in the Enhancement matches the input reference ID."
+
+
+@pytest.mark.asyncio
 async def test_generate_fulltext_enhancement_batch_request_returns_linked_robot_error_missing_file(
     test_fulltext_enhancement_processor: FullTextEnhancementProcessor,
     test_references: list[Reference],
