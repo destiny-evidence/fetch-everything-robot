@@ -2,7 +2,6 @@
 
 import tempfile
 import uuid
-from functools import reduce
 from pathlib import Path
 
 import httpx2
@@ -29,7 +28,6 @@ from fer.fetch_fulltext import (
 )
 from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import DOIStudy, DOIStudyCollection
-from fer.utils import get_version_number
 
 
 class MissingDOIError(Exception):
@@ -213,22 +211,15 @@ class FullTextEnhancementProcessor:
                     )
                     logger.warning(warning_message)
 
-                enhancement_dict_list = [
-                    {
-                        result.uid: {
-                            "doi": result.doi,
-                            "openalex_id": result.openalex_id,
-                            "fulltext_path": result.fulltext_path,
-                            "source": result.source,
-                        }
+                enhancements_map = {
+                    result.uid: {
+                        "doi": result.doi,
+                        "openalex_id": result.openalex_id,
+                        "fulltext_path": result.fulltext_path,
+                        "source": result.source,
                     }
                     for result in generated_fulltexts
-                ]
-                enhancements_map: dict[str, dict] = reduce(
-                    lambda dict_a, dict_b: {**dict_a, **dict_b},
-                    enhancement_dict_list,
-                    {},
-                )
+                }
 
                 fulltext_enhancements = (
                     await self.generate_fulltext_enhancement_batch_request(
@@ -283,7 +274,7 @@ class FullTextEnhancementProcessor:
 
         """
         enhancements_out = []
-        version_number = get_version_number()
+        version_number = self.robot_version
 
         successful_enhancements = 0
         for reference in references:
