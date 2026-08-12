@@ -12,6 +12,7 @@ from pytest_mock import MockerFixture
 
 from fer.enhancement_processor import (
     BatchEnhancementGenerationError,
+    FileURLGenerationError,
     FullTextEnhancementProcessor,
     FullTextRetrievalResultSet,
 )
@@ -459,7 +460,7 @@ async def test_generate_fulltext_enhancement_batch_request_handles_file_url_gene
     mocker.patch.object(
         test_fulltext_enhancement_processor,
         "generate_file_url",
-        side_effect=RuntimeError("upload failed"),
+        side_effect=FileURLGenerationError("upload failed"),
     )
 
     result = await test_fulltext_enhancement_processor.generate_fulltext_enhancement_batch_request(
