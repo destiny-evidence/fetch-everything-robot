@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "label": "pdf fetch rate",
+  "message": "36% (36/100)",
+  "color": "red",
+  "style": "flat-square"
+}

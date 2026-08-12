@@ -1,0 +1,42 @@
+[
+  {
+    "timestamp": "2026-08-12 10:29:11",
+    "commit": "a50e7f4",
+    "config": {
+      "runner": "GitHub Actions",
+      "env": "staging",
+      "batch_size": 2,
+      "has_scopus_key": false,
+      "has_scopus_inst_token": false,
+      "has_openalex_key": false,
+      "has_scopus_proxy": false
+    },
+    "overall": {
+      "total_dois": 100,
+      "success_count": 36,
+      "success_rate": 0.36
+    },
+    "by_source": {
+      "openalex": {
+        "attempts": 100,
+        "successes": 34,
+        "rate": 34.0
+      },
+      "crossref": {
+        "attempts": 66,
+        "successes": 2,
+        "rate": 3.03
+      },
+      "unpaywall": {
+        "attempts": 64,
+        "successes": 0,
+        "rate": 0.0
+      },
+      "scopus": {
+        "attempts": 64,
+        "successes": 0,
+        "rate": 0.0
+      }
+    }
+  }
+]
