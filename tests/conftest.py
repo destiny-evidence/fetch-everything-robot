@@ -64,6 +64,9 @@ def set_test_environment_variables(
     monkeypatch.setenv("ELSEVIER_SCOPUS_KEY", "dummy_scopus_key")
     monkeypatch.setenv("ELSEVIER_SCOPUS_INST_TOKEN", "dummy_inst_token")
     monkeypatch.setenv("MAILTO", "test@test.com")
+    monkeypatch.setenv("STORAGE_BLOB_ACCOUNT", "dummy_blob_account")
+    monkeypatch.setenv("STORAGE_BLOB_CONTAINER", "dummy_blob_container")
+    monkeypatch.setenv("STORAGE_BLOB_ACCOUNT_KEY", "dummy_blob_account_key")
     yield
     monkeypatch.delenv("ENV")
     monkeypatch.delenv("DESTINY_REPOSITORY_URL")
@@ -73,6 +76,9 @@ def set_test_environment_variables(
     monkeypatch.delenv("ELSEVIER_SCOPUS_KEY")
     monkeypatch.delenv("ELSEVIER_SCOPUS_INST_TOKEN")
     monkeypatch.delenv("MAILTO")
+    monkeypatch.delenv("STORAGE_BLOB_ACCOUNT")
+    monkeypatch.delenv("STORAGE_BLOB_CONTAINER")
+    monkeypatch.delenv("STORAGE_BLOB_ACCOUNT_KEY")
 
 
 @pytest.fixture
