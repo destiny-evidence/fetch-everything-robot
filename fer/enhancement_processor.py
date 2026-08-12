@@ -1,5 +1,6 @@
 """Generation functions for single and batch fulltext enhancements."""
 
+import asyncio
 import tempfile
 import uuid
 from pathlib import Path
@@ -19,6 +20,7 @@ from destiny_sdk.visibility import Visibility
 from loguru import logger
 from pydantic import HttpUrl, ValidationError
 
+from fer.blob_storage import BlobUploadError, FetchEverythingBlobStorageClient
 from fer.config import Settings
 from fer.data_models.generic import APIConfig
 from fer.fetch_fulltext import (
@@ -28,6 +30,10 @@ from fer.fetch_fulltext import (
 )
 from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import DOIStudy, DOIStudyCollection
+
+
+class FileURLGenerationError(Exception):
+    """Custom exception for errors during file URL generation."""
 
 
 class MissingDOIError(Exception):
@@ -215,7 +221,9 @@ class FullTextEnhancementProcessor:
                     result.uid: {
                         "doi": result.doi,
                         "openalex_id": result.openalex_id,
-                        "fulltext_path": result.fulltext_path,
+                        "fulltext_path": Path(result.fulltext_path)
+                        if result.fulltext_path is not None
+                        else None,
                         "source": result.source,
                     }
                     for result in generated_fulltexts
@@ -286,7 +294,7 @@ class FullTextEnhancementProcessor:
                 )
                 logger.error(error_message)
                 raise BatchEnhancementGenerationError(error_message)
-            fulltext_path = enhancement.get("fulltext_path", None)
+            fulltext_path: Path | None = enhancement.get("fulltext_path", None)
             if not fulltext_path:
                 sources = {
                     config.name.value.split("_")[0].upper()
@@ -312,13 +320,11 @@ class FullTextEnhancementProcessor:
             visibility_level = Visibility.HIDDEN
 
             try:
-                fulltext_url = await self.generate_file_url(
-                    fulltext_path, self.settings
-                )
-            except Exception as error:  # noqa: BLE001 # holding pattern until we define a custom exception
+                fulltext_url = await self.generate_file_url(fulltext_path)
+            except FileURLGenerationError as file_url_error:
                 error_message = (
                     f"Failed to generate file URL for {reference.id} "
-                    f"from source {enhancement_source_short}: {error}"
+                    f"from source {enhancement_source_short}: {file_url_error}"
                 )
                 logger.warning(error_message)
                 linked_robot_error = LinkedRobotError(
@@ -366,27 +372,54 @@ class FullTextEnhancementProcessor:
         return enhancements_out
 
     async def generate_file_url(
-        self, file_path: str, settings: Settings
-    ) -> HttpUrl | None:
+        self,
+        file_path: Path,
+    ) -> HttpUrl:
         """
         Generate a file URL for the given file path.
 
         Uploads the file to blob storage and returns the SAS URL for the uploaded file.
 
         Args:
-            file_path (str): The path to the file.
-            settings (Settings): The application settings.
+            file_path (Path): The path to the file containing a full text.
 
         Returns:
-            HttpUrl | None: The generated file URL or None if the upload fails.
+            HttpUrl: The generated file URL.
+
+        Raises:
+            FileURLGenerationError:
+                If errors occur during file upload or SAS URL generation.
 
         """
-        not_implemented_message = (
-            "File URL generation is not implemented. "
-            "This method should handle uploading the file to blob storage "
-            "and returning the SAS URL for the uploaded file."
-        )
-        raise NotImplementedError(not_implemented_message)
+        storage_client = FetchEverythingBlobStorageClient(self.settings)
+        try:
+            with file_path.open("rb") as full_text_file:
+                blob_name = await asyncio.to_thread(
+                    storage_client.blob_upload,
+                    data=full_text_file,
+                    filename=file_path.name,
+                )
+        except BlobUploadError as upload_error:
+            error_message = (
+                f"Failed to upload file {file_path} to blob storage: {upload_error}"
+            )
+            logger.error(error_message)
+            raise FileURLGenerationError(error_message) from upload_error
+        try:
+            blob_sas_pair = storage_client.get_blob_sas_pair(blob_name)
+        except (
+            Exception
+        ) as sas_error:  # holding pattern until we define a custom exception
+            error_message = (
+                f"Failed to generate SAS URL for blob {blob_name}: {sas_error}"
+            )
+            logger.error(error_message)
+            raise FileURLGenerationError(error_message) from sas_error
+        if not hasattr(blob_sas_pair, "sas_url") or not blob_sas_pair.sas_url:
+            error_message = f"SAS URL is missing for blob {blob_name}."
+            logger.error(error_message)
+            raise FileURLGenerationError(error_message)
+        return blob_sas_pair.sas_url
 
     async def download_references(self, reference_storage_url: str) -> list[Reference]:
         """
