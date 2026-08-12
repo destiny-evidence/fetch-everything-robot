@@ -27,7 +27,6 @@ from fer.fetch_fulltext import (
 )
 from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import DOIStudy, DOIStudyCollection
-from fer.utils import get_version_number
 
 
 class FullTextRetrievalResultSet(BaseModel):
