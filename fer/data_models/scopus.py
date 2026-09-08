@@ -59,7 +59,7 @@ class ScopusAPIConfig(APIConfig):
             ApiKeyNotPresentError: If the API key is not present in settings.
 
         """
-        logger.debug(f"initializing API key for {self.name} API")
+        logger.debug(f"Initialising API key for {self.name} API")
         api_key = (
             getattr(settings, self.api_key_env_var_name, None)
             if self.api_key_env_var_name
@@ -70,10 +70,10 @@ class ScopusAPIConfig(APIConfig):
             if self.api_inst_token_env_var_name
             else None
         )
-        if api_key is None:
+        if api_key is None or len(api_key.get_secret_value()) == 0:
             error_message = f"API key for {self.name} is not present in settings."
             raise APIKeyNotPresentError(error_message)
-        if inst_token is None:
+        if inst_token is None or len(inst_token.get_secret_value()) == 0:
             error_message = (
                 f"Inst token for {self.name} is not present in settings"
                 " skipping header population."
