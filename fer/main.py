@@ -122,6 +122,9 @@ async def poll_for_batches(
                 )
         except Exception as poll_error:  # noqa: BLE001
             logger.error("Error polling for batches: {}", poll_error)
+        logger.info(
+            f"Awaiting next poll in {settings.poll_interval_seconds} seconds..."
+        )
         await asyncio.sleep(settings.poll_interval_seconds)
 
 
