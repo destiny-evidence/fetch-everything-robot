@@ -103,7 +103,10 @@ class FullTextEnhancementProcessor:
         )
 
         if doi_id is None:
-            error_message = f"Reference {reference.id} is missing a DOI identifier."
+            error_message = (
+                f"Reference {reference.id} is missing a DOI identifier.\n"
+                f"full reference: {reference}"
+            )
             raise MissingDOIError(error_message)
 
         return DOIStudy(
