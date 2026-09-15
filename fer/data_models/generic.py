@@ -132,13 +132,13 @@ class APIConfig(BaseModel):
 
         """
         if self.require_api_key:
-            logger.debug(f"initializing API key for {self.name} API")
+            logger.debug(f"Initialising API key for {self.name} API")
             api_key = (
                 getattr(settings, self.api_key_env_var_name, None)
                 if self.api_key_env_var_name
                 else None
             )
-            if api_key is None:
+            if api_key is None or len(api_key.get_secret_value()) == 0:
                 error_message = f"API key for {self.name} is not present in settings."
                 raise APIKeyNotPresentError(error_message)
             self.headers[self.api_key_placement] = api_key.get_secret_value()
@@ -302,8 +302,8 @@ def prepare_api_config(
                 all_api_configs[external_api_priority.name][api.name] = target_config
                 logger.info(f"successfully initialised API key for {api.name}.")
             except APIKeyNotPresentError as missing_api_key_error:
-                logger.info(f"no API key for {api.name}. not populating config.")
-                logger.info(f"original error message: {missing_api_key_error}.")
+                logger.info(f"No API key found for {api.name}, not populating config.")
+                logger.info(f"{missing_api_key_error=}")
                 continue
 
     return all_api_configs
