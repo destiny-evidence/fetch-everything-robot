@@ -1,9 +1,17 @@
 """Unit tests for fer/fetching/openalex.py."""
 
+from collections.abc import AsyncGenerator
+from uuid import uuid4
+
 import pytest
+from destiny_sdk.identifiers import DOIIdentifier
 from httpx2 import HTTPError, Response
 
-from fer.fetching.core import FullTextStreamError
+from fer.fetching.core import (
+    DOIStudy,
+    FullTextStreamError,
+    RetrievedFullText,
+)
 from fer.fetching.openalex import OpenalexFetcher
 from tests.fixtures.fetching import fake_stream_file
 
@@ -97,6 +105,36 @@ async def test_download_one_pdf(mocker, fetcher, temporary_test_file):
     mock_stream.assert_called_once_with(
         url=url, destination=temporary_test_file, headers=None
     )
+
+
+@pytest.mark.asyncio
+async def test_download_one_pdf_deleted_file_handled_correctly(
+    mocker, fetcher, temporary_test_file
+):
+    """Test download_one_pdf calls stream_file correctly."""
+    url = "http://example.com/file.pdf"
+
+    async def empty_bytes() -> AsyncGenerator[bytes]:
+        """Return an empty byte stream to simulate a deleted file."""
+        yield b""
+
+    mocked_stream = mocker.patch(
+        "httpx2.AsyncClient.stream", new_callable=mocker.MagicMock
+    )
+    response = mocker.MagicMock(
+        status_code=200,
+        content=b"",
+        raise_for_status=mocker.MagicMock(),
+    )
+    response.raise_for_status.return_value = None
+    response.headers = {}
+    response.aiter_bytes.return_value = empty_bytes()
+
+    mocked_stream.return_value.__aenter__ = mocker.AsyncMock(return_value=response)
+    mocked_stream.return_value.__aexit__ = mocker.AsyncMock(return_value=None)
+    result = await fetcher.download_one_pdf(url, temporary_test_file)
+    assert result is None
+    mocked_stream.assert_called_once_with("GET", url, headers=None)
 
 
 @pytest.mark.asyncio
@@ -345,3 +383,62 @@ async def test_fetch_many_full_texts_openalex_collection_no_pdf(
 
     assert all(result.fulltext_path is None for result in results)
     assert all(result.error is not None for result in results)
+
+
+@pytest.mark.asyncio
+async def test_openalex_retrieval_deleted_file_handled_correctly(
+    mocker, fetcher, temporary_test_file
+):
+    """Test download_one_pdf calls stream_file correctly."""
+
+    async def empty_bytes() -> AsyncGenerator[bytes]:
+        """Return an empty byte stream to simulate a deleted file."""
+        yield b""
+
+    test_uid = uuid4()
+    test_doi = "10.1234/example"
+    test_openalex_id = "W1234567890"
+    test_pdf_url = "http://example.com/file.pdf"
+    test_study = DOIStudy(
+        uid=test_uid, doi=DOIIdentifier(identifier=test_doi), openalex_id=None
+    )
+
+    mocked_stream = mocker.patch(
+        "httpx2.AsyncClient.stream", new_callable=mocker.MagicMock
+    )
+    response = mocker.MagicMock(
+        status_code=200,
+        content=b"",
+        raise_for_status=mocker.MagicMock(),
+    )
+    response.raise_for_status.return_value = None
+    response.headers = {}
+    response.aiter_bytes.return_value = empty_bytes()
+
+    mocked_stream.return_value.__aenter__ = mocker.AsyncMock(return_value=response)
+    mocked_stream.return_value.__aexit__ = mocker.AsyncMock(return_value=None)
+
+    mocked_get_work_doi = mocker.patch.object(
+        fetcher, "_get_work_doi", new_callable=mocker.AsyncMock
+    )
+    mocked_get_work_doi.return_value = {
+        "id": test_openalex_id,
+        "locations": [{"pdf_url": test_pdf_url}],
+    }
+
+    expected_error_message = (
+        f"No PDF found for doi='{test_doi}' openalex_id='{test_openalex_id}'."
+    )
+    expected_result = RetrievedFullText(
+        uid=test_uid,
+        doi=test_doi,
+        openalex_id="W1234567890",
+        fulltext_path=None,
+        error=expected_error_message,
+    )
+    result = await fetcher._openalex_retrieval(
+        study=test_study, output_directory=temporary_test_file.parent
+    )
+
+    assert result == expected_result
+    mocked_stream.assert_called_once()

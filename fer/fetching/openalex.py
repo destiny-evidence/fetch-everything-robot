@@ -185,20 +185,31 @@ class OpenalexFetcher(BasePublisherFetcher):
             pdf_path = await self.download_one_pdf(
                 pdf_url=pdf_url, filepath=output_directory / f"{uid}.pdf"
             )
+
+            pdf_exists = pdf_path is not None and pdf_path.exists()
+            result_file_format = "pdf" if pdf_exists else None
+
+            warning_message = (
+                f"No PDF found for {doi=} {openalex_id=}." if not pdf_exists else None
+            )
+            logger.warning(warning_message) if warning_message else None
+
             return RetrievedFullText(
                 doi=doi,
                 uid=uid,
                 openalex_id=openalex_id,
                 fulltext_path=pdf_path,
-                file_format="pdf",
+                file_format=result_file_format,
+                error=warning_message,
             )
-
-        warning_message = f"No PDF found for {doi=} {openalex_id=}."
+        warning_message = f"No PDF URL found for {doi=} {openalex_id=}."
+        logger.warning(warning_message)
         return RetrievedFullText(
             doi=doi,
             uid=uid,
             openalex_id=openalex_id,
             fulltext_path=None,
+            file_format=None,
             error=warning_message,
         )
 
