@@ -11,6 +11,7 @@ import httpx2
 import pytest
 from loguru import logger
 from pydantic import AnyUrl
+from pytest_mock import MockerFixture
 
 from fer.config import ExternalAPIPriority, Settings
 from fer.data_models.generic import (
@@ -261,11 +262,13 @@ def test_publisher_dict() -> dict[str, BasePublisherFetcher]:
 
 @pytest.fixture
 def test_fulltext_enhancement_processor(
+    mocker: MockerFixture,
     test_available_api_configs,
     test_global_api_config,
     test_settings,
     test_publisher_dict,
 ) -> FullTextEnhancementProcessor:
+    mocker.patch("fer.enhancement_processor.FetchEverythingBlobStorageClient")
     return FullTextEnhancementProcessor(
         settings=test_settings,
         robot_version="9.9.9",
