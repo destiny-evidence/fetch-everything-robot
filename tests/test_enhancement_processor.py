@@ -1,4 +1,5 @@
 import uuid
+from pathlib import Path
 
 import pytest
 from destiny_sdk.enhancements import (
@@ -9,6 +10,7 @@ from destiny_sdk.references import Reference
 from destiny_sdk.robots import LinkedRobotError, RobotEnhancementBatch
 from pytest_mock import MockerFixture
 
+from fer.blob_storage import BlobUploadError
 from fer.enhancement_processor import (
     BatchEnhancementGenerationError,
     FileURLGenerationError,
@@ -594,3 +596,150 @@ def test_get_study_collection_from_references_raises_error_missing_doi():
             references=[reference_with_doi, reference_without_doi]
         )
     assert str(test_bad_reference_id) in str(error_info.value)
+
+
+@pytest.mark.asyncio
+async def test_generate_file_url_success(
+    mocker: MockerFixture,
+    tmp_path: Path,
+    test_fulltext_enhancement_processor: FullTextEnhancementProcessor,
+):
+    test_file_name = "test_file.pdf"
+    test_sas_token = "dummy_sas_token"  # noqa: S105 # this gets flagged by ruff but is obviously fine
+    test_file_url = f"http://example.com/{test_file_name}?{test_sas_token}"
+    test_file_content = "This is a test file."
+
+    test_file_path = tmp_path / test_file_name
+    test_file_path.write_text(test_file_content)
+
+    storage_client = test_fulltext_enhancement_processor.storage_client
+    mock_blob_upload = mocker.patch.object(
+        storage_client, "blob_upload", return_value=test_file_name
+    )
+    mock_get_blob_sas_pair = mocker.patch.object(
+        storage_client,
+        "get_blob_sas_pair",
+        return_value={"blob_name": test_file_name, "sas_url": test_file_url},
+    )
+
+    file_url = await test_fulltext_enhancement_processor.generate_file_url(
+        file_path=test_file_path,
+    )
+    mock_blob_upload.assert_called_once()
+    mock_get_blob_sas_pair.assert_called_once_with(test_file_name)
+    assert (
+        file_url == test_file_url
+    ), "Expect that the generated file URL matches the mocked upload URL."
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("blob_sas_pair_object", "expected_error_message"),
+    [
+        ({}, "SAS URL is missing for blob"),
+        (
+            {"blob_name": "test_file.pdf", "sas_url": None},
+            "SAS URL is missing for blob",
+        ),
+        (
+            {
+                "blob_name": "test_file.pdf",
+                "sas_url": "http://example.com/test_file.pdf?",
+            },
+            "Invalid SAS URL for blob",
+        ),
+    ],
+)
+async def test_generate_file_url_failure_sas_url_error(
+    mocker: MockerFixture,
+    tmp_path: Path,
+    test_fulltext_enhancement_processor: FullTextEnhancementProcessor,
+    blob_sas_pair_object: dict,
+    expected_error_message: str,
+):
+    test_file_name = "test_file.pdf"
+    test_file_content = "This is a test file."
+
+    test_file_path = tmp_path / test_file_name
+    test_file_path.write_text(test_file_content)
+
+    storage_client = test_fulltext_enhancement_processor.storage_client
+    mock_blob_upload = mocker.patch.object(
+        storage_client, "blob_upload", return_value=test_file_name
+    )
+    mock_get_blob_sas_pair = mocker.patch.object(
+        storage_client,
+        "get_blob_sas_pair",
+        return_value=blob_sas_pair_object,
+    )
+
+    with pytest.raises(FileURLGenerationError) as error_info:
+        await test_fulltext_enhancement_processor.generate_file_url(
+            file_path=test_file_path,
+        )
+
+    assert expected_error_message in str(error_info.value)
+
+    mock_blob_upload.assert_called_once()
+    mock_get_blob_sas_pair.assert_called_once_with(test_file_name)
+
+
+@pytest.mark.asyncio
+async def test_generate_file_url_failure_get_blob_sas_pair_error(
+    mocker: MockerFixture,
+    tmp_path: Path,
+    test_fulltext_enhancement_processor: FullTextEnhancementProcessor,
+):
+    expected_error_message = "Failed to generate SAS URL for blob"
+    test_file_name = "test_file.pdf"
+    test_file_content = "This is a test file."
+
+    test_file_path = tmp_path / test_file_name
+    test_file_path.write_text(test_file_content)
+
+    storage_client = test_fulltext_enhancement_processor.storage_client
+    mock_blob_upload = mocker.patch.object(
+        storage_client, "blob_upload", return_value=test_file_name
+    )
+    mock_get_blob_sas_pair = mocker.patch.object(
+        storage_client,
+        "get_blob_sas_pair",
+        side_effect=Exception("Simulated error in get_blob_sas_pair"),
+    )
+
+    with pytest.raises(FileURLGenerationError) as error_info:
+        await test_fulltext_enhancement_processor.generate_file_url(
+            file_path=test_file_path,
+        )
+
+    assert expected_error_message in str(error_info.value)
+    mock_blob_upload.assert_called_once()
+    mock_get_blob_sas_pair.assert_called_once_with(test_file_name)
+
+
+@pytest.mark.asyncio
+async def test_generate_file_url_failure_blob_upload_error(
+    mocker: MockerFixture,
+    tmp_path: Path,
+    test_fulltext_enhancement_processor: FullTextEnhancementProcessor,
+):
+    expected_error_message = "Failed to upload file"
+    test_file_name = "test_file.pdf"
+    test_file_content = "This is a test file."
+
+    test_file_path = tmp_path / test_file_name
+    test_file_path.write_text(test_file_content)
+
+    mock_blob_upload = mocker.patch.object(
+        test_fulltext_enhancement_processor.storage_client,
+        "blob_upload",
+        side_effect=BlobUploadError("Simulated error in blob_upload"),
+    )
+
+    with pytest.raises(FileURLGenerationError) as error_info:
+        await test_fulltext_enhancement_processor.generate_file_url(
+            file_path=test_file_path,
+        )
+
+    assert expected_error_message in str(error_info.value)
+    mock_blob_upload.assert_called_once()

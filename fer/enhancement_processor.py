@@ -77,6 +77,7 @@ class FullTextEnhancementProcessor:
             self.settings, global_api_config, publisher_dict
         )
         self.available_api_configs = available_api_configs
+        self.storage_client = FetchEverythingBlobStorageClient(self.settings)
 
     @staticmethod
     def get_study_or_raise_error(reference: Reference) -> DOIStudy:
@@ -103,10 +104,7 @@ class FullTextEnhancementProcessor:
         )
 
         if doi_id is None:
-            error_message = (
-                f"Reference {reference.id} is missing a DOI identifier.\n"
-                f"full reference: {reference}"
-            )
+            error_message = f"Reference {reference.id} is missing a DOI identifier"
             raise MissingDOIError(error_message)
 
         return DOIStudy(
@@ -394,11 +392,10 @@ class FullTextEnhancementProcessor:
                 If errors occur during file upload or SAS URL generation.
 
         """
-        storage_client = FetchEverythingBlobStorageClient(self.settings)
         try:
             with file_path.open("rb") as full_text_file:
                 blob_name = await asyncio.to_thread(
-                    storage_client.blob_upload,
+                    self.storage_client.blob_upload,
                     data=full_text_file,
                     filename=file_path.name,
                 )
@@ -409,7 +406,7 @@ class FullTextEnhancementProcessor:
             logger.error(error_message)
             raise FileURLGenerationError(error_message) from upload_error
         try:
-            blob_sas_pair = storage_client.get_blob_sas_pair(blob_name)
+            blob_sas_pair = self.storage_client.get_blob_sas_pair(blob_name)
         except (
             Exception
         ) as sas_error:  # holding pattern until we define a custom exception
@@ -418,11 +415,19 @@ class FullTextEnhancementProcessor:
             )
             logger.error(error_message)
             raise FileURLGenerationError(error_message) from sas_error
-        if not hasattr(blob_sas_pair, "sas_url") or not blob_sas_pair.sas_url:
+        if not blob_sas_pair.get("sas_url", None) or not blob_sas_pair:
             error_message = f"SAS URL is missing for blob {blob_name}."
             logger.error(error_message)
             raise FileURLGenerationError(error_message)
-        return blob_sas_pair.sas_url
+        if str(blob_sas_pair.get("sas_url")).endswith("?"):
+            error_message = (
+                f"Invalid SAS URL for blob {blob_name}: {blob_sas_pair.get('sas_url')}"
+                "SAS Token not found in URL. This may indicate a misconfiguration "
+                "in the blob storage client or an issue with the SAS token generation."
+            )
+            logger.error(error_message)
+            raise FileURLGenerationError(error_message)
+        return blob_sas_pair.get("sas_url")
 
     async def download_references(self, reference_storage_url: str) -> list[Reference]:
         """
