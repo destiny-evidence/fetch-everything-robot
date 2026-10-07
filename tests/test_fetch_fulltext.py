@@ -4,7 +4,7 @@ import httpx2
 import pytest
 
 from fer.data_models.generic import prepare_api_config
-from fer.fetch_fulltext import FullTextBatchFetcher, ZeroFullTextsGeneratedError
+from fer.fetch_fulltext import FullTextBatchFetcher
 from fer.fetching.core import BaseAuthError, RetrievedFullText
 from fer.fetching.fetchers import FullTextFetcher
 
@@ -304,7 +304,7 @@ async def test_get_many_fulltext_pdfs_cycling_apis_error_with_individual_api(
     )
     fetcher = FullTextBatchFetcher(test_settings, all_api_configs, test_publisher_dict)
 
-    with caplog.at_level("INFO"), pytest.raises(ZeroFullTextsGeneratedError):
+    with caplog.at_level("INFO"):
         await fetcher.get_many_fulltext_pdfs_cycling_apis(
             test_study_collection,
             output_directory=tmp_path,
@@ -334,10 +334,11 @@ async def test_get_many_fulltext_pdfs_cycling_apis_error_all_references(
         return_value=test_fetch_two_results_full_error,
     )
 
-    with pytest.raises(ZeroFullTextsGeneratedError):
-        await fetcher.get_many_fulltext_pdfs_cycling_apis(
-            input_study_collection=test_study_collection,
-            output_directory=test_output_directory,
-        )
+    result = await fetcher.get_many_fulltext_pdfs_cycling_apis(
+        input_study_collection=test_study_collection,
+        output_directory=test_output_directory,
+    )
 
     assert fetch_mock.call_count == len(all_api_configs["fulltext"])
+
+    assert all(result_item.fulltext_path is None for result_item in result)

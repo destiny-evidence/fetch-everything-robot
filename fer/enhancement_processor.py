@@ -17,21 +17,30 @@ from destiny_sdk.robots import (
 )
 from destiny_sdk.visibility import Visibility
 from loguru import logger
-from pydantic import HttpUrl, ValidationError
+from pydantic import BaseModel, HttpUrl, ValidationError
 
 from fer.config import Settings
 from fer.data_models.generic import APIConfig
 from fer.fetch_fulltext import (
     FullTextBatchFetcher,
     FullTextResult,
-    ZeroFullTextsGeneratedError,
 )
 from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import DOIStudy, DOIStudyCollection
 
 
-class MissingDOIError(Exception):
-    """Custom exception for missing DOI in reference."""
+class FullTextRetrievalResultSet(BaseModel):
+    """Full-text results and reference-scoped retrieval errors."""
+
+    full_texts_retrieved: list[FullTextResult] | None
+    linked_robot_errors: list[LinkedRobotError] | None = None
+
+
+class ConvertedReferenceOutput(BaseModel):
+    """Studies converted from references and errors for references without DOIs."""
+
+    study_collection: DOIStudyCollection
+    linked_robot_errors: list[LinkedRobotError]
 
 
 class BatchEnhancementGenerationError(Exception):
@@ -73,18 +82,18 @@ class FullTextEnhancementProcessor:
         self.available_api_configs = available_api_configs
 
     @staticmethod
-    def get_study_or_raise_error(reference: Reference) -> DOIStudy:
+    def convert_reference_to_study(
+        reference: Reference,
+    ) -> DOIStudy | LinkedRobotError:
         """
-        Convert a Reference object to a DOIStudy, raising an error if DOI is missing.
+        Convert a reference to a study or a linked error if its DOI is missing.
 
         Args:
             reference (Reference): A Reference object.
 
         Returns:
-            DOIStudy: The corresponding DOIStudy object.
-
-        Raises:
-            MissingDOIError: If the Reference does not have a DOI identifier.
+            DOIStudy or LinkedRobotError:
+                The converted study or a reference-scoped error.
 
         """
         doi_id = next(
@@ -98,7 +107,10 @@ class FullTextEnhancementProcessor:
 
         if doi_id is None:
             error_message = f"Reference {reference.id} is missing a DOI identifier."
-            raise MissingDOIError(error_message)
+            return LinkedRobotError(
+                message=error_message,
+                reference_id=reference.id,
+            )
 
         return DOIStudy(
             doi=doi_id,
@@ -108,7 +120,7 @@ class FullTextEnhancementProcessor:
     @staticmethod
     def get_study_collection_from_references(
         references: list[Reference],
-    ) -> DOIStudyCollection:
+    ) -> ConvertedReferenceOutput:
         """
         Convert a list of Reference objects to a DOIStudyCollection.
 
@@ -116,53 +128,128 @@ class FullTextEnhancementProcessor:
             references (list[Reference]): A list of Reference objects.
 
         Returns:
-            DOIStudyCollection: The corresponding DOIStudyCollection.
+            ConvertedReferenceOutput: The corresponding ConvertedReferenceOutput object.
 
         """
-        studies = [
-            FullTextEnhancementProcessor.get_study_or_raise_error(reference)
+        studies_and_linked_errors = [
+            FullTextEnhancementProcessor.convert_reference_to_study(reference)
             for reference in references
         ]
-        return DOIStudyCollection(studies=studies)
+        found_studies = [
+            item for item in studies_and_linked_errors if isinstance(item, DOIStudy)
+        ]
+        linked_robot_errors = [
+            item
+            for item in studies_and_linked_errors
+            if isinstance(item, LinkedRobotError)
+        ]
+        study_collection = DOIStudyCollection(studies=found_studies)
+        return ConvertedReferenceOutput(
+            study_collection=study_collection,
+            linked_robot_errors=linked_robot_errors,
+        )
 
     async def generate_fulltext(
         self,
         references: list[Reference],
         output_directory: Path,
-    ) -> list[FullTextResult]:
+    ) -> FullTextRetrievalResultSet:
         """
         Generate a list of FullTextResult objects.
 
         Args:
             references (list[Reference]): A list of Reference objects.
+            output_directory (Path): The directory to save the generated full texts.
 
         Returns:
-            list[FullTextResult]: A list of FullTextResult objects.
+            FullTextRetrievalResultSet:
+                The result of the full text retrieval: full texts
+                and any linked robot errors.
 
         """
-        try:
-            study_collection = self.get_study_collection_from_references(references)
-            debug_message = (
-                f"DOIs extracted: "
-                f"{[study.doi.identifier for study in study_collection.studies]}"
-            )
-            logger.debug(debug_message)
-        except MissingDOIError as missing_doi_error:
-            error_message = (
-                "One or more references are missing DOI identifiers: "
-                f"{missing_doi_error}"
-            )
-            raise BatchEnhancementGenerationError(error_message) from missing_doi_error
-        try:
-            return await self.fulltext_fetcher.get_many_fulltext_pdfs_cycling_apis(
+        reference_conversion_output = self.get_study_collection_from_references(
+            references
+        )
+        study_collection = reference_conversion_output.study_collection
+        linked_robot_errors = list(reference_conversion_output.linked_robot_errors)
+
+        studies_retrieved = len(study_collection.studies)
+        retrieval_rate = studies_retrieved / len(references) if references else 0
+        debug_message = (
+            f"DOIs extracted: "
+            f"{[study.doi.identifier for study in study_collection.studies]}"
+        )
+        info_message = (
+            f"{len(study_collection.studies)} DOIs extracted from "
+            f"{len(references)} references ({retrieval_rate:.2%})"
+        )
+        logger.debug(debug_message)
+        logger.info(info_message)
+
+        retrieved_fulltext_results = (
+            await self.fulltext_fetcher.get_many_fulltext_pdfs_cycling_apis(
                 input_study_collection=study_collection,
                 output_directory=output_directory,
             )
-        except ZeroFullTextsGeneratedError as zero_full_texts_error:
-            error_message = "No full texts were retrieved from any API."
-            raise BatchEnhancementGenerationError(
-                error_message
-            ) from zero_full_texts_error
+        )
+        linked_robot_errors.extend(
+            [
+                LinkedRobotError(
+                    message=f"Full text not found: DOI {result.doi} UID: {result.uid}",
+                    reference_id=result.uid,
+                )
+                for result in retrieved_fulltext_results
+                if result.fulltext_path is None
+            ]
+        )
+        retrieved_fulltexts = [
+            result
+            for result in retrieved_fulltext_results
+            if result.fulltext_path is not None
+        ]
+
+        return FullTextRetrievalResultSet(
+            full_texts_retrieved=retrieved_fulltexts,
+            linked_robot_errors=linked_robot_errors,
+        )
+
+    @staticmethod
+    def construct_enhancement_map(
+        references: list[Reference],
+        retrieval_results: FullTextRetrievalResultSet,
+    ) -> dict[str, dict[str, str | None]]:
+        """Build a complete enhancement-data map, keyed by reference ID."""
+        enhancements_map = {}
+        retrieved_full_texts = retrieval_results.full_texts_retrieved or []
+        for reference in references:
+            doi = next(
+                (
+                    identifier.identifier
+                    for identifier in reference.identifiers
+                    if isinstance(identifier, DOIIdentifier)
+                ),
+                None,
+            )
+            enhancements_map[str(reference.id)] = {
+                "doi": doi,
+                "openalex_id": None,
+                "fulltext_path": None,
+                "source": None,
+            }
+
+        enhancements_map.update(
+            {
+                result.uid: {
+                    "doi": result.doi,
+                    "openalex_id": result.openalex_id,
+                    "fulltext_path": result.fulltext_path,
+                    "source": result.source,
+                }
+                for result in retrieved_full_texts
+                if result is not None
+            }
+        )
+        return enhancements_map
 
     async def create_fulltext_enhancement(
         self,
@@ -183,48 +270,35 @@ class FullTextEnhancementProcessor:
         """
         try:
             with tempfile.TemporaryDirectory() as temp_directory:
-                generated_fulltexts: list[
-                    FullTextResult
-                ] = await self.generate_fulltext(
-                    references,
-                    output_directory=Path(temp_directory),
+                generated_fulltexts: FullTextRetrievalResultSet = (
+                    await self.generate_fulltext(
+                        references,
+                        output_directory=Path(temp_directory),
+                    )
                 )
 
-                found_results: list[FullTextResult] = [
-                    result
-                    for result in generated_fulltexts
-                    if result.fulltext_path is not None
-                ]
-                not_found_results: list[FullTextResult] = [
-                    result
-                    for result in generated_fulltexts
-                    if result.fulltext_path is None
-                ]
+                found_results = generated_fulltexts.full_texts_retrieved or []
+                not_found_results = generated_fulltexts.linked_robot_errors or []
+
                 logger.info(
                     f"Successfully fetched {len(found_results)} full text PDFs."
                 )
 
-                if len(not_found_results) > 0:
-                    warning_message = (
-                        f"Failed to fetch {len(not_found_results)} full text PDFs. "
-                        f"DOIs: {[result.doi for result in not_found_results]}"
+                if not_found_results:
+                    logger.warning(
+                        "Failed to fetch full texts for references: {}",
+                        [str(error.reference_id) for error in not_found_results],
                     )
-                    logger.warning(warning_message)
 
-                enhancements_map = {
-                    result.uid: {
-                        "doi": result.doi,
-                        "openalex_id": result.openalex_id,
-                        "fulltext_path": result.fulltext_path,
-                        "source": result.source,
-                    }
-                    for result in generated_fulltexts
-                }
+                enhancements_map = self.construct_enhancement_map(
+                    references, generated_fulltexts
+                )
 
                 fulltext_enhancements = (
                     await self.generate_fulltext_enhancement_batch_request(
                         references=references,
                         full_text_results_map=enhancements_map,
+                        linked_robot_errors=not_found_results,
                         available_api_configs=self.available_api_configs,
                         app_title=self.source_name,
                     )
@@ -244,6 +318,7 @@ class FullTextEnhancementProcessor:
         full_text_results_map: dict[str, dict],
         available_api_configs: list[APIConfig],
         app_title: str,
+        linked_robot_errors: list[LinkedRobotError] | None = None,
     ) -> list[Enhancement | LinkedRobotError]:
         """
         Generate a batch of full text enhancements.
@@ -260,6 +335,8 @@ class FullTextEnhancementProcessor:
             references (list[Reference]): A list of DESTINY `Reference` objects.
             full_text_results_map (dict[str, dict]):
                 A map of generated full text results.
+            linked_robot_errors (list[LinkedRobotError]):
+                A list of linked robot errors.
             available_api_configs (list[APIConfig]):
                 A list of available API configurations.
             app_title (str): The title of the application.
@@ -275,9 +352,17 @@ class FullTextEnhancementProcessor:
         """
         enhancements_out = []
         version_number = self.robot_version
+        linked_errors_by_reference = {
+            str(error.reference_id): error for error in linked_robot_errors or []
+        }
 
         successful_enhancements = 0
         for reference in references:
+            linked_error = linked_errors_by_reference.get(str(reference.id))
+            if linked_error is not None:
+                enhancements_out.append(linked_error)
+                continue
+
             enhancement = full_text_results_map.get(str(reference.id))
             if not enhancement:
                 error_message = (

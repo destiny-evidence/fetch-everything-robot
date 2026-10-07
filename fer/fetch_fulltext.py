@@ -283,10 +283,6 @@ class FullTextBatchFetcher:
             f"{len(retrieved_fulltexts)} full texts"
             f" retrieved of {valid_references_provided} valid DOIs requested."
         )
-        if len(retrieved_fulltexts) == 0:
-            error_message = "No full texts were retrieved from any API."
-            logger.error(error_message)
-            raise ZeroFullTextsGeneratedError(error_message)
 
         logger.info(f"{len(invalid_dois)} invalid DOIs provided.")
         if len(valid_dois) > 0:

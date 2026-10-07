@@ -12,7 +12,7 @@ from pytest_mock import MockerFixture
 from fer.enhancement_processor import (
     BatchEnhancementGenerationError,
     FullTextEnhancementProcessor,
-    MissingDOIError,
+    FullTextRetrievalResultSet,
 )
 from fer.fetch_fulltext import FullTextResult
 from fer.fetching.core import RetrievedFullText
@@ -115,7 +115,9 @@ async def test_create_fulltext_enhancement_success(
     generate_fulltext_mock = mocker.patch.object(
         test_fulltext_enhancement_processor,
         "generate_fulltext",
-        return_value=generated_fulltexts,
+        return_value=FullTextRetrievalResultSet(
+            full_texts_retrieved=generated_fulltexts,
+        ),
     )
     batch_request_mock = mocker.patch.object(
         test_fulltext_enhancement_processor,
@@ -211,17 +213,17 @@ async def test_generate_fulltext_partial_success(
         references=test_references,
         output_directory=tmp_path,
     )
-
+    retrieved_full_texts = results.full_texts_retrieved or []
+    resulting_linked_errors = results.linked_robot_errors or []
     assert fetch_mock.call_count == n_available_api_configs, (
         "Expect that the fetcher is called for each available API until all fulltexts"
         " are either found or all APIs are exhausted."
     )
-    assert (
-        results[0].fulltext_path is not None
-    ), "Expect that the first reference has a fulltext path since it was successfully fetched."
-    assert (
-        results[1].fulltext_path is None
-    ), "Expect that the second reference has no fulltext path since it failed to fetch."
+    assert retrieved_full_texts
+    assert retrieved_full_texts[0].fulltext_path is not None
+    assert [error.reference_id for error in resulting_linked_errors] == [
+        test_references[1].id
+    ]
 
 
 @pytest.mark.asyncio
@@ -435,15 +437,16 @@ async def test_generate_fulltext_total_failure_no_fulltexts_found(
         return_value=test_fetch_two_results_full_error,
     )
 
-    with pytest.raises(BatchEnhancementGenerationError):
-        await test_fulltext_enhancement_processor.generate_fulltext(
-            references=test_references,
-            output_directory=tmp_path,
-        )
+    results = await test_fulltext_enhancement_processor.generate_fulltext(
+        references=test_references,
+        output_directory=tmp_path,
+    )
 
     assert fetch_mock.call_count == len(
         test_fulltext_enhancement_processor.available_api_configs
     ), "Expect that all available APIs are tried."
+    assert len(results.full_texts_retrieved) == 0
+    assert len(results.linked_robot_errors) == len(test_references)
 
 
 @pytest.mark.asyncio
@@ -469,11 +472,28 @@ async def test_generate_fulltext_total_failure_single_missing_doi(
         ),
     ]
 
-    with pytest.raises(BatchEnhancementGenerationError):
-        await test_fulltext_enhancement_processor.generate_fulltext(
-            references=test_two_references,
-            output_directory=tmp_path,
-        )
+    mocker.patch.object(
+        test_fulltext_enhancement_processor.fulltext_fetcher,
+        "get_many_fulltext_pdfs_cycling_apis",
+        return_value=[
+            FullTextResult(
+                doi="10.1093/ajae/aaq063",
+                uid=str(test_good_reference_id),
+                openalex_id=None,
+                fulltext_path=None,
+                source=None,
+            )
+        ],
+    )
+
+    results = await test_fulltext_enhancement_processor.generate_fulltext(
+        references=test_two_references,
+        output_directory=tmp_path,
+    )
+    assert {error.reference_id for error in results.linked_robot_errors} == {
+        test_good_reference_id,
+        test_bad_reference_id,
+    }
 
 
 @pytest.mark.asyncio
@@ -525,7 +545,10 @@ async def test_generate_fulltext_partial_success_empty_fulltexts_found_for_some_
         " are either found or all APIs are exhausted."
     )
 
-    assert results == expected_results
+    assert results.full_texts_retrieved == expected_results[:1]
+    assert [error.reference_id for error in results.linked_robot_errors] == [
+        test_references[1].id
+    ]
 
 
 @pytest.mark.xfail(
@@ -573,7 +596,7 @@ def test_generate_fulltext_request_appropriate_visibility(
         )
 
 
-def test_get_study_collection_from_references_raises_error_missing_doi():
+def test_get_study_collection_from_references_returns_linked_error_for_missing_doi():
     test_good_reference_id = uuid.uuid4()
     test_bad_reference_id = uuid.uuid4()
     reference_with_doi = Reference(
@@ -588,8 +611,42 @@ def test_get_study_collection_from_references_raises_error_missing_doi():
         enhancements=[],
     )
 
-    with pytest.raises(MissingDOIError) as error_info:
-        FullTextEnhancementProcessor.get_study_collection_from_references(
-            references=[reference_with_doi, reference_without_doi]
-        )
-    assert str(test_bad_reference_id) in str(error_info.value)
+    result = FullTextEnhancementProcessor.get_study_collection_from_references(
+        references=[reference_with_doi, reference_without_doi]
+    )
+    assert len(result.study_collection.studies) == 1
+    assert [error.reference_id for error in result.linked_robot_errors] == [
+        test_bad_reference_id
+    ]
+
+
+def test_construct_enhancement_map_keeps_doi_for_linked_robot_error(
+    test_fulltext_enhancement_processor: FullTextEnhancementProcessor,
+):
+    reference = Reference(
+        id=uuid.uuid4(),
+        identifiers=[
+            {"identifier": "W123456789", "identifier_type": "open_alex"},
+            {"identifier": "10.1000/xyz123", "identifier_type": "doi"},
+        ],
+        enhancements=[],
+    )
+    linked_error = LinkedRobotError(
+        message="Full text not found.",
+        reference_id=reference.id,
+    )
+    retrieval_results = FullTextRetrievalResultSet(
+        full_texts_retrieved=[],
+        linked_robot_errors=[linked_error],
+    )
+
+    enhancements_map = test_fulltext_enhancement_processor.construct_enhancement_map(
+        [reference], retrieval_results
+    )
+
+    assert enhancements_map[str(reference.id)] == {
+        "doi": "10.1000/xyz123",
+        "openalex_id": None,
+        "fulltext_path": None,
+        "source": None,
+    }
