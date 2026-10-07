@@ -128,6 +128,19 @@ class Settings(BaseSettings):
         default=None, description="proxy url to pass scopus requests through."
     )
 
+    STORAGE_BLOB_ACCOUNT: str = Field(
+        ...,
+        description="The account for the Azure Storage Blob",
+    )
+    STORAGE_BLOB_CONTAINER: str = Field(
+        ...,
+        description="The container for the Azure Storage Blob",
+    )
+    STORAGE_BLOB_ACCOUNT_KEY: SecretStr = Field(
+        ...,
+        description="The account key for the Azure Storage Blob",
+    )
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
