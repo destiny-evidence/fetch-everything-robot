@@ -5,8 +5,9 @@ from uuid import uuid5
 import httpx2
 import pytest
 from destiny_sdk.identifiers import DOIIdentifier, OpenAlexIdentifier
+from pytest_mock import MockerFixture
 
-from fer.config import ExternalAPI
+from fer.config import ExternalAPI, Settings
 from fer.enhancement_processor import FullTextEnhancementProcessor
 from fer.fetch_fulltext import FullTextResult
 from fer.fetching.core import (
@@ -16,6 +17,7 @@ from fer.fetching.core import (
     OpenAlexStudyCollection,
     RetrievedFullText,
 )
+from fer.fetching.openalex import OpenalexFetcher
 from fer.local.run import (
     DOI_NAMESPACE,
     InvalidIdentifierError,
@@ -264,6 +266,124 @@ async def test_main_excluded_apis_success(
     assert (
         mocked_get_many_fulltexts.await_count == 1
     ), "get_many_fulltext_pdfs_cycling_apis should be called once"
+
+
+@pytest.mark.asyncio
+async def test_main_openalex_identifier_end_to_end(
+    mocker: MockerFixture, tmp_path: Path
+):
+    openalex_id = "W123456789"
+    doi = "10.1000/xyz123"
+    pdf_content = b"Test content"
+    requests = []
+    mock_responses = [
+        httpx2.Response(
+            200,
+            json={
+                "id": f"https://openalex.org/{openalex_id}",
+                "doi": f"https://doi.org/{doi}",
+                "locations": [{"pdf_url": "https://files.example.test/test.pdf"}],
+            },
+        ),
+        httpx2.Response(
+            200,
+            json={
+                "id": f"https://openalex.org/{openalex_id}",
+                "doi": f"https://doi.org/{doi}",
+                "locations": [{"pdf_url": "https://files.example.test/test.pdf"}],
+            },
+        ),
+        httpx2.Response(200, content=pdf_content),
+    ]
+
+    def handle_request(request: httpx2.Request) -> httpx2.Response:
+        """
+        Define a request handler to return corresponding mock responses.
+
+        Args:
+            request (httpx2.Request): The incoming HTTP request.
+
+        Returns:
+            httpx2.Response: The mock response corresponding to the request.
+
+        """
+        requests.append(request)
+        return mock_responses[len(requests) - 1]
+
+    original_async_client_init = httpx2.AsyncClient.__init__
+
+    def use_mock_transport(
+        client: httpx2.AsyncClient,
+        *,
+        timeout: float = 0.0,
+        follow_redirects: bool = False,
+        transport: httpx2.AsyncBaseTransport | None = None,
+    ) -> None:
+        """
+        Replace the supplied transport with a mock for the given AsyncClient.
+
+        Args:
+            client (httpx2.AsyncClient): The HTTP client instance.
+            transport (httpx2.AsyncBaseTransport | None): The transport supplied by
+                the caller, replaced below by the mock transport.
+
+        """
+        mock_transport = httpx2.MockTransport(handle_request)
+
+        original_async_client_init(
+            client,
+            timeout=timeout,
+            follow_redirects=follow_redirects,
+            transport=mock_transport,
+        )
+
+    mocker.patch.object(httpx2.AsyncClient, "__init__", new=use_mock_transport)
+
+    original_openalex_fetcher_init = OpenalexFetcher.__init__
+
+    def init_without_wait(
+        fetcher: OpenalexFetcher, settings: Settings, wait_time_seconds: float = 0.0
+    ) -> None:
+        """
+        Initialise the OpenalexFetcher without waiting between requests.
+
+        Callable required for patching the OpenalexFetcher class constructor
+        to remove delays during testing.
+
+        Args:
+            fetcher (OpenalexFetcher): The OpenalexFetcher instance being initialised.
+            settings (Settings): The settings to use for the fetcher.
+            wait_time_seconds (float, optional): The time to wait between requests.
+                Defaults to 0.0 for this test.
+
+        """
+        original_openalex_fetcher_init(fetcher, settings, wait_time_seconds)
+
+    mocker.patch.object(OpenalexFetcher, "__init__", new=init_without_wait)
+    identifier_file = tmp_path / "identifiers.txt"
+    identifier_file.write_text(openalex_id)
+    output_directory = tmp_path / "output"
+
+    await main(
+        identifier_file=identifier_file,
+        output_directory=output_directory,
+        exclude_api=[ExternalAPI.CROSSREF, ExternalAPI.UNPAYWALL, ExternalAPI.SCOPUS],
+    )
+
+    study_uid = uuid5(DOI_NAMESPACE, doi)
+    assert (
+        output_directory / f"{study_uid}.pdf"
+    ).read_bytes() == pdf_content, "PDF content should match the expected."
+    assert (
+        (output_directory / "retrieved_fulltexts_map.txt").read_text().splitlines()
+        == [
+            "Supplied Identifier\tOpenAlex ID\tDOI\tFilename\tSource API",
+            f"{openalex_id}\t{openalex_id}\t{doi}\t{study_uid}.pdf\tOPENALEX",
+        ]
+    ), "Map file should contain the correct mapping of identifiers to retrieved full texts"
+    assert len(requests) == len(
+        mock_responses
+    ), "All expected requests should have been made"
 
 
 @pytest.mark.asyncio

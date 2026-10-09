@@ -19,10 +19,6 @@ from fer.fetching.fetchers import FullTextFetcher, FullTextFetcherError
 from fer.utils import InvalidDOIError, validate_doi
 
 
-class ZeroFullTextsGeneratedError(Exception):
-    """Custom exception for no full texts being generated."""
-
-
 class FullTextBatchFetcherError(Exception):
     """Custom exception for errors occurring during full text fetching."""
 
