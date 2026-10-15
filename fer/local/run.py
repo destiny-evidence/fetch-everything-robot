@@ -33,10 +33,6 @@ app = App(
 DOI_NAMESPACE = UUID("12345678-1234-5678-1234-567812345678")
 
 
-class ZeroFullTextsGeneratedError(Exception):
-    """Custom exception for no full texts being generated."""
-
-
 class InvalidIdentifierError(Exception):
     """Raise when no valid identifier is found for a single Reference."""
 

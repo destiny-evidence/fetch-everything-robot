@@ -131,18 +131,36 @@ class FullTextEnhancementProcessor:
             ConvertedReferenceOutput: The corresponding ConvertedReferenceOutput object.
 
         """
-        studies_and_linked_errors = [
-            FullTextEnhancementProcessor.convert_reference_to_study(reference)
-            for reference in references
-        ]
-        found_studies = [
-            item for item in studies_and_linked_errors if isinstance(item, DOIStudy)
-        ]
-        linked_robot_errors = [
-            item
-            for item in studies_and_linked_errors
-            if isinstance(item, LinkedRobotError)
-        ]
+        found_studies: list[DOIStudy] = []
+        linked_robot_errors: list[LinkedRobotError] = []
+        first_reference_by_doi: dict[str, str] = {}
+
+        for reference in references:
+            item = FullTextEnhancementProcessor.convert_reference_to_study(reference)
+
+            if isinstance(item, LinkedRobotError):
+                linked_robot_errors.append(item)
+                continue
+
+            doi = item.doi.identifier.lower()
+            first_reference_id = first_reference_by_doi.get(doi)
+
+            if first_reference_id is not None:
+                error_message = (
+                    f"Duplicate DOI: {item.doi.identifier} already found "
+                    f"for reference {first_reference_id}."
+                )
+                linked_robot_errors.append(
+                    LinkedRobotError(
+                        message=error_message,
+                        reference_id=reference.id,
+                    )
+                )
+                continue
+
+            first_reference_by_doi[doi] = str(reference.id)
+            found_studies.append(item)
+
         study_collection = DOIStudyCollection(studies=found_studies)
         return ConvertedReferenceOutput(
             study_collection=study_collection,
@@ -171,7 +189,9 @@ class FullTextEnhancementProcessor:
             references
         )
         study_collection = reference_conversion_output.study_collection
-        linked_robot_errors = list(reference_conversion_output.linked_robot_errors)
+        linked_robot_errors: list[LinkedRobotError] = list(
+            reference_conversion_output.linked_robot_errors
+        )
 
         studies_retrieved = len(study_collection.studies)
         retrieval_rate = studies_retrieved / len(references) if references else 0
@@ -310,6 +330,19 @@ class FullTextEnhancementProcessor:
                 f"{batch_error}"
             )
             raise BatchEnhancementGenerationError(error_message) from batch_error
+
+        errors_returned = [
+            error
+            for error in fulltext_enhancements
+            if isinstance(error, LinkedRobotError) or []
+        ]
+        zero_fulltexts_generated = len(errors_returned) == len(references)
+        if zero_fulltexts_generated:
+            error_message = (
+                "All references failed to generate full texts. "
+                f"Errors: {[error.message for error in fulltext_enhancements]}"
+            )
+            logger.warning(error_message)
         return fulltext_enhancements
 
     async def generate_fulltext_enhancement_batch_request(
@@ -546,16 +579,16 @@ class FullTextEnhancementProcessor:
                 enhancements=generated_enhancements,
                 result_storage_url=str(batch.result_storage_url),
             )
-        except BatchEnhancementGenerationError as full_batch_failure:
+        except BatchEnhancementGenerationError as batch_generation_error:
             error_message = (
-                "Full batch failure during enhancement generation for"
+                "Batch enhancement generation failure for"
                 f" batch {batch.id}:"
-                f" {full_batch_failure}"
+                f" {batch_generation_error}"
             )
             logger.error(
                 error_message,
                 batch.id,
-                full_batch_failure,
+                batch_generation_error,
             )
             raise
         return generated_enhancements
