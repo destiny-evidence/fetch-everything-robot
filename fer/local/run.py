@@ -19,7 +19,12 @@ from fer.data_models.unpaywall import get_unpaywall_api_config
 from fer.enhancement_processor import (
     FullTextEnhancementProcessor,
 )
-from fer.fetching.core import DOIStudy, DOIStudyCollection, OpenAlexStudyCollection
+from fer.fetching.core import (
+    BaseStudy,
+    DOIStudy,
+    DOIStudyCollection,
+    OpenAlexStudyCollection,
+)
 from fer.fetching.openalex import OpenalexFetcher, OpenAlexStudy
 from fer.fetching.registry import get_publisher_fetcher_registry
 from fer.logger import logger, set_up_logger
@@ -59,10 +64,23 @@ async def resolve_openalex_identifiers(
         return [], [], {}
 
     openalex_fetcher = OpenalexFetcher(settings)
+    observed_openalex_ids: set[str] = set()
+    unique_openalex_identifiers: list[OpenAlexIdentifier] = []
+
+    for openalex_id in openalex_identifiers:
+        if openalex_id.identifier in observed_openalex_ids:
+            logger.warning(
+                f"Duplicate OpenAlex ID {openalex_id.identifier} found in input list. "
+                "Only the first occurrence will be processed."
+            )
+            continue
+        observed_openalex_ids.add(openalex_id.identifier)
+        unique_openalex_identifiers.append(openalex_id)
+
     works = await asyncio.gather(
         *[
             openalex_fetcher.get_work_openalex_id(openalex_id.identifier)
-            for openalex_id in openalex_identifiers
+            for openalex_id in unique_openalex_identifiers
         ],
         return_exceptions=True,
     )
@@ -70,7 +88,7 @@ async def resolve_openalex_identifiers(
     without_doi: list[OpenAlexStudy] = []
     uid_to_supplied: dict[str, str] = {}
 
-    for openalex_id, work in zip(openalex_identifiers, works, strict=False):
+    for openalex_id, work in zip(unique_openalex_identifiers, works, strict=False):
         if isinstance(work, BaseException):
             logger.warning(
                 f"Failed to fetch OpenAlex work for {openalex_id.identifier}: {work}. "
@@ -153,47 +171,73 @@ async def generate_study_collection(
             and a dictionary mapping UIDs to the original supplied identifiers.
 
     """
-    extracted_dois = [
-        identifier.identifier
-        for identifier in identifier_list
-        if isinstance(identifier, DOIIdentifier)
-    ]
     extracted_openalex_ids = [
         identifier
         for identifier in identifier_list
         if isinstance(identifier, OpenAlexIdentifier)
     ]
-    uid_to_supplied: dict[str, str] = {}
-
-    doi_study_collection = (
-        generate_study_collection_from_dois(extracted_dois)
-        if len(extracted_dois) > 0
-        else DOIStudyCollection(studies=[])
-    )
-    logger.debug("Mapping DOI inputs to their study UIDs -> supplied DOI string")
-    for study in doi_study_collection.studies:
-        if getattr(study, "doi", None):
-            d = study.doi
-            uid_to_supplied[str(study.uid)] = (
-                d.identifier if hasattr(d, "identifier") else str(d)
-            )
-
+    direct_doi_studies = {
+        study.doi.identifier.lower(): study
+        for study in generate_study_collection_from_dois(
+            [
+                identifier.identifier
+                for identifier in identifier_list
+                if isinstance(identifier, DOIIdentifier)
+            ]
+        ).studies
+    }
     (
         resolved_studies,
         openalex_id_studies_without_doi,
-        oa_uid_map,
+        _,
     ) = await resolve_openalex_identifiers(extracted_openalex_ids, settings)
+    combined_studies: list[DOIStudy | OpenAlexStudy] = [
+        *resolved_studies,
+        *openalex_id_studies_without_doi,
+    ]
+    openalex_studies_by_id = {
+        study.openalex_id.identifier: study
+        for study in combined_studies
+        if study.openalex_id is not None
+    }
 
-    logger.debug("Merging uid->supplied mappings from OpenAlex resolution")
-    uid_to_supplied.update(oa_uid_map)
+    study_collection = DOIStudyCollection(studies=[])
+    openalex_collection = OpenAlexStudyCollection(studies=[])
+    uid_to_supplied: dict[str, str] = {}
+    seen_dois: set[str] = set()
+    seen_openalex_ids: set[str] = set()
 
-    study_collection = DOIStudyCollection(
-        studies=doi_study_collection.studies + resolved_studies
-    )
+    for identifier in identifier_list:
+        supplied_identifier = identifier.identifier
+        study: BaseStudy
+        if isinstance(identifier, DOIIdentifier):
+            study = direct_doi_studies[identifier.identifier.lower()]
+        else:
+            study = openalex_studies_by_id[identifier.identifier]
 
-    openalex_collection = OpenAlexStudyCollection(
-        studies=openalex_id_studies_without_doi
-    )
+        if isinstance(study, DOIStudy):
+            doi = study.doi.identifier.lower()
+            if doi in seen_dois:
+                logger.warning(
+                    f"Duplicate DOI {study.doi.identifier} supplied as "
+                    f"{supplied_identifier}; keeping the first occurrence."
+                )
+                continue
+            seen_dois.add(doi)
+            study_collection.studies.append(study)
+        else:
+            openalex_id = study.openalex_id.identifier
+            if openalex_id in seen_openalex_ids:
+                logger.warning(
+                    f"Duplicate OpenAlex ID {openalex_id} supplied; "
+                    "keeping the first occurrence."
+                )
+                continue
+            seen_openalex_ids.add(openalex_id)
+            openalex_collection.studies.append(study)
+
+        uid_to_supplied[str(study.uid)] = supplied_identifier
+
     return study_collection, openalex_collection, uid_to_supplied
 
 
