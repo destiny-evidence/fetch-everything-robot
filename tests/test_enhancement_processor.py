@@ -602,9 +602,10 @@ def test_generate_fulltext_request_appropriate_visibility(
 def test_get_study_collection_from_references_returns_linked_error_for_missing_doi():
     test_good_reference_id = uuid.uuid4()
     test_bad_reference_id = uuid.uuid4()
+    test_doi = "10.1000/xyz123"
     reference_with_doi = Reference(
         id=test_good_reference_id,
-        identifiers=[{"identifier": "10.1000/xyz123", "identifier_type": "doi"}],
+        identifiers=[{"identifier": test_doi, "identifier_type": "doi"}],
         enhancements=[],
     )
 
@@ -613,24 +614,36 @@ def test_get_study_collection_from_references_returns_linked_error_for_missing_d
         identifiers=[{"identifier": "W123456789", "identifier_type": "open_alex"}],
         enhancements=[],
     )
+    test_input_references = [reference_with_doi, reference_without_doi]
 
     result = FullTextEnhancementProcessor.get_study_collection_from_references(
-        references=[reference_with_doi, reference_without_doi]
+        references=test_input_references
     )
-    assert len(result.study_collection.studies) == 1
+    assert (
+        len(result.study_collection.studies) == 1
+    ), "Expect that only the reference with a DOI is included in the study collection."
+    assert (
+        result.study_collection.studies[0].doi.identifier == test_doi
+    ), "Expect that the DOI is correctly included in the study collection."
     assert [error.reference_id for error in result.linked_robot_errors] == [
         test_bad_reference_id
-    ]
+    ], "Expect that the reference without a DOI is included in the linked robot errors."
 
 
 def test_construct_enhancement_map_keeps_doi_for_linked_robot_error(
     test_fulltext_enhancement_processor: FullTextEnhancementProcessor,
-):  
+):
+    """
+    Ensure that when constructing the enhancement map, if a reference has a linked robot error,
+    the DOI is still retained in the resulting map, while other fields are set to None.
+    """
+    test_openalex_id = "W123456789"
+    test_doi = "10.1000/xyz123"
     reference = Reference(
         id=uuid.uuid4(),
         identifiers=[
-            {"identifier": "W123456789", "identifier_type": "open_alex"},
-            {"identifier": "10.1000/xyz123", "identifier_type": "doi"},
+            {"identifier": test_openalex_id, "identifier_type": "open_alex"},
+            {"identifier": test_doi, "identifier_type": "doi"},
         ],
         enhancements=[],
     )
@@ -647,12 +660,16 @@ def test_construct_enhancement_map_keeps_doi_for_linked_robot_error(
         [reference], retrieval_results
     )
 
-    assert enhancements_map[str(reference.id)] == {
-        "doi": "10.1000/xyz123",
-        "openalex_id": None,
-        "fulltext_path": None,
-        "source": None,
-    }
+    assert (
+        enhancements_map[str(reference.id)]
+        == {
+            "doi": test_doi,
+            "openalex_id": None,
+            "fulltext_path": None,
+            "source": None,
+        }
+    ), "Expect that the DOI is retained in the enhancement map for references with linked robot errors, while other fields are None."
+
 
 @pytest.mark.asyncio
 async def test_generate_file_url_success(
