@@ -189,3 +189,4 @@ misc
 *.secrets
 
 output/*
+scratch/*

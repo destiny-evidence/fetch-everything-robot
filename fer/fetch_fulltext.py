@@ -19,10 +19,6 @@ from fer.fetching.fetchers import FullTextFetcher, FullTextFetcherError
 from fer.utils import InvalidDOIError, validate_doi
 
 
-class ZeroFullTextsGeneratedError(Exception):
-    """Custom exception for no full texts being generated."""
-
-
 class FullTextBatchFetcherError(Exception):
     """Custom exception for errors occurring during full text fetching."""
 
@@ -135,7 +131,7 @@ class FullTextBatchFetcher:
     async def get_many_fulltext_pdfs_cycling_apis(
         self,
         input_study_collection: DOIStudyCollection,
-        output_directory: Path | None = None,
+        output_directory: Path,
         *,
         get_pdf: bool = True,
         get_xml: bool = False,
@@ -145,7 +141,7 @@ class FullTextBatchFetcher:
 
         Args:
             input_study_collection (DOIStudyCollection): Input study collection.
-            output_directory (Path | None, optional): Directory to save full texts.
+            output_directory (Path): Directory to save full texts.
             get_pdf (bool, optional): Whether to fetch PDF files. Defaults to True.
             get_xml (bool, optional): Whether to fetch XML files. Defaults to False.
 
@@ -184,36 +180,31 @@ class FullTextBatchFetcher:
         )
         retrieved_fulltexts: list[FullTextResult] = []
 
-        if output_directory is not None:
-            for study in list(valid_study_collection.studies):
-                fulltext_path = next(
-                    (
-                        output_directory / f"{study.uid}{ext}"
-                        for ext in [".pdf", ".xml"]
-                        if (output_directory / f"{study.uid}{ext}").exists()
-                    ),
-                    None,
+        for study in list(valid_study_collection.studies):
+            fulltext_path = next(
+                (
+                    output_directory / f"{study.uid}{ext}"
+                    for ext in [".pdf", ".xml"]
+                    if (output_directory / f"{study.uid}{ext}").exists()
+                ),
+                None,
+            )
+            if fulltext_path is not None:
+                logger.info(f"File already exists, skipping DOI {study.doi.identifier}")
+                retrieved_fulltexts.append(
+                    FullTextResult(
+                        doi=study.doi.identifier,
+                        uid=str(study.uid),
+                        openalex_id=(
+                            study.openalex_id.identifier if study.openalex_id else None
+                        ),
+                        fulltext_path=str(fulltext_path),
+                        source=self.settings.robot_title,
+                    )
                 )
-                if fulltext_path is not None:
-                    logger.info(
-                        f"File already exists, skipping DOI {study.doi.identifier}"
-                    )
-                    retrieved_fulltexts.append(
-                        FullTextResult(
-                            doi=study.doi.identifier,
-                            uid=str(study.uid),
-                            openalex_id=(
-                                study.openalex_id.identifier
-                                if study.openalex_id
-                                else None
-                            ),
-                            fulltext_path=str(fulltext_path),
-                            source="Already downloaded",
-                        )
-                    )
-                    doi_to_remove = self.process_doi(study.doi.identifier)
-                    valid_dois.remove(doi_to_remove)
-                    valid_study_collection.remove_study_by_identifier(doi_to_remove)
+                doi_to_remove = self.process_doi(study.doi.identifier)
+                valid_dois.remove(doi_to_remove)
+                valid_study_collection.remove_study_by_identifier(doi_to_remove)
 
         for api_name in self.all_api_configs["fulltext"]:
             if len(valid_dois) == 0:
@@ -288,10 +279,6 @@ class FullTextBatchFetcher:
             f"{len(retrieved_fulltexts)} full texts"
             f" retrieved of {valid_references_provided} valid DOIs requested."
         )
-        if len(retrieved_fulltexts) == 0:
-            error_message = "No full texts were retrieved from any API."
-            logger.error(error_message)
-            raise ZeroFullTextsGeneratedError(error_message)
 
         logger.info(f"{len(invalid_dois)} invalid DOIs provided.")
         if len(valid_dois) > 0:

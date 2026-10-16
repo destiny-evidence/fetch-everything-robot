@@ -19,7 +19,6 @@ from fer.data_models.unpaywall import get_unpaywall_api_config
 from fer.enhancement_processor import (
     FullTextEnhancementProcessor,
 )
-from fer.fetch_fulltext import ZeroFullTextsGeneratedError
 from fer.fetching.core import DOIStudy, DOIStudyCollection, OpenAlexStudyCollection
 from fer.fetching.openalex import OpenalexFetcher, OpenAlexStudy
 from fer.fetching.registry import get_publisher_fetcher_registry
@@ -32,6 +31,10 @@ app = App(
 )
 
 DOI_NAMESPACE = UUID("12345678-1234-5678-1234-567812345678")
+
+
+class ZeroFullTextsGeneratedError(Exception):
+    """Custom exception for no full texts being generated."""
 
 
 class InvalidIdentifierError(Exception):
@@ -406,25 +409,23 @@ async def retrieve_fulltexts_from_external_providers(
              Defaults to "retrieved_fulltexts_map.txt".
 
     """
-    try:
-        results = await processor.fulltext_fetcher.get_many_fulltext_pdfs_cycling_apis(
-            input_study_collection=study_collection,
-            output_directory=output_directory,
+    results = await processor.fulltext_fetcher.get_many_fulltext_pdfs_cycling_apis(
+        input_study_collection=study_collection,
+        output_directory=output_directory,
+    )
+    found_results = [result for result in results if result.fulltext_path is not None]
+    not_found_results = [result for result in results if result.fulltext_path is None]
+    logger.info(f"Successfully fetched {len(found_results)} full text PDFs.")
+    if len(not_found_results) > 0:
+        logger.warning(
+            f"Could not fetch {len(not_found_results)} full text PDFs."
+            " See results map for details."
         )
-        found_results = [
-            result for result in results if result.fulltext_path is not None
-        ]
-        not_found_results = [
-            result for result in results if result.fulltext_path is None
-        ]
-        logger.info(f"Successfully fetched {len(found_results)} full text PDFs.")
-        if len(not_found_results) > 0:
-            logger.warning(
-                f"Could not fetch {len(not_found_results)} full text PDFs."
-                " See results map for details."
-            )
-    except ZeroFullTextsGeneratedError as zero_fulltexts_error:
-        logger.error(f"No full texts were generated: {zero_fulltexts_error}")
+    if len(found_results) == 0:
+        logger.error(
+            "No full texts were generated. Exiting. "
+            "Please check the logs for more details."
+        )
         sys.exit(1)
     results_map_file = output_directory / result_file_name
 
