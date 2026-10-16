@@ -1,4 +1,5 @@
 import uuid
+from pathlib import Path
 
 import pytest
 from destiny_sdk.enhancements import (
@@ -16,6 +17,40 @@ from fer.enhancement_processor import (
 )
 from fer.fetch_fulltext import FullTextResult
 from fer.fetching.core import RetrievedFullText
+
+
+@pytest.fixture
+def duplicate_references():
+    duplicate_doi = "10.1000/abcdef"
+    unique_doi = "10.1000/xyz123"
+    first_duplicate_reference_id = uuid.uuid4()
+    second_duplicate_reference_id = uuid.uuid4()
+    unique_reference_id = uuid.uuid4()
+    test_references_with_duplicates = [
+        Reference(
+            id=first_duplicate_reference_id,
+            identifiers=[{"identifier": duplicate_doi, "identifier_type": "doi"}],
+            enhancements=[],
+        ),
+        Reference(
+            id=second_duplicate_reference_id,
+            identifiers=[{"identifier": duplicate_doi, "identifier_type": "doi"}],
+            enhancements=[],
+        ),
+        Reference(
+            id=unique_reference_id,
+            identifiers=[{"identifier": unique_doi, "identifier_type": "doi"}],
+            enhancements=[],
+        ),
+    ]
+    return {
+        "duplicate_doi": duplicate_doi,
+        "unique_doi": unique_doi,
+        "first_duplicate_reference_id": first_duplicate_reference_id,
+        "second_duplicate_reference_id": second_duplicate_reference_id,
+        "unique_reference_id": unique_reference_id,
+        "test_references_with_duplicates": test_references_with_duplicates,
+    }
 
 
 @pytest.mark.asyncio
@@ -149,21 +184,136 @@ async def test_create_fulltext_enhancement_failure_zero_fulltexts_generated(
     mocker: MockerFixture,
     test_fulltext_enhancement_processor: FullTextEnhancementProcessor,
     test_references: list[Reference],
+    caplog: pytest.LogCaptureFixture,
 ):
     test_error_text = "No fulltexts generated for the given references."
+    all_linked_robot_error_response = [
+        LinkedRobotError(
+            message=test_error_text,
+            reference_id=reference.id,
+        )
+        for reference in test_references
+    ]
     generate_fulltext_mock = mocker.patch.object(
         test_fulltext_enhancement_processor,
         "generate_fulltext",
-        side_effect=BatchEnhancementGenerationError(test_error_text),
+        return_value=FullTextRetrievalResultSet(
+            full_texts_retrieved=[],
+            linked_robot_errors=all_linked_robot_error_response,
+        ),
     )
 
-    with pytest.raises(BatchEnhancementGenerationError) as error_info:
-        await test_fulltext_enhancement_processor.create_fulltext_enhancement(
+    with caplog.at_level("WARNING"):
+        result = await test_fulltext_enhancement_processor.create_fulltext_enhancement(
             references=test_references,
         )
 
     generate_fulltext_mock.assert_awaited_once()
-    assert test_error_text in str(error_info.value)
+    assert len(result) == len(test_references)
+    assert all(
+        isinstance(enhancement, LinkedRobotError) for enhancement in result
+    ), "Expect that all results are LinkedRobotError instances when no fulltexts are generated."
+    assert all(
+        enhancement.message == test_error_text for enhancement in result
+    ), "Expect that all LinkedRobotError instances have the same error message."
+    assert "All references failed to generate full texts." in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_create_fulltext_enhancement_duplicate_dois_handled(
+    duplicate_references,
+    mocker: MockerFixture,
+    test_fulltext_enhancement_processor: FullTextEnhancementProcessor,
+):
+    """
+    Test the fulltext enhancement creation workflow.
+
+    Mocking the `generate_fulltext` method to simulate a scenario where duplicate DOIs are present in the input references.
+    This test checks that the enhancement generation follows correctly when duplicate DOIs are encountered.
+    """
+    duplicate_doi = duplicate_references["duplicate_doi"]
+    unique_doi = duplicate_references["unique_doi"]
+    first_duplicate_reference_id = duplicate_references["first_duplicate_reference_id"]
+    second_duplicate_reference_id = duplicate_references[
+        "second_duplicate_reference_id"
+    ]
+    unique_reference_id = duplicate_references["unique_reference_id"]
+    test_references_with_duplicates = duplicate_references[
+        "test_references_with_duplicates"
+    ]
+
+    correctly_returned_fulltext_results = [
+        FullTextResult(
+            doi=duplicate_doi,
+            uid=str(first_duplicate_reference_id),
+            openalex_id=None,
+            fulltext_path="path/to/duplicate.pdf",
+            source="SCOPUS",
+        ),
+        FullTextResult(
+            doi=unique_doi,
+            uid=str(unique_reference_id),
+            openalex_id=None,
+            fulltext_path="path/to/unique.pdf",
+            source="SCOPUS",
+        ),
+    ]
+
+    duplicate_doi_errors = [
+        LinkedRobotError(
+            message=f"Duplicate DOI found for reference {second_duplicate_reference_id}.",
+            reference_id=second_duplicate_reference_id,
+        )
+    ]
+    mocked_generate_fulltext_result = FullTextRetrievalResultSet(
+        full_texts_retrieved=correctly_returned_fulltext_results,
+        linked_robot_errors=duplicate_doi_errors,
+    )
+
+    mocker.patch.object(
+        test_fulltext_enhancement_processor,
+        "generate_fulltext",
+        return_value=mocked_generate_fulltext_result,
+    )
+    mocker.patch.object(
+        test_fulltext_enhancement_processor,
+        "generate_file_url",
+        return_value="http://example.com/fulltext.pdf",
+    )
+
+    results = await test_fulltext_enhancement_processor.create_fulltext_enhancement(
+        references=test_references_with_duplicates,
+    )
+    success_results = [result for result in results if isinstance(result, Enhancement)]
+    error_results = [
+        result for result in results if isinstance(result, LinkedRobotError)
+    ]
+    assert len(results) == len(
+        test_references_with_duplicates
+    ), "Expect that the results contain three items (two enhancements and one error)."
+    assert (
+        len(success_results) == len(correctly_returned_fulltext_results)
+    ), "Expect that the number of successful enhancements matches the number of unique DOIs."
+    assert len(error_results) == len(
+        duplicate_doi_errors
+    ), "Expect that the number of errors matches the number of duplicate DOI errors."
+    assert (
+        error_results[0].reference_id == second_duplicate_reference_id
+    ), "Expect that the error corresponds to the second reference with the duplicate DOI."
+
+    assert (
+        {result.reference_id for result in success_results}
+        == {
+            first_duplicate_reference_id,
+            unique_reference_id,
+        }
+    ), "Expect that the successful enhancements correspond to the first reference with the duplicate DOI and the unique DOI reference."
+    assert (
+        {error.reference_id for error in error_results}
+        == {
+            second_duplicate_reference_id,
+        }
+    ), "Expect that the error corresponds to the second reference with the duplicate DOI."
 
 
 @pytest.mark.asyncio
@@ -366,6 +516,93 @@ async def test_generate_fulltext_enhancement_batch_request_handles_validation_er
     assert (
         result[0].reference_id == test_references[0].id
     ), "Expect that the reference ID in the LinkedRobotError matches the input reference ID."
+
+
+@pytest.mark.asyncio
+async def test_generate_fulltext_handles_duplicate_dois(
+    mocker: MockerFixture,
+    test_fulltext_enhancement_processor: FullTextEnhancementProcessor,
+    duplicate_references,
+    tmp_path,
+):
+    """
+    Test that the fulltext enhancement processor correctly handles duplicate DOIs.
+
+    Duplicate DOIs should be processed only on the first appearance, with
+    subsequent appearances raising a LinkedRobotError flagging the duplication.
+
+    """
+    first_duplicate_reference_id = duplicate_references["first_duplicate_reference_id"]
+    second_duplicate_reference_id = duplicate_references[
+        "second_duplicate_reference_id"
+    ]
+    unique_reference_id = duplicate_references["unique_reference_id"]
+    duplicate_doi = duplicate_references["duplicate_doi"]
+    unique_doi = duplicate_references["unique_doi"]
+    test_references_with_duplicates = duplicate_references[
+        "test_references_with_duplicates"
+    ]
+
+    duplicate_doi_pdf_path = Path(f"{first_duplicate_reference_id}.pdf")
+    unique_doi_pdf_path = Path(f"{unique_reference_id}.pdf")
+
+    mock_fetch_results = [
+        RetrievedFullText.model_construct(
+            doi=duplicate_doi,
+            uid=first_duplicate_reference_id,
+            openalex_id=None,
+            fulltext_path=duplicate_doi_pdf_path,
+        ),
+        RetrievedFullText.model_construct(
+            doi=unique_doi,
+            uid=unique_reference_id,
+            openalex_id=None,
+            fulltext_path=unique_doi_pdf_path,
+        ),
+    ]
+    fetched_study_ids: list[tuple[str, str]] = []
+
+    async def fetch_fulltexts(**kwargs) -> list[RetrievedFullText]:
+        """
+        Mock fetch function to simulate fetching fulltexts for the provided study collection.
+
+        Returns:
+            list[RetrievedFullText]: A list of RetrievedFullText objects corresponding to the studies in the study collection.
+
+        """
+        fetched_study_ids.extend(
+            (study.doi.identifier, study.uid)
+            for study in kwargs["study_collection"].studies
+        )
+        return mock_fetch_results
+
+    mocked_fetch = mocker.patch(
+        "fer.fetching.fetchers.FullTextFetcher.fetch",
+        side_effect=fetch_fulltexts,
+    )
+    results = await test_fulltext_enhancement_processor.generate_fulltext(
+        references=test_references_with_duplicates,
+        output_directory=tmp_path,
+    )
+    retrieved_fulltexts = results.full_texts_retrieved or []
+    linked_robot_errors = results.linked_robot_errors or []
+    mocked_fetch.assert_awaited_once()
+    assert fetched_study_ids == [
+        (duplicate_doi, first_duplicate_reference_id),
+        (unique_doi, unique_reference_id),
+    ]
+
+    assert isinstance(results, FullTextRetrievalResultSet)
+    assert {(result.doi, result.uid) for result in retrieved_fulltexts} == {
+        (duplicate_doi, str(first_duplicate_reference_id)),
+        (unique_doi, str(unique_reference_id)),
+    }
+    assert len(retrieved_fulltexts) == 2
+    assert len(linked_robot_errors) == 1
+    duplicate_error = linked_robot_errors[0]
+    assert duplicate_error.reference_id == second_duplicate_reference_id
+    assert duplicate_doi in duplicate_error.message
+    assert str(first_duplicate_reference_id) in duplicate_error.message
 
 
 @pytest.mark.asyncio

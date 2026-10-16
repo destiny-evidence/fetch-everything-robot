@@ -151,7 +151,6 @@ class FullTextBatchFetcher:
         """
         input_dois = [study.doi for study in input_study_collection.studies]
         valid_dois, invalid_dois = self.process_doi_list(input_dois)
-
         invalid_doi_set = set(invalid_dois)
         invalid_doi_response = [
             FullTextResult(
@@ -167,6 +166,7 @@ class FullTextBatchFetcher:
             if study.doi.identifier.lower() in invalid_doi_set
         ]
         valid_references_provided = len(valid_dois)
+        valid_references_remaining = len(valid_dois)
         logger.info(
             f"Valid references provided: {valid_references_provided} "
             f"of {len(input_study_collection.studies)} studies."
@@ -202,12 +202,12 @@ class FullTextBatchFetcher:
                         source=self.settings.robot_title,
                     )
                 )
-                doi_to_remove = self.process_doi(study.doi.identifier)
-                valid_dois.remove(doi_to_remove)
-                valid_study_collection.remove_study_by_identifier(doi_to_remove)
+                uid_to_remove = study.uid
+                valid_study_collection.remove_study_by_unique_identifier(uid_to_remove)
+                valid_references_remaining -= 1
 
         for api_name in self.all_api_configs["fulltext"]:
-            if len(valid_dois) == 0:
+            if valid_references_remaining == 0:
                 logger.info("All full texts retrieved, breaking API cycle.")
                 break
             logger.info(f"Fetching full texts from API: {api_name}")
@@ -234,21 +234,28 @@ class FullTextBatchFetcher:
             if retrieved_responses:
                 for item in retrieved_responses:
                     if item.fulltext_path is not None:
-                        found_responses = True
-                        doi_to_remove = self.process_doi(item.doi)
                         matched_study = next(
                             (
                                 s
                                 for s in valid_study_collection.studies
-                                if self.process_doi(s.doi) == doi_to_remove
+                                if s.uid == item.uid
                             ),
                             None,
                         )
+                        if matched_study is None:
+                            continue
+
+                        found_responses = True
+                        item_doi = self.process_doi(item.doi)
+                        uid_to_remove = item.uid
                         logger.info(f"Full text found for {item.doi} from {api_name}.")
-                        valid_dois.remove(doi_to_remove)
-                        valid_study_collection.remove_study_by_identifier(doi_to_remove)
+                        valid_study_collection.remove_study_by_unique_identifier(
+                            uid_to_remove
+                        )
+                        valid_references_remaining -= 1
+
                         logger.info(
-                            f"Got full text for doi {doi_to_remove} from {api_name}. "
+                            f"Got full text for doi {item_doi} from {api_name}. "
                             "Removing from master list."
                         )
                         api_count += 1
@@ -270,10 +277,12 @@ class FullTextBatchFetcher:
                 logger.warning(error_message)
 
             logger.debug(f"Found {api_count} full texts for api {api_name}.")
-            logger.info(f"Found {len(retrieved_fulltexts)} total from valid DOIs.")
-            logger.info(
-                f"Remaining valid DOIs to collect full texts: {len(valid_dois)}"
+            info_message = (
+                f"Found {len(retrieved_fulltexts)} from {valid_references_provided} "
+                f"valid DOIs. {len(invalid_doi_response)} invalid DOIs. "
+                f"Valid DOIs remaining: {valid_references_remaining}"
             )
+            logger.info(info_message)
 
         logger.info(
             f"{len(retrieved_fulltexts)} full texts"
@@ -281,8 +290,10 @@ class FullTextBatchFetcher:
         )
 
         logger.info(f"{len(invalid_dois)} invalid DOIs provided.")
-        if len(valid_dois) > 0:
-            logger.info(f"Full texts not retrieved for {len(valid_dois)} valid DOIs.")
+        if valid_references_remaining > 0:
+            logger.info(
+                f"Fulltexts not retrieved for {valid_references_remaining} valid DOIs."
+            )
         fulltexts_not_found = [
             FullTextResult(
                 doi=study.doi.identifier,
