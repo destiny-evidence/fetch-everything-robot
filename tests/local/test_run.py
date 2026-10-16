@@ -929,6 +929,71 @@ async def test_main_mixed_identifiers(
 
 
 @pytest.mark.asyncio
+async def test_main_duplicate_doi_uses_cached_file_once_while_fetching_uncached_doi(
+    mocker, tmp_path, test_doi_list
+):
+    cached_doi = test_doi_list[0]
+    uncached_doi = test_doi_list[1]
+    identifier_file = tmp_path / "doi_identifiers.txt"
+    identifier_file.write_text(f"{cached_doi}\n{cached_doi}\n{uncached_doi}\n")
+
+    output_directory = tmp_path / "output"
+    output_directory.mkdir()
+    cached_pdf = (
+        output_directory / f"{uuid5(DOI_NAMESPACE, validate_doi(cached_doi))}.pdf"
+    )
+    cached_pdf.write_bytes(b"cached content")
+    uncached_pdf = tmp_path / "uncached.pdf"
+    fetched_study_uids = []
+
+    async def fetch_uncached_study(**kwargs) -> list[RetrievedFullText]:
+        """
+        Simulate fetching an uncached study and record the UIDs of studies being fetched.
+
+        Returns:
+            list[RetrievedFullText]: A list containing a single RetrievedFullText object for the uncached DOI study.
+
+        """
+        fetched_study_uids.extend(
+            study.uid for study in kwargs["study_collection"].studies
+        )
+        return [
+            RetrievedFullText.model_construct(
+                doi=uncached_doi,
+                uid=uuid5(DOI_NAMESPACE, uncached_doi),
+                openalex_id=None,
+                fulltext_path=uncached_pdf,
+            )
+        ]
+
+    provider_fetch = mocker.patch(
+        "fer.fetching.fetchers.FullTextFetcher.fetch",
+        side_effect=fetch_uncached_study,
+    )
+
+    await main(identifier_file=identifier_file, output_directory=output_directory)
+
+    assert (
+        provider_fetch.await_count == 1
+    ), "The fetcher should be called only once for the uncached DOI."
+    assert fetched_study_uids == [
+        uuid5(DOI_NAMESPACE, uncached_doi)
+    ], "Only the uncached DOI study should be fetched, and checked by identifier."
+    map_lines = (
+        (output_directory / "retrieved_fulltexts_map.txt").read_text().splitlines()
+    )
+    assert len(map_lines) == 3, "Expect a header and one result row per unique DOI."
+    result_rows = [line.split("\t") for line in map_lines[1:]]
+    assert [row[0] for row in result_rows] == [
+        cached_doi,
+        uncached_doi,
+    ], "The map file should contain both the cached and uncached DOIs."
+    assert (
+        [row[3] for row in result_rows] == [cached_pdf.name, uncached_pdf.name]
+    ), "The map file should reference the correct PDF filenames for both cached and uncached DOIs."
+
+
+@pytest.mark.asyncio
 async def test_generate_study_collection_respects_input_identifier_order_dois_only(
     mocker, test_settings, test_doi_list
 ):
