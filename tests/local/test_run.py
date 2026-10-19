@@ -398,8 +398,9 @@ async def test_resolve_openalex_identifiers_empty_list(test_settings):
 
 @pytest.mark.asyncio
 async def test_resolve_openalex_identifiers_all_resolve_success(
-    mocker, test_settings, test_openalex_ids
+    mocker, test_settings, openalex_ids_factory
 ):
+    test_openalex_ids = openalex_ids_factory(2)
     mock_fetcher = mocker.MagicMock()
     mock_fetcher.get_work_openalex_id = mocker.AsyncMock(
         side_effect=[
@@ -421,8 +422,9 @@ async def test_resolve_openalex_identifiers_all_resolve_success(
 
 @pytest.mark.asyncio
 async def test_resolve_openalex_identifiers_partial_resolve(
-    mocker, test_settings, test_openalex_ids
+    mocker, test_settings, openalex_ids_factory
 ):
+    test_openalex_ids = openalex_ids_factory(2)
     expected_id_resolution = [
         {"doi": "10.1000/xyz123"},
         {},
@@ -452,8 +454,9 @@ async def test_resolve_openalex_identifiers_partial_resolve(
 
 @pytest.mark.asyncio
 async def test_resolve_openalex_identifiers_invalid_doi(
-    mocker, test_settings, test_openalex_ids, caplog
+    mocker, test_settings, openalex_ids_factory, caplog
 ):
+    test_openalex_ids = openalex_ids_factory(2)
     mock_fetcher = mocker.MagicMock()
     mock_fetcher.get_work_openalex_id = mocker.AsyncMock(
         return_value={"doi": "invalid_doi"}
@@ -473,8 +476,9 @@ async def test_resolve_openalex_identifiers_invalid_doi(
 
 @pytest.mark.asyncio
 async def test_resolve_openalex_identifiers_all_without_doi(
-    mocker, test_settings, test_openalex_ids, caplog
+    mocker, test_settings, openalex_ids_factory, caplog
 ):
+    test_openalex_ids = openalex_ids_factory(2)
     mock_fetcher = mocker.MagicMock()
     mock_fetcher.get_work_openalex_id = mocker.AsyncMock(return_value={})
     mocker.patch("fer.local.run.OpenalexFetcher", return_value=mock_fetcher)
@@ -507,7 +511,7 @@ async def test_resolve_openalex_identifiers_all_without_doi(
     ],
 )
 async def test_resolve_openalex_identifiers_error_treated_as_without_doi(
-    mocker, test_settings, test_openalex_ids, caplog, error
+    mocker, test_settings, openalex_ids_factory, caplog, error
 ):
     """
 
@@ -515,6 +519,7 @@ async def test_resolve_openalex_identifiers_error_treated_as_without_doi(
 
     We should resolve what we can, and treat errors as DOI not found.
     """
+    test_openalex_ids = openalex_ids_factory(2)
     test_resolution_results = [
         {"doi": "10.1000/xyz123"},
         error,
@@ -577,8 +582,9 @@ async def test_generate_study_collection_doi_only(mocker, test_settings, test_do
 
 @pytest.mark.asyncio
 async def test_generate_study_collection_openalex_only_resolves_to_dois(
-    mocker, test_settings, test_openalex_ids
+    mocker, test_settings, openalex_ids_factory
 ):
+    test_openalex_ids = openalex_ids_factory(2)
     expected_openalex_ids = [
         test_identifier.identifier for test_identifier in test_openalex_ids
     ]
@@ -605,8 +611,9 @@ async def test_generate_study_collection_openalex_only_resolves_to_dois(
 
 @pytest.mark.asyncio
 async def test_generate_study_collection_openalex_only_partial_doi_resolution(
-    mocker, test_settings, test_openalex_ids
+    mocker, test_settings, openalex_ids_factory
 ):
+    test_openalex_ids = openalex_ids_factory(2)
     expected_openalex_ids = [
         test_identifier.identifier for test_identifier in test_openalex_ids
     ]
@@ -645,8 +652,9 @@ async def test_generate_study_collection_openalex_only_partial_doi_resolution(
 
 @pytest.mark.asyncio
 async def test_openalex_retrieval_short_circuit_creates_map(
-    mocker, tmp_path, test_openalex_ids
+    mocker, tmp_path, openalex_ids_factory
 ):
+    test_openalex_ids = openalex_ids_factory(2)
     openalex_study_collection = OpenAlexStudyCollection(
         studies=[
             OpenAlexStudy(
@@ -698,8 +706,9 @@ async def test_openalex_retrieval_short_circuit_creates_map(
 
 @pytest.mark.asyncio
 async def test_openalex_retrieval_short_circuit_appends_existing_map(
-    mocker, tmp_path, test_openalex_ids
+    mocker, tmp_path, openalex_ids_factory
 ):
+    test_openalex_ids = openalex_ids_factory(2)
     existing_line = "10.1000/xyz123\tfile.pdf\topenalex\n"
     map_file = tmp_path / "retrieved_fulltexts_map.txt"
     map_file.write_text(existing_line)
@@ -829,8 +838,9 @@ async def test_main_doi_only(mocker, tmp_path, test_doi_list):
 
 
 @pytest.mark.asyncio
-async def test_main_openalex_only_no_doi(mocker, tmp_path, test_openalex_ids):
+async def test_main_openalex_only_no_doi(mocker, tmp_path, openalex_ids_factory):
     """OpenAlex ID-only input with no DOIs resolved."""
+    test_openalex_ids = openalex_ids_factory(2)
     test_identifiers_file = tmp_path / "ids.txt"
     test_identifiers_file.write_text(
         "\n".join([test_identifier.identifier for test_identifier in test_openalex_ids])
@@ -871,9 +881,10 @@ async def test_main_openalex_only_no_doi(mocker, tmp_path, test_openalex_ids):
 
 @pytest.mark.asyncio
 async def test_main_mixed_identifiers(
-    mocker, tmp_path, test_doi_list, test_openalex_ids
+    mocker, tmp_path, test_doi_list, openalex_ids_factory
 ):
     """Mixed DOI and OpenAlex ID input: both multi-API pipeline and short-circuit run."""
+    test_openalex_ids = openalex_ids_factory(2)
     all_identifiers = test_doi_list + [
         test_identifier.identifier for test_identifier in test_openalex_ids
     ]
@@ -915,3 +926,333 @@ async def test_main_mixed_identifiers(
 
     mock_retrieve.assert_awaited_once()
     mock_short_circuit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_main_duplicate_doi_uses_cached_file_once_while_fetching_uncached_doi(
+    mocker, tmp_path, test_doi_list
+):
+    cached_doi = test_doi_list[0]
+    uncached_doi = test_doi_list[1]
+    identifier_file = tmp_path / "doi_identifiers.txt"
+    identifier_file.write_text(f"{cached_doi}\n{cached_doi}\n{uncached_doi}\n")
+
+    output_directory = tmp_path / "output"
+    output_directory.mkdir()
+    cached_pdf = (
+        output_directory / f"{uuid5(DOI_NAMESPACE, validate_doi(cached_doi))}.pdf"
+    )
+    cached_pdf.write_bytes(b"cached content")
+    uncached_pdf = tmp_path / "uncached.pdf"
+    fetched_study_uids = []
+
+    async def fetch_uncached_study(**kwargs) -> list[RetrievedFullText]:
+        """
+        Simulate fetching an uncached study and record the UIDs of studies being fetched.
+
+        Returns:
+            list[RetrievedFullText]: A list containing a single RetrievedFullText object for the uncached DOI study.
+
+        """
+        fetched_study_uids.extend(
+            study.uid for study in kwargs["study_collection"].studies
+        )
+        return [
+            RetrievedFullText.model_construct(
+                doi=uncached_doi,
+                uid=uuid5(DOI_NAMESPACE, uncached_doi),
+                openalex_id=None,
+                fulltext_path=uncached_pdf,
+            )
+        ]
+
+    provider_fetch = mocker.patch(
+        "fer.fetching.fetchers.FullTextFetcher.fetch",
+        side_effect=fetch_uncached_study,
+    )
+
+    await main(identifier_file=identifier_file, output_directory=output_directory)
+
+    assert (
+        provider_fetch.await_count == 1
+    ), "The fetcher should be called only once for the uncached DOI."
+    assert fetched_study_uids == [
+        uuid5(DOI_NAMESPACE, uncached_doi)
+    ], "Only the uncached DOI study should be fetched, and checked by identifier."
+    map_lines = (
+        (output_directory / "retrieved_fulltexts_map.txt").read_text().splitlines()
+    )
+    assert len(map_lines) == 3, "Expect a header and one result row per unique DOI."
+    result_rows = [line.split("\t") for line in map_lines[1:]]
+    assert [row[0] for row in result_rows] == [
+        cached_doi,
+        uncached_doi,
+    ], "The map file should contain both the cached and uncached DOIs."
+    assert (
+        [row[3] for row in result_rows] == [cached_pdf.name, uncached_pdf.name]
+    ), "The map file should reference the correct PDF filenames for both cached and uncached DOIs."
+
+
+@pytest.mark.asyncio
+async def test_generate_study_collection_respects_input_identifier_order_dois_only(
+    mocker, test_settings, test_doi_list
+):
+    """Ensure that the order of identifiers in the input list is preserved in the output study collections."""
+    extended_test_doi_list = test_doi_list + test_doi_list
+    input_doi_identifiers = [
+        DOIIdentifier(identifier=doi) for doi in extended_test_doi_list
+    ]
+
+    expected_unique_output_identifiers = [
+        extended_test_doi_list[0],
+        extended_test_doi_list[1],
+        extended_test_doi_list[2],
+    ]
+
+    (
+        study_collection,
+        openalex_study_collection,
+        identifier_map,
+    ) = await generate_study_collection(test_settings, input_doi_identifiers)
+
+    assert (
+        [study.doi.identifier for study in study_collection.studies]
+        == expected_unique_output_identifiers
+    ), "The DOIStudyCollection should contain all unique DOIs in the order they were first encountered in the input list. Duplicated DOIs should be dropped."
+    assert (
+        not openalex_study_collection.studies
+    ), "The OpenAlexStudyCollection should be empty when only DOIs are provided."
+    assert (
+        list(identifier_map.values()) == expected_unique_output_identifiers
+    ), "The identifier map should contain all unique identifiers in the order they were first encountered in the input list. Identifiers resolving to duplicated DOIs should be dropped."
+
+
+@pytest.mark.asyncio
+async def test_generate_study_collection_respects_input_identifier_order_resolved_openalex_ids(
+    mocker, test_settings, openalex_ids_factory, test_doi_list
+):
+    """Ensure that the order of identifiers in the input list is preserved in the output study collections."""
+    test_openalex_ids = openalex_ids_factory(3)
+    duplicated_openalex_ids = test_openalex_ids + test_openalex_ids
+    duplicated_test_doi_list = test_doi_list + test_doi_list
+
+    resolved_openalex_ids_to_dois = [
+        {"doi": test_doi} for test_doi in duplicated_test_doi_list
+    ]
+
+    mock_fetcher = mocker.MagicMock()
+    mock_fetcher.get_work_openalex_id = mocker.AsyncMock(
+        side_effect=resolved_openalex_ids_to_dois
+    )
+    mocker.patch("fer.local.run.OpenalexFetcher", return_value=mock_fetcher)
+
+    expected_unique_output_identifiers = [
+        duplicated_openalex_ids[0].identifier,
+        duplicated_openalex_ids[1].identifier,
+        duplicated_openalex_ids[2].identifier,
+    ]
+
+    (
+        study_collection,
+        openalex_study_collection,
+        identifier_map,
+    ) = await generate_study_collection(test_settings, duplicated_openalex_ids)
+
+    assert (
+        [
+            (
+                study.doi.identifier,
+                study.openalex_id.identifier if study.openalex_id else None,
+            )
+            for study in study_collection.studies
+        ]
+        == [
+            (duplicated_test_doi_list[0], duplicated_openalex_ids[0].identifier),
+            (duplicated_test_doi_list[1], duplicated_openalex_ids[1].identifier),
+            (duplicated_test_doi_list[2], duplicated_openalex_ids[2].identifier),
+        ]
+    ), "The DOIStudyCollection should contain all unique DOIs in the order they were first encountered in the input list. Duplicated openalex IDs and their duplicated DOIs should be dropped."
+
+    assert (
+        openalex_study_collection.studies == []
+    ), "The OpenAlexStudyCollection should be empty since all OpenAlex IDs resolved to DOIs."
+    assert (
+        list(identifier_map.values()) == expected_unique_output_identifiers
+    ), "The identifier map should contain all unique identifiers in the order they were first encountered in the input list. Identifiers resolving to duplicated DOIs should be dropped."
+
+
+@pytest.mark.asyncio
+async def test_generate_study_collection_respects_input_identifier_order_unresolved_openalex_ids(
+    mocker, test_settings, openalex_ids_factory, test_doi_list
+):
+    """Ensure that the order of identifiers in the input list is preserved in the output study collections."""
+    test_openalex_ids = openalex_ids_factory(3)
+    duplicated_openalex_ids = test_openalex_ids + test_openalex_ids
+    duplicated_test_doi_list = test_doi_list + test_doi_list
+
+    resolved_openalex_ids_to_dois = [{} for _ in duplicated_test_doi_list]
+
+    mock_fetcher = mocker.MagicMock()
+    mock_fetcher.get_work_openalex_id = mocker.AsyncMock(
+        side_effect=resolved_openalex_ids_to_dois
+    )
+    mocker.patch("fer.local.run.OpenalexFetcher", return_value=mock_fetcher)
+
+    expected_unique_output_identifiers = [
+        duplicated_openalex_ids[0].identifier,
+        duplicated_openalex_ids[1].identifier,
+        duplicated_openalex_ids[2].identifier,
+    ]
+
+    (
+        study_collection,
+        openalex_study_collection,
+        identifier_map,
+    ) = await generate_study_collection(test_settings, duplicated_openalex_ids)
+
+    assert (
+        study_collection.studies == []
+    ), "The DOIStudyCollection should be empty since all OpenAlex IDs failed to resolve to DOIs."
+    assert (
+        [study.openalex_id.identifier for study in openalex_study_collection.studies]
+        == expected_unique_output_identifiers
+    ), "The OpenAlexStudyCollection should contain all unique OpenAlex IDs in the order they were first encountered in the input list. Duplicated OpenAlex IDs should be dropped."
+    assert (
+        list(identifier_map.values()) == expected_unique_output_identifiers
+    ), "The identifier map should contain all unique identifiers in the order they were first encountered in the input list. Identifiers resolving to duplicated DOIs should be dropped."
+
+
+@pytest.mark.asyncio
+async def test_generate_study_collection_respects_input_identifier_order_mixed_list_openalex_first(
+    mocker, test_settings, test_doi_list, openalex_ids_factory
+):
+    """
+    Ensure that the order of identifiers in the input list is preserved in the output study collections.
+
+    Provides a mixed list of DOIs and OpenAlex IDs with OpenAlex IDs first.
+    The first 3 openalex IDs should resolve to DOIs.
+    """
+    extended_test_doi_list = [
+        *test_doi_list,
+        "10.1000/xyz101",
+        "10.1000/xyz102",
+        "10.1000/xyz103",
+    ]
+    test_openalex_ids = openalex_ids_factory(len(extended_test_doi_list))
+    input_doi_identifiers = [
+        DOIIdentifier(identifier=doi) for doi in extended_test_doi_list
+    ]
+    all_identifiers = test_openalex_ids + input_doi_identifiers
+
+    three_resolved_openalex_ids_to_dois = [
+        {"doi": test_doi} for test_doi in extended_test_doi_list[:3]
+    ] + [{} for _ in test_openalex_ids[3:]]
+
+    mock_fetcher = mocker.MagicMock()
+    mock_fetcher.get_work_openalex_id = mocker.AsyncMock(
+        side_effect=three_resolved_openalex_ids_to_dois
+    )
+    mocker.patch("fer.local.run.OpenalexFetcher", return_value=mock_fetcher)
+
+    expected_unique_output_identifiers = [
+        *(identifier.identifier for identifier in test_openalex_ids),
+        *extended_test_doi_list[3:],
+    ]
+
+    (
+        study_collection,
+        openalex_study_collection,
+        identifier_map,
+    ) = await generate_study_collection(test_settings, all_identifiers)
+
+    assert (
+        [
+            (
+                study.doi.identifier,
+                study.openalex_id.identifier if study.openalex_id else None,
+            )
+            for study in study_collection.studies
+        ]
+        == [
+            (extended_test_doi_list[0], test_openalex_ids[0].identifier),
+            (extended_test_doi_list[1], test_openalex_ids[1].identifier),
+            (extended_test_doi_list[2], test_openalex_ids[2].identifier),
+            (extended_test_doi_list[3], None),
+            (extended_test_doi_list[4], None),
+            (extended_test_doi_list[5], None),
+        ]
+    ), "Expect that the first three OpenAlex IDs resolve to DOIs, three do not, three DOIs are duplicated as OpenAlex IDs already resolve to them, and three DOIs are directly supplied. This makes a total of 6 studies in the DOIStudyCollection."
+
+    assert [
+        study.openalex_id.identifier for study in openalex_study_collection.studies
+    ] == [identifier.identifier for identifier in test_openalex_ids[3:]], ""
+
+    assert (
+        list(identifier_map.values()) == expected_unique_output_identifiers
+    ), "The identifier map should contain all unique identifiers in the order they were first encountered in the input list. Identifiers resolving to duplicated DOIs should be dropped."
+
+
+@pytest.mark.asyncio
+async def test_generate_study_collection_respects_input_identifier_order_mixed_list_doi_first(
+    mocker, test_settings, test_doi_list, openalex_ids_factory
+):
+    """
+
+    Ensure that the order of identifiers in the input list is preserved in the output study collections.
+
+    Provides a mixed list of DOIs and OpenAlex IDs with DOIs first.
+    The first 3 openalex IDs should resolve to DOIs.
+    """
+    extended_test_doi_list = [
+        *test_doi_list,
+        "10.1000/xyz101",
+        "10.1000/xyz102",
+        "10.1000/xyz103",
+    ]
+    test_openalex_ids = openalex_ids_factory(len(extended_test_doi_list))
+    input_doi_identifiers = [
+        DOIIdentifier(identifier=doi) for doi in extended_test_doi_list
+    ]
+    all_identifiers = input_doi_identifiers + test_openalex_ids
+
+    three_resolved_openalex_ids_to_dois = [
+        {"doi": test_doi} for test_doi in extended_test_doi_list[:3]
+    ] + [{} for _ in test_openalex_ids[3:]]
+
+    mock_fetcher = mocker.MagicMock()
+    mock_fetcher.get_work_openalex_id = mocker.AsyncMock(
+        side_effect=three_resolved_openalex_ids_to_dois
+    )
+    mocker.patch("fer.local.run.OpenalexFetcher", return_value=mock_fetcher)
+
+    expected_unique_output_identifiers = [
+        *extended_test_doi_list,
+        *[identifier.identifier for identifier in test_openalex_ids[3:]],
+    ]
+
+    (
+        study_collection,
+        openalex_study_collection,
+        identifier_map,
+    ) = await generate_study_collection(test_settings, all_identifiers)
+
+    assert (
+        [
+            (
+                study.doi.identifier,
+                study.openalex_id.identifier if study.openalex_id else None,
+            )
+            for study in study_collection.studies
+        ]
+        == [
+            *[(doi, None) for doi in extended_test_doi_list[:6]],
+        ]
+    ), "Expect that the first three OpenAlex IDs resolve to DOIs, three do not, three DOIs are duplicated as OpenAlex IDs already resolve to them, and three DOIs are directly supplied. This makes a total of 6 studies in the DOIStudyCollection."
+
+    assert [
+        study.openalex_id.identifier for study in openalex_study_collection.studies
+    ] == [identifier.identifier for identifier in test_openalex_ids[3:]], ""
+
+    assert (
+        list(identifier_map.values()) == expected_unique_output_identifiers
+    ), "The identifier map should contain all unique identifiers in the order they were first encountered in the input list. Identifiers resolving to duplicated DOIs should be dropped."

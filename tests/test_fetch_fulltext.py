@@ -156,7 +156,7 @@ def test_process_doi_tolower():
 
 
 @pytest.mark.asyncio
-async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_non_none_fulltext_paths(
+async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_actual_fulltext_paths(
     mocker,
     test_prepared_available_api_configs,
     test_settings,
@@ -167,25 +167,18 @@ async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_non_none_fulltext_p
     tmp_path,
 ):
     n_available_api_configs = len(test_prepared_available_api_configs["fulltext"])
-    expected_fetch_results_array = [test_fetch_results_single_success] + [
-        test_fetch_results_single_failure
-    ] * (n_available_api_configs - 1)
 
-    unique_expected_successes = len(
-        [
-            result[0]
-            for result in expected_fetch_results_array
-            if result[0].fulltext_path is not None
-        ]
+    first_study, second_study = test_study_collection.studies
+    test_success = test_fetch_results_single_success[0].model_copy(
+        update={"doi": first_study.doi.identifier, "uid": first_study.uid}
     )
-    expected_failure_array = [
-        result[0]
-        for result in expected_fetch_results_array
-        if result[0].fulltext_path is None
+    test_failure = test_fetch_results_single_failure[0].model_copy(
+        update={"doi": second_study.doi.identifier, "uid": second_study.uid}
+    )
+
+    expected_fetch_results_array = [[test_success, test_success]] + [
+        [test_failure] for _ in range(n_available_api_configs - 1)
     ]
-    unique_expected_failures = len(
-        {result.doi: result for result in expected_failure_array}
-    )
     mock_fetch = mocker.patch(
         "fer.fetching.fetchers.FullTextFetcher.fetch",
         side_effect=expected_fetch_results_array,
@@ -200,18 +193,20 @@ async def test_get_many_fulltext_pdfs_cycling_apis_adds_only_non_none_fulltext_p
         output_directory=tmp_path,
     )
 
-    assert mock_fetch.call_count == len(
-        test_prepared_available_api_configs["fulltext"]
-    ), (
-        "Expect that the fetcher is called for each available API until all fulltexts"
-        " are either found or all APIs are exhausted."
-    )
+    assert mock_fetch.call_count == n_available_api_configs
 
     found_fulltext = [result for result in results if result.fulltext_path is not None]
     not_found_fulltext = [result for result in results if result.fulltext_path is None]
 
-    assert len(found_fulltext) == unique_expected_successes
-    assert len(not_found_fulltext) == unique_expected_failures
+    expected_success_keys = {(test_success.doi, str(test_success.uid))}
+    actual_success_keys = [(result.doi, result.uid) for result in found_fulltext]
+    assert set(actual_success_keys) == expected_success_keys
+    assert len(actual_success_keys) == len(expected_success_keys)
+
+    expected_failure_keys = {(test_failure.doi, str(test_failure.uid))}
+    actual_failure_keys = [(result.doi, result.uid) for result in not_found_fulltext]
+    assert set(actual_failure_keys) == expected_failure_keys
+    assert len(actual_failure_keys) == len(expected_failure_keys)
 
     assert all(
         found_result.fulltext_path

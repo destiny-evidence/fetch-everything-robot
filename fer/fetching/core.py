@@ -84,16 +84,17 @@ class BaseStudyCollection[T: BaseStudy](BaseModel):
         exception_message = "Subclasses must implement the _identifier_of method."
         raise NotImplementedError(exception_message)
 
-    def remove_study_by_identifier(self, identifier: str) -> None:
+    def remove_study_by_unique_identifier(self, unique_identifier: UUID) -> None:
         """
-        Remove a study from the collection by its unique identifier.
+        Remove a study from the collection by its internal unique identifier.
 
         Args:
-            identifier (str): The unique identifier of the study to remove.
+            unique_identifier (UUID):
+                The internal unique identifier of the study to remove.
 
         """
         self.studies = [
-            study for study in self.studies if self._identifier_of(study) != identifier
+            study for study in self.studies if study.uid != unique_identifier
         ]
 
 

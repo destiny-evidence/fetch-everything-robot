@@ -2,7 +2,7 @@
 import logging
 import os
 import uuid
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -305,13 +305,28 @@ def test_dois() -> list[str]:
 
 
 @pytest.fixture
-def test_openalex_ids() -> list[destiny_sdk.identifiers.OpenAlexIdentifier]:
-    """Create a list of test OpenAlex IDs."""
-    test_ids = ["W1234567890", "W0987654321"]
-    return [
-        destiny_sdk.identifiers.OpenAlexIdentifier(identifier=test_id)
-        for test_id in test_ids
-    ]
+def openalex_ids_factory() -> (
+    Callable[[int], list[destiny_sdk.identifiers.OpenAlexIdentifier]]
+):
+    """Create the requested number of deterministic OpenAlex IDs."""
+
+    def make_openalex_ids(
+        count: int,
+    ) -> list[destiny_sdk.identifiers.OpenAlexIdentifier]:
+        if count < 0:
+            error_message = "Must be non-negative"
+            raise ValueError(error_message)
+
+        identifiers = ["W1234567890", "W0987654321"]
+        identifiers.extend(
+            f"W{index:010d}" for index in range(max(0, count - len(identifiers)))
+        )
+        return [
+            destiny_sdk.identifiers.OpenAlexIdentifier(identifier=identifier)
+            for identifier in identifiers[:count]
+        ]
+
+    return make_openalex_ids
 
 
 @pytest.fixture
