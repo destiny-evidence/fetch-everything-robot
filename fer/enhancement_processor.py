@@ -49,10 +49,6 @@ class FileURLGenerationError(Exception):
     """Custom exception for errors during file URL generation."""
 
 
-class MissingDOIError(Exception):
-    """Custom exception for missing DOI in reference."""
-
-
 class BatchEnhancementGenerationError(Exception):
     """Custom exception for errors during batch enhancement generation."""
 

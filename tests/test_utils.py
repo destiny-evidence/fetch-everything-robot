@@ -1,17 +1,11 @@
 """tests for functions in fer/utils.py."""
 
-from unittest.mock import patch
-from uuid import uuid4
-
 import pytest
-from destiny_sdk.references import Reference
 
 from fer.utils import (
     InvalidDOIError,
-    MissingDOIError,
     VersionInfoNotFoundError,
     format_doi,
-    get_doi_from_reference,
     get_version_number,
     validate_doi,
 )
@@ -47,16 +41,6 @@ class DummyReference:
         self.identifiers = identifiers
 
 
-def test_get_doi_from_reference_success():
-    # Patch validate_doi to return True for the first identifier
-    test_good_doi = "10.1000/xyz123"
-    dummy_id = DummyIdentifier(test_good_doi)
-    dummy_ref = DummyReference([dummy_id])
-
-    with patch("fer.utils.validate_doi", return_value=True):
-        assert get_doi_from_reference(dummy_ref) == test_good_doi
-
-
 @pytest.mark.parametrize(
     "test_full_url_doi",
     [
@@ -86,24 +70,6 @@ def test_get_invalid_doi_from_full_url_fails_properly(test_full_url_doi):
     with pytest.raises(InvalidDOIError) as expected_error:
         validate_doi(test_full_url_doi)
     assert f"Invalid DOI: {test_full_url_doi}" in str(expected_error.value)
-
-
-def test_get_doi_from_reference_missing_doi_error():
-    error_message = "No DOI found for reference"
-    test_id = uuid4()
-    test_reference = Reference(
-        id=test_id,
-        identifiers=[
-            {
-                "identifier": "not_a_doi",
-                "identifier_type": "other",
-                "other_identifier_name": "test_identifier",
-            }
-        ],
-    )
-    with pytest.raises(MissingDOIError) as expected_error:
-        get_doi_from_reference(test_reference)
-    assert error_message in str(expected_error.value)
 
 
 @pytest.mark.parametrize("non_string", [12345, None, ["10.1000/xyz123"]])
