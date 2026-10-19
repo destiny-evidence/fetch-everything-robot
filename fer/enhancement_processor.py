@@ -415,7 +415,9 @@ class FullTextEnhancementProcessor:
                 )
                 logger.error(error_message)
                 raise BatchEnhancementGenerationError(error_message)
-            fulltext_path: Path | None = enhancement.get("fulltext_path", None)
+            fulltext_path = (
+                Path(path) if (path := enhancement.get("fulltext_path")) else None
+            )
             if not fulltext_path:
                 sources = {
                     config.name.value.split("_")[0].upper()
