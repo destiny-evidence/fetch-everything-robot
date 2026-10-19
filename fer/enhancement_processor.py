@@ -334,7 +334,7 @@ class FullTextEnhancementProcessor:
         errors_returned = [
             error
             for error in fulltext_enhancements
-            if isinstance(error, LinkedRobotError) or []
+            if isinstance(error, LinkedRobotError)
         ]
         zero_fulltexts_generated = len(errors_returned) == len(references)
         if zero_fulltexts_generated:
