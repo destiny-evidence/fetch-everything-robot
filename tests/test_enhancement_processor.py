@@ -10,8 +10,10 @@ from destiny_sdk.references import Reference
 from destiny_sdk.robots import LinkedRobotError, RobotEnhancementBatch
 from pytest_mock import MockerFixture
 
+from fer.blob_storage import BlobUploadError
 from fer.enhancement_processor import (
     BatchEnhancementGenerationError,
+    FileURLGenerationError,
     FullTextEnhancementProcessor,
     FullTextRetrievalResultSet,
 )
@@ -459,7 +461,7 @@ async def test_generate_fulltext_enhancement_batch_request_handles_file_url_gene
     mocker.patch.object(
         test_fulltext_enhancement_processor,
         "generate_file_url",
-        side_effect=RuntimeError("upload failed"),
+        side_effect=FileURLGenerationError("upload failed"),
     )
 
     result = await test_fulltext_enhancement_processor.generate_fulltext_enhancement_batch_request(
@@ -836,9 +838,10 @@ def test_generate_fulltext_request_appropriate_visibility(
 def test_get_study_collection_from_references_returns_linked_error_for_missing_doi():
     test_good_reference_id = uuid.uuid4()
     test_bad_reference_id = uuid.uuid4()
+    test_doi = "10.1000/xyz123"
     reference_with_doi = Reference(
         id=test_good_reference_id,
-        identifiers=[{"identifier": "10.1000/xyz123", "identifier_type": "doi"}],
+        identifiers=[{"identifier": test_doi, "identifier_type": "doi"}],
         enhancements=[],
     )
 
@@ -847,24 +850,36 @@ def test_get_study_collection_from_references_returns_linked_error_for_missing_d
         identifiers=[{"identifier": "W123456789", "identifier_type": "open_alex"}],
         enhancements=[],
     )
+    test_input_references = [reference_with_doi, reference_without_doi]
 
     result = FullTextEnhancementProcessor.get_study_collection_from_references(
-        references=[reference_with_doi, reference_without_doi]
+        references=test_input_references
     )
-    assert len(result.study_collection.studies) == 1
+    assert (
+        len(result.study_collection.studies) == 1
+    ), "Expect that only the reference with a DOI is included in the study collection."
+    assert (
+        result.study_collection.studies[0].doi.identifier == test_doi
+    ), "Expect that the DOI is correctly included in the study collection."
     assert [error.reference_id for error in result.linked_robot_errors] == [
         test_bad_reference_id
-    ]
+    ], "Expect that the reference without a DOI is included in the linked robot errors."
 
 
 def test_construct_enhancement_map_keeps_doi_for_linked_robot_error(
     test_fulltext_enhancement_processor: FullTextEnhancementProcessor,
 ):
+    """
+    Ensure that when constructing the enhancement map, if a reference has a linked robot error,
+    the DOI is still retained in the resulting map, while other fields are set to None.
+    """
+    test_openalex_id = "W123456789"
+    test_doi = "10.1000/xyz123"
     reference = Reference(
         id=uuid.uuid4(),
         identifiers=[
-            {"identifier": "W123456789", "identifier_type": "open_alex"},
-            {"identifier": "10.1000/xyz123", "identifier_type": "doi"},
+            {"identifier": test_openalex_id, "identifier_type": "open_alex"},
+            {"identifier": test_doi, "identifier_type": "doi"},
         ],
         enhancements=[],
     )
@@ -881,9 +896,159 @@ def test_construct_enhancement_map_keeps_doi_for_linked_robot_error(
         [reference], retrieval_results
     )
 
-    assert enhancements_map[str(reference.id)] == {
-        "doi": "10.1000/xyz123",
-        "openalex_id": None,
-        "fulltext_path": None,
-        "source": None,
-    }
+    assert (
+        enhancements_map[str(reference.id)]
+        == {
+            "doi": test_doi,
+            "openalex_id": None,
+            "fulltext_path": None,
+            "source": None,
+        }
+    ), "Expect that the DOI is retained in the enhancement map for references with linked robot errors, while other fields are None."
+
+
+@pytest.mark.asyncio
+async def test_generate_file_url_success(
+    mocker: MockerFixture,
+    tmp_path: Path,
+    test_fulltext_enhancement_processor: FullTextEnhancementProcessor,
+):
+    test_file_name = "test_file.pdf"
+    test_sas_token = "dummy_sas_token"  # noqa: S105 # this gets flagged by ruff but is obviously fine
+    test_file_url = f"http://example.com/{test_file_name}?{test_sas_token}"
+    test_file_content = "This is a test file."
+
+    test_file_path = tmp_path / test_file_name
+    test_file_path.write_text(test_file_content)
+
+    storage_client = test_fulltext_enhancement_processor.storage_client
+    mock_blob_upload = mocker.patch.object(
+        storage_client, "blob_upload", return_value=test_file_name
+    )
+    mock_get_blob_sas_pair = mocker.patch.object(
+        storage_client,
+        "get_blob_sas_pair",
+        return_value={"blob_name": test_file_name, "sas_url": test_file_url},
+    )
+
+    file_url = await test_fulltext_enhancement_processor.generate_file_url(
+        file_path=test_file_path,
+    )
+    mock_blob_upload.assert_called_once()
+    mock_get_blob_sas_pair.assert_called_once_with(test_file_name)
+    assert (
+        file_url == test_file_url
+    ), "Expect that the generated file URL matches the mocked upload URL."
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("blob_sas_pair_object", "expected_error_message"),
+    [
+        ({}, "SAS URL is missing for blob"),
+        (
+            {"blob_name": "test_file.pdf", "sas_url": None},
+            "SAS URL is missing for blob",
+        ),
+        (
+            {
+                "blob_name": "test_file.pdf",
+                "sas_url": "http://example.com/test_file.pdf?",
+            },
+            "Invalid SAS URL for blob",
+        ),
+    ],
+)
+async def test_generate_file_url_failure_sas_url_error(
+    mocker: MockerFixture,
+    tmp_path: Path,
+    test_fulltext_enhancement_processor: FullTextEnhancementProcessor,
+    blob_sas_pair_object: dict,
+    expected_error_message: str,
+):
+    test_file_name = "test_file.pdf"
+    test_file_content = "This is a test file."
+
+    test_file_path = tmp_path / test_file_name
+    test_file_path.write_text(test_file_content)
+
+    storage_client = test_fulltext_enhancement_processor.storage_client
+    mock_blob_upload = mocker.patch.object(
+        storage_client, "blob_upload", return_value=test_file_name
+    )
+    mock_get_blob_sas_pair = mocker.patch.object(
+        storage_client,
+        "get_blob_sas_pair",
+        return_value=blob_sas_pair_object,
+    )
+
+    with pytest.raises(FileURLGenerationError) as error_info:
+        await test_fulltext_enhancement_processor.generate_file_url(
+            file_path=test_file_path,
+        )
+
+    assert expected_error_message in str(error_info.value)
+
+    mock_blob_upload.assert_called_once()
+    mock_get_blob_sas_pair.assert_called_once_with(test_file_name)
+
+
+@pytest.mark.asyncio
+async def test_generate_file_url_failure_get_blob_sas_pair_error(
+    mocker: MockerFixture,
+    tmp_path: Path,
+    test_fulltext_enhancement_processor: FullTextEnhancementProcessor,
+):
+    expected_error_message = "Failed to generate SAS URL for blob"
+    test_file_name = "test_file.pdf"
+    test_file_content = "This is a test file."
+
+    test_file_path = tmp_path / test_file_name
+    test_file_path.write_text(test_file_content)
+
+    storage_client = test_fulltext_enhancement_processor.storage_client
+    mock_blob_upload = mocker.patch.object(
+        storage_client, "blob_upload", return_value=test_file_name
+    )
+    mock_get_blob_sas_pair = mocker.patch.object(
+        storage_client,
+        "get_blob_sas_pair",
+        side_effect=Exception("Simulated error in get_blob_sas_pair"),
+    )
+
+    with pytest.raises(FileURLGenerationError) as error_info:
+        await test_fulltext_enhancement_processor.generate_file_url(
+            file_path=test_file_path,
+        )
+
+    assert expected_error_message in str(error_info.value)
+    mock_blob_upload.assert_called_once()
+    mock_get_blob_sas_pair.assert_called_once_with(test_file_name)
+
+
+@pytest.mark.asyncio
+async def test_generate_file_url_failure_blob_upload_error(
+    mocker: MockerFixture,
+    tmp_path: Path,
+    test_fulltext_enhancement_processor: FullTextEnhancementProcessor,
+):
+    expected_error_message = "Failed to upload file"
+    test_file_name = "test_file.pdf"
+    test_file_content = "This is a test file."
+
+    test_file_path = tmp_path / test_file_name
+    test_file_path.write_text(test_file_content)
+
+    mock_blob_upload = mocker.patch.object(
+        test_fulltext_enhancement_processor.storage_client,
+        "blob_upload",
+        side_effect=BlobUploadError("Simulated error in blob_upload"),
+    )
+
+    with pytest.raises(FileURLGenerationError) as error_info:
+        await test_fulltext_enhancement_processor.generate_file_url(
+            file_path=test_file_path,
+        )
+
+    assert expected_error_message in str(error_info.value)
+    mock_blob_upload.assert_called_once()

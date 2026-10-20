@@ -4,7 +4,6 @@ import re
 from importlib.metadata import PackageNotFoundError, version
 
 from destiny_sdk.identifiers import DOIIdentifier, ExternalIdentifierType
-from destiny_sdk.references import Reference
 from loguru import logger
 from pydantic import ValidationError
 
@@ -15,10 +14,6 @@ class VersionInfoNotFoundError(Exception):
 
 class InvalidDOIError(Exception):
     """Custom exception to throw when DOI is invalid."""
-
-
-class MissingDOIError(Exception):
-    """Exception for when a reference doesn't contain a DOI."""
 
 
 def format_doi(doi_candidate: str) -> str:
@@ -75,24 +70,6 @@ def validate_doi(doi_string: str) -> str:
         error_message = f"Invalid DOI: {doi_string}. Error: {invalid_doi_error}"
         logger.error(error_message)
         raise InvalidDOIError(error_message) from invalid_doi_error
-
-
-def get_doi_from_reference(reference: Reference) -> str:
-    """
-    Extract DOI from a Reference object.
-
-    Args:
-        reference (Reference): The reference object containing identifiers.
-
-    Returns:
-        str: The DOI string if found.
-
-    """
-    for _id in reference.identifiers:
-        if _id.identifier_type == ExternalIdentifierType.DOI:
-            return _id.identifier
-    error_message = f"No DOI found for reference {reference}"
-    raise MissingDOIError(error_message)
 
 
 def get_version_number(package_name: str = "fetch-everything-robot") -> str:
