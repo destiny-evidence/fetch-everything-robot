@@ -142,4 +142,4 @@ exclude-dependencies = [
 exclude-newer = "P5D"
 
 [tool.uv.sources]
-refresh-requester = {git = "https://github.com/destiny-evidence/openalex-incremental-updater", rev = "9ae8797999f3669508205ecbd66d188fe467216a", subdirectory = "refresh_requester"} # pragma: allowlist secret
+refresh-requester = {git = "https://github.com/destiny-evidence/openalex-incremental-updater", rev = "2d959f41c4eb835a3139b85ef6db8b9dacc30492", subdirectory = "refresh_requester"} # pragma: allowlist secret
