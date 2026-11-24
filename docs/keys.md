@@ -29,7 +29,7 @@ To generate an institution token (inst token), email [datasupportRD@elsevier.com
 
 [!IMPORTANT] Web of Science is not currently supported in the package, but this is planned for the near future. We recommend requesting a key in advance so that it is ready for use once support is added.
 
-Visit the [Clarivate Developer Portal](https://developer.clarivate.com/apis/wos) and log in or register with your institutional email if you haven't done so previously. Select `APIs` at the top and select [Web of Science Expanded](https://developer.clarivate.com/apis/wos). You'll need to register an application the bottom of the page in order to register API keys against. A suggested set of sample values for the application is provided below:
+Visit the [Clarivate Developer Portal](https://developer.clarivate.com/apis/wos) and log in or register with your institutional/organisational email if you haven't done so previously. Select `APIs` at the top and select [Web of Science Expanded](https://developer.clarivate.com/apis/wos). You'll need to register an application the bottom of the page in order to register API keys against. A suggested set of sample values for the application is provided below:
 
 ![An example Clarivate Application configuration](./example_setup.png)
 
