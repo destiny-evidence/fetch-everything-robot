@@ -317,6 +317,35 @@ async def test_fetch_one_fulltext_stream_error(
 
 
 @pytest.mark.asyncio
+async def test_fetch_one_fulltext_download_one_pdf_empty_pdf_raises_error(
+    mocker, test_settings, tmp_path, test_study_collection
+):
+    study = test_study_collection.studies[0]
+    fetcher = ElsevierFetcher(settings=test_settings)
+    requested_paths: list[str] = []
+
+    def respond(request: httpx2.Request) -> httpx2.Response:
+        requested_paths.append(request.url.path)
+        return httpx2.Response(200, content=b"")
+
+    real_client = httpx2.AsyncClient
+
+    mocker.patch(
+        "fer.fetching.core.httpx2.AsyncClient",
+        lambda **kwargs: real_client(transport=httpx2.MockTransport(respond), **kwargs),
+    )
+
+    result = await fetcher._fetch_one_fulltext(
+        study=study,
+        output_directory=tmp_path,
+        elsevier_request_config=fetcher.prepare_request_config(get_pdf=True),
+    )
+    assert len(requested_paths) == 1
+    assert result.fulltext_path is None
+    assert "Elsevier PDF download empty" in result.error
+
+
+@pytest.mark.asyncio
 async def test_fetch_many_full_texts_single_page_incomplete_pdf_falls_back_to_xml(
     mocker, test_settings, test_study_collection, tmp_path
 ):
