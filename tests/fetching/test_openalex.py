@@ -1,9 +1,8 @@
 """Unit tests for fer/fetching/openalex.py."""
 
-import httpx2
 import pytest
 from destiny_sdk.identifiers import DOIIdentifier
-from httpx2 import HTTPError, Response
+from httpx2 import AsyncClient, HTTPError, MockTransport, Request, Response
 
 from fer.fetching.core import DOIStudyCollection, FullTextStreamError
 from fer.fetching.openalex import OpenalexFetcher
@@ -284,14 +283,14 @@ async def test_fetch_many_full_texts_empty_pdf_download_does_not_abort_a_batch(
         },
     )
 
-    def respond(request: httpx2.Request) -> httpx2.Response:
+    def respond(request: Request) -> Response:
         is_empty = request.url.path == f"/{empty_study.uid}.pdf"
-        return httpx2.Response(200, content=b"" if is_empty else b"%PDF-1.4 test")
+        return Response(200, content=b"" if is_empty else b"%PDF-1.4 test")
 
-    real_client = httpx2.AsyncClient
+    real_client = AsyncClient
     mocker.patch(
         "fer.fetching.core.httpx2.AsyncClient",
-        lambda **kwargs: real_client(transport=httpx2.MockTransport(respond), **kwargs),
+        lambda **kwargs: real_client(transport=MockTransport(respond), **kwargs),
     )
 
     results = await fetcher.fetch_many_full_texts(
