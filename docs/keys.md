@@ -17,7 +17,7 @@ API key generation for Scopus/ScienceDirect is fairly straightforward. It's impo
 
 ### API Key Generation
 
-Visit the [Elsevier Developer Portal](https://dev.elsevier.com/) and select `I want an API key` from the menu. You will be prompted to log in or create an account if you don't already have one. Use your institutional email address for this step, in order to leverage the existing subscription your institution may have with Elsevier. After logging in, you'll be shown any existing keys you have.
+Visit the [Elsevier Developer Portal](https://dev.elsevier.com/) and select `I want an API key` from the menu. You will be prompted to log in or create an account if you don't already have one. Remember to use your institutional email address for this step if you want to leverage any existing subscriptions your institution may have with Elsevier. After logging in, you'll be shown any existing keys you have.
 
 Create a new key by selecting `Create API Key`. Add an appropriate label and website URL for your application. The website URL is not required, but the label is useful in order to identify keys and manage them. You will also need to read and agree to the API Service Agreement, as well as the additional TDM provisions if you plan to use the key for text and data mining over full texts from ScienceDirect. Once you have agreed to the terms, click `Create Key`. You will then be shown your new API key, which you should copy and store securely.
 
