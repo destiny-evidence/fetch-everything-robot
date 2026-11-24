@@ -111,6 +111,16 @@ async def test_openalex_retrieval_download_one_pdf_fails_returns_none(
         fetcher, "download_one_pdf", new_callable=mocker.AsyncMock
     )
     mock_download_one_pdf.return_value = None
+    mock_get_work_doi_value = {
+        "id": "W1234567890",
+        "locations": [{"pdf_url": "http://example.com/file.pdf"}],
+    }
+    mocker.patch.object(
+        fetcher,
+        "_get_work_doi",
+        new_callable=mocker.AsyncMock,
+        return_value=mock_get_work_doi_value,
+    )
     result = await fetcher._openalex_retrieval(
         study=test_study, output_directory=temporary_test_file
     )
