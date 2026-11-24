@@ -2,12 +2,12 @@
 
 This guide aims to offer an overview of the process of requesting API keys for the providers supported by this package. The aim is to provide a clear and repeatable set of steps for users wishing to use the tool in 'local' mode, which requires bringing your own keys.
 
-The guide covers the following currently supported providers:
+The guide covers the following providers:
 
 - Elsevier (Scopus, ScienceDirect) - referred to as 'Scopus' in the code.
 - Web of Science
 
-As the number of supported providers expands, this guide will be updated.
+As the number of supported providers expands or is planned to expand, this guide will be updated.
 
 In all cases, it is left to the user to ensure that API keys are stored securely, not committed to version control, not shared with others, and not used in any way that violates the terms of service of the provider. The package does not store or manage API keys, and it is the user's responsibility to ensure that they are used appropriately.
 
@@ -26,6 +26,8 @@ Create a new key by selecting `Create API Key`. Add an appropriate label and web
 To generate an institution token (inst token), email [datasupportRD@elsevier.com](mailto:datasupportRD@elsevier.com) from your registered institutional email address requesting an insitution token matched to an existing API key. You'll likely receive a reply requesting further information, and you should be prepared to provide at least the API key you generated earlier, which is used to link the inst token. The inst token requires your to also use the specific API key in any request, and will not work with other API keys you may have generated.
 
 ## Web of Science API Key Generation
+
+[!IMPORTANT] Web of Science is not currently supported in the package, but this is planned for the near future. We recommend requesting a key in advance so that it is ready for use once support is added.
 
 Visit the [Clarivate Developer Portal](https://developer.clarivate.com/apis/wos) and log in or register with your institutional email if you haven't done so previously. Select `APIs` at the top and select [Web of Science Expanded](https://developer.clarivate.com/apis/wos). You'll need to register an application the bottom of the page in order to register API keys against. A suggested set of sample values for the application is provided below:
 
