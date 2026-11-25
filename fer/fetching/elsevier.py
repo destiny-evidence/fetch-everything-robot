@@ -383,7 +383,7 @@ class ElsevierFetcher(BasePublisherFetcher):
             logger.info(f"Attempting to fetch PDF full text for {uid=}, {doi=}")
 
             try:
-                await self.download_one_pdf(
+                pdf_path = await self.download_one_pdf(
                     AnyUrl(url), file_path, headers=elsevier_request_config.headers
                 )
             except IncompleteFullTextError:
@@ -398,6 +398,14 @@ class ElsevierFetcher(BasePublisherFetcher):
                 return RetrievedFullText(
                     doi=doi, uid=uid, fulltext_path=None, error=error_message
                 )
+            else:
+                if pdf_path is None:
+                    error_message = f"Elsevier PDF download empty for {doi=}"
+                    logger.error(error_message)
+                    return RetrievedFullText(
+                        doi=doi, uid=uid, fulltext_path=None, error=error_message
+                    )
+
             return await self.get_final_fulltext_content(
                 url=str(url),
                 output_file_path=file_path,
