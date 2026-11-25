@@ -4,9 +4,10 @@ import asyncio
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from destiny_sdk.identifiers import OpenAlexIdentifier
 from httpx2 import HTTPError
 from loguru import logger
-from pydantic import AnyUrl
+from pydantic import AnyUrl, HttpUrl, ValidationError
 
 from fer.config import Settings
 from fer.data_models.openalex import get_openalex_api_config
@@ -104,6 +105,8 @@ class OpenalexFetcher(BasePublisherFetcher):
         Extract the PDF URL from the OpenAlex response object.
 
         Retrieves the best pdf URL, if available.
+        This prefers OpenAlex-hosted material first, and then falls back
+        to external URLs provided by OpenAlex.
 
         Args:
             response_object (dict): The response object from OpenAlex API.
@@ -112,12 +115,39 @@ class OpenalexFetcher(BasePublisherFetcher):
             AnyUrl | None: The PDF URL if found, else None.
 
         """
-        if "locations" not in response_object:
+        has_content: dict[str, bool] = response_object.get("has_content", {})
+        locations = response_object.get("locations", [])
+        has_openalex_hosted_pdf = has_content.get("pdf", False)
+
+        if not has_openalex_hosted_pdf and not locations:
+            logger.debug("No full-text content or locations found in response object.")
             return None
-        locations = response_object["locations"]
+
+        if has_openalex_hosted_pdf:
+            logger.info("Found OpenAlex-hosted PDF.")
+            full_openalex_id = response_object.get("id")
+            pdf_service_base_url = "https://content.openalex.org/works/"
+            if full_openalex_id:
+                try:
+                    openalex_identifier = OpenAlexIdentifier(
+                        identifier=full_openalex_id
+                    )
+                except ValidationError as bad_openalex_identifier:
+                    error_message = (
+                        f"Malformed OpenAlex identifier: {bad_openalex_identifier}"
+                    )
+                    logger.error(error_message)
+                else:
+                    return HttpUrl(
+                        url=f"{pdf_service_base_url}{openalex_identifier.identifier}.pdf"
+                    )
+
+        logger.debug("No OpenAlex-hosted PDF found, checking external locations.")
         pdf_url = None
+
         for loc in locations:
             if loc["pdf_url"]:
+                logger.info("Found external PDF URL from OpenAlex.")
                 pdf_url = loc["pdf_url"]
                 break
         return pdf_url

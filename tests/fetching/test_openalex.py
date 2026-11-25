@@ -65,23 +65,80 @@ async def test_get_work_http_error(mocker, fetcher):
         await fetcher._get_work_doi(doi)
 
 
-def test_get_pdf_url_success(fetcher):
-    """Test _get_pdf_url extracts the correct URL."""
+def test_get_pdf_url_success_openalex_hosted_no_external(fetcher):
+    """Test _get_pdf_url extracts the correct OpenAlex-hosted URL."""
     response_object = {
-        "locations": [{"pdf_url": None}, {"pdf_url": "http://example.com/file.pdf"}]
+        "has_content": {"pdf": True, "grobid_xml": True},
+        "locations": [],
+        "id": "W123",
     }
     url = fetcher._get_pdf_url(response_object)
+    assert url == f"https://content.openalex.org/works/{response_object['id']}.pdf"
+
+
+def test_get_pdf_url_success_openalex_hosted_with_external(fetcher):
+    """
+    Test _get_pdf_url extracts the correct OpenAlex-hosted URL when external locations exist.
+
+    We need to prefer the OpenAlex-hosted PDF over external locations.
+    """
+    response_object = {
+        "has_content": {"pdf": True, "grobid_xml": True},
+        "locations": [{"pdf_url": "http://example.com/file.pdf"}],
+        "id": "W123",
+    }
+    url = fetcher._get_pdf_url(response_object)
+    assert url == f"https://content.openalex.org/works/{response_object['id']}.pdf"
+
+
+def test_get_pdf_url_openalex_hosted_bad_identifier_falls_back_to_external(
+    fetcher, caplog
+):
+    """
+    Test bad identifier validation errors are handled and we fall
+    back to the external PDF URL if available.
+
+    """
+    response_object = {
+        "has_content": {"pdf": True, "grobid_xml": True},
+        "locations": [{"pdf_url": "http://example.com/file.pdf"}],
+        "id": "INVALID_ID",
+    }
+    with caplog.at_level("ERROR"):
+        url = fetcher._get_pdf_url(response_object)
     assert url == "http://example.com/file.pdf"
+    assert "Failed to parse OpenAlex identifier" in caplog.text
 
 
-def test_get_pdf_url_none(fetcher):
+def test_get_pdf_url_success_external_url(fetcher, caplog):
+    """Test _get_pdf_url extracts the correct URL."""
+    test_pdf_url = "http://example.com/file.pdf"
+    response_object = {
+        "has_content": {"pdf": False, "grobid_xml": False},
+        "locations": [{"pdf_url": None}, {"pdf_url": test_pdf_url}],
+    }
+    with caplog.at_level("DEBUG"):
+        url = fetcher._get_pdf_url(response_object)
+    assert url == test_pdf_url
+    assert "No OpenAlex-hosted PDF found" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("response_object", "expected_log_message"),
+    [
+        ({"locations": [{"pdf_url": None}]}, "No OpenAlex-hosted PDF found"),
+        (
+            {"has_content": {"pdf": False, "grobid_xml": False}},
+            "No full-text content or locations found in response object",
+        ),
+        ({}, "No full-text content or locations found in response object"),
+    ],
+)
+def test_get_pdf_url_none(fetcher, response_object, expected_log_message, caplog):
     """Test _get_pdf_url returns None when no PDF is available."""
-    # scenario 1: locations exist but no pdf_url
-    response_object = {"locations": [{"pdf_url": None}]}
-    assert fetcher._get_pdf_url(response_object) is None
-
-    # scenario 2: no locations key
-    assert fetcher._get_pdf_url({}) is None
+    with caplog.at_level("DEBUG"):
+        assert fetcher._get_pdf_url(response_object) is None
+    assert expected_log_message in caplog.text
 
 
 @pytest.mark.asyncio
