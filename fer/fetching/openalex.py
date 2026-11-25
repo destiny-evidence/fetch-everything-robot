@@ -6,7 +6,7 @@ from pathlib import Path
 from destiny_sdk.identifiers import OpenAlexIdentifier
 from httpx2 import HTTPError
 from loguru import logger
-from pydantic import AnyUrl, HttpUrl, ValidationError
+from pydantic import AnyUrl, ValidationError
 
 from fer.config import Settings
 from fer.data_models.generic import APIConfig, APIKeyNotPresentError
@@ -144,8 +144,8 @@ class OpenalexFetcher(BasePublisherFetcher):
                     )
                     logger.error(error_message)
                 else:
-                    return HttpUrl(
-                        url=f"{pdf_service_base_url}{openalex_identifier.identifier}.pdf"
+                    return AnyUrl(
+                        f"{pdf_service_base_url}{openalex_identifier.identifier}.pdf"
                     )
 
         logger.debug("No OpenAlex-hosted PDF found, checking external locations.")
@@ -156,7 +156,7 @@ class OpenalexFetcher(BasePublisherFetcher):
                 logger.info("Found external PDF URL from OpenAlex.")
                 pdf_url = loc["pdf_url"]
                 break
-        return pdf_url
+        return AnyUrl(pdf_url) if pdf_url else None
 
     async def download_one_pdf(
         self,

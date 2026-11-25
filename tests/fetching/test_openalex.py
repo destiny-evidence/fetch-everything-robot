@@ -3,6 +3,7 @@
 import pytest
 from destiny_sdk.identifiers import DOIIdentifier
 from httpx2 import AsyncClient, HTTPError, MockTransport, Request, Response
+from pydantic import AnyUrl
 
 from fer.fetching.core import DOIStudyCollection, FullTextStreamError
 from fer.fetching.openalex import OpenalexFetcher
@@ -72,8 +73,11 @@ def test_get_pdf_url_success_openalex_hosted_no_external(fetcher):
         "locations": [],
         "id": "W123",
     }
+    expected_url = AnyUrl(
+        f"https://content.openalex.org/works/{response_object['id']}.pdf"
+    )
     url = fetcher._get_pdf_url(response_object)
-    assert url == f"https://content.openalex.org/works/{response_object['id']}.pdf"
+    assert url == expected_url
 
 
 def test_get_pdf_url_success_openalex_hosted_with_external(fetcher):
@@ -88,7 +92,9 @@ def test_get_pdf_url_success_openalex_hosted_with_external(fetcher):
         "id": "W123",
     }
     url = fetcher._get_pdf_url(response_object)
-    assert url == f"https://content.openalex.org/works/{response_object['id']}.pdf"
+    assert url == AnyUrl(
+        f"https://content.openalex.org/works/{response_object['id']}.pdf"
+    )
 
 
 def test_get_pdf_url_openalex_hosted_bad_identifier_falls_back_to_external(
@@ -106,13 +112,13 @@ def test_get_pdf_url_openalex_hosted_bad_identifier_falls_back_to_external(
     }
     with caplog.at_level("ERROR"):
         url = fetcher._get_pdf_url(response_object)
-    assert url == "http://example.com/file.pdf"
-    assert "Failed to parse OpenAlex identifier" in caplog.text
+    assert url == AnyUrl("http://example.com/file.pdf")
+    assert "Malformed OpenAlex identifier" in caplog.text
 
 
 def test_get_pdf_url_success_external_url(fetcher, caplog):
     """Test _get_pdf_url extracts the correct URL."""
-    test_pdf_url = "http://example.com/file.pdf"
+    test_pdf_url = AnyUrl("http://example.com/file.pdf")
     response_object = {
         "has_content": {"pdf": False, "grobid_xml": False},
         "locations": [{"pdf_url": None}, {"pdf_url": test_pdf_url}],
