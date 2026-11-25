@@ -63,7 +63,7 @@ async def resolve_openalex_identifiers(
     if not openalex_identifiers:
         return [], [], {}
 
-    openalex_fetcher = OpenalexFetcher(settings)
+    openalex_fetcher = OpenalexFetcher(settings, wait_time_seconds=0.001)
     observed_openalex_ids: set[str] = set()
     unique_openalex_identifiers: list[OpenAlexIdentifier] = []
 

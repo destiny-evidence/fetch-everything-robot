@@ -2,7 +2,6 @@
 
 import asyncio
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from destiny_sdk.identifiers import OpenAlexIdentifier
 from httpx2 import HTTPError
@@ -10,6 +9,7 @@ from loguru import logger
 from pydantic import AnyUrl, HttpUrl, ValidationError
 
 from fer.config import Settings
+from fer.data_models.generic import APIConfig, APIKeyNotPresentError
 from fer.data_models.openalex import get_openalex_api_config
 from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import (
@@ -23,9 +23,6 @@ from fer.fetching.core import (
     stream_file,
 )
 from fer.utils import format_doi, validate_doi
-
-if TYPE_CHECKING:
-    from fer.data_models.generic import APIConfig
 
 
 class OpenAlexAPIError(Exception):
@@ -51,6 +48,15 @@ class OpenalexFetcher(BasePublisherFetcher):
         self.settings = settings
         self.wait_time_seconds = wait_time_seconds
         self.api_config: APIConfig = get_openalex_api_config(settings)
+        try:
+            self.api_config.init_api_key(settings)
+        except APIKeyNotPresentError as openalex_api_key_error:
+            error_message = (
+                f"Failed to initialize OpenAlex API key: {openalex_api_key_error}. "
+                "OpenAlex will be skipped."
+            )
+            logger.error(error_message)
+
         self.base_url: AnyUrl = self.api_config.url
         self.query_params: dict | None = self.api_config.query_params
         self.headers: dict = self.api_config.headers
@@ -213,7 +219,9 @@ class OpenalexFetcher(BasePublisherFetcher):
         pdf_path: Path | None = None
         if pdf_url is not None:
             pdf_path = await self.download_one_pdf(
-                pdf_url=pdf_url, filepath=output_directory / f"{uid}.pdf"
+                pdf_url=pdf_url,
+                filepath=output_directory / f"{uid}.pdf",
+                headers=self.api_config.headers,
             )
             if pdf_path is not None:
                 return RetrievedFullText(
