@@ -18699,7 +18699,15 @@ This is expected to have 'content_type' and 'url' keys.</p>
 <span class="normal">479</span>
 <span class="normal">480</span>
 <span class="normal">481</span>
-<span class="normal">482</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ElsevierFetcher</span><span class="p">(</span><span class="n">BasePublisherFetcher</span><span class="p">):</span>
+<span class="normal">482</span>
+<span class="normal">483</span>
+<span class="normal">484</span>
+<span class="normal">485</span>
+<span class="normal">486</span>
+<span class="normal">487</span>
+<span class="normal">488</span>
+<span class="normal">489</span>
+<span class="normal">490</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ElsevierFetcher</span><span class="p">(</span><span class="n">BasePublisherFetcher</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Define a concrete fetcher for Elsevier full texts."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Settings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -19046,7 +19054,7 @@ This is expected to have 'content_type' and 'url' keys.</p>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Attempting to fetch PDF full text for </span><span class="si">{</span><span class="n">uid</span><span class="si">=}</span><span class="s2">, </span><span class="si">{</span><span class="n">doi</span><span class="si">=}</span><span class="s2">"</span><span class="p">)</span>
 
             <span class="k">try</span><span class="p">:</span>
-                <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">download_one_pdf</span><span class="p">(</span>
+                <span class="n">pdf_path</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">download_one_pdf</span><span class="p">(</span>
                     <span class="n">AnyUrl</span><span class="p">(</span><span class="n">url</span><span class="p">),</span> <span class="n">file_path</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">elsevier_request_config</span><span class="o">.</span><span class="n">headers</span>
                 <span class="p">)</span>
             <span class="k">except</span> <span class="n">IncompleteFullTextError</span><span class="p">:</span>
@@ -19061,6 +19069,14 @@ This is expected to have 'content_type' and 'url' keys.</p>
                 <span class="k">return</span> <span class="n">RetrievedFullText</span><span class="p">(</span>
                     <span class="n">doi</span><span class="o">=</span><span class="n">doi</span><span class="p">,</span> <span class="n">uid</span><span class="o">=</span><span class="n">uid</span><span class="p">,</span> <span class="n">fulltext_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="n">error_message</span>
                 <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">pdf_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">error_message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Elsevier PDF download empty for </span><span class="si">{</span><span class="n">doi</span><span class="si">=}</span><span class="s2">"</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error_message</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">RetrievedFullText</span><span class="p">(</span>
+                        <span class="n">doi</span><span class="o">=</span><span class="n">doi</span><span class="p">,</span> <span class="n">uid</span><span class="o">=</span><span class="n">uid</span><span class="p">,</span> <span class="n">fulltext_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="n">error_message</span>
+                    <span class="p">)</span>
+
             <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_final_fulltext_content</span><span class="p">(</span>
                 <span class="n">url</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">url</span><span class="p">),</span>
                 <span class="n">output_file_path</span><span class="o">=</span><span class="n">file_path</span><span class="p">,</span>
@@ -19483,15 +19499,7 @@ representing the saved output files.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/elsevier.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">447</span>
-<span class="normal">448</span>
-<span class="normal">449</span>
-<span class="normal">450</span>
-<span class="normal">451</span>
-<span class="normal">452</span>
-<span class="normal">453</span>
-<span class="normal">454</span>
-<span class="normal">455</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">455</span>
 <span class="normal">456</span>
 <span class="normal">457</span>
 <span class="normal">458</span>
@@ -19518,7 +19526,15 @@ representing the saved output files.</p>
 <span class="normal">479</span>
 <span class="normal">480</span>
 <span class="normal">481</span>
-<span class="normal">482</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">fetch_many_full_texts</span><span class="p">(</span>
+<span class="normal">482</span>
+<span class="normal">483</span>
+<span class="normal">484</span>
+<span class="normal">485</span>
+<span class="normal">486</span>
+<span class="normal">487</span>
+<span class="normal">488</span>
+<span class="normal">489</span>
+<span class="normal">490</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">fetch_many_full_texts</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">study_collection</span><span class="p">:</span> <span class="n">DOIStudyCollection</span><span class="p">,</span>
     <span class="n">output_directory</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
