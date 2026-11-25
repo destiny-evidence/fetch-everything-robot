@@ -290,15 +290,19 @@ async def stream_file(
         logger.info(f"File already exists: {destination}, skipping download.")
         return destination
 
+    created_file = False
+    stream_complete = False
     try:
         async with (
             httpx2.AsyncClient(follow_redirects=follow_redirects) as client,
             client.stream("GET", str(url), headers=headers) as response,
         ):
             response.raise_for_status()
-            with destination.open("wb") as destination_file:
+            with destination.open("xb") as destination_file:
+                created_file = True
                 async for chunk in response.aiter_bytes():
                     destination_file.write(chunk)
+        stream_complete = True
 
         if response_validator is not None:
             try:
@@ -317,6 +321,9 @@ async def stream_file(
         logger.error(f"Streaming error for {url}: {stream_error}")
         error_message = f"Streaming error for {url}: {stream_error}"
         raise FullTextStreamError(error_message) from stream_error
+    finally:
+        if created_file and not stream_complete:
+            destination.unlink(missing_ok=True)
     if destination.exists() and destination.stat().st_size == 0:
         destination.unlink()
         logger.error(f"File empty - removing empty file: {destination}")
