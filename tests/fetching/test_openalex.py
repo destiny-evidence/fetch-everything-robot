@@ -76,13 +76,8 @@ def test_get_pdf_urls_success_openalex_hosted_no_external(fetcher):
     expected_url = AnyUrl(
         f"https://content.openalex.org/works/{response_object['id']}.pdf"
     )
-<<<<<<< HEAD
     url_list = fetcher._get_pdf_urls(response_object)
     assert url_list == [expected_url]
-=======
-    url = fetcher._get_pdf_url(response_object)
-    assert url == expected_url
->>>>>>> 3d85f80 (Wrap PDF urls in AnyUrl)
 
 
 def test_get_pdf_urls_success_openalex_hosted_with_external(fetcher):
@@ -101,16 +96,9 @@ def test_get_pdf_urls_success_openalex_hosted_with_external(fetcher):
         "best_oa_location": {"pdf_url": expected_external_best_oa_url},
         "id": test_oa_id,
     }
-<<<<<<< HEAD
 
     url_list = fetcher._get_pdf_urls(response_object)
     assert url_list == [expected_oa_hosted_url, expected_external_best_oa_url]
-=======
-    url = fetcher._get_pdf_url(response_object)
-    assert url == AnyUrl(
-        f"https://content.openalex.org/works/{response_object['id']}.pdf"
-    )
->>>>>>> 3d85f80 (Wrap PDF urls in AnyUrl)
 
 
 def test_get_pdf_urls_success_openalex_hosted_falls_back_to_external_with_no_key(
@@ -148,7 +136,6 @@ def test_get_pdf_urls_openalex_hosted_bad_identifier_falls_back_to_external(
         "id": "INVALID_ID",
     }
     with caplog.at_level("ERROR"):
-<<<<<<< HEAD
         urls = fetcher._get_pdf_urls(response_object)
     assert urls == [AnyUrl("http://example.com/file.pdf")]
     assert "Malformed OpenAlex identifier" in caplog.text
@@ -156,15 +143,6 @@ def test_get_pdf_urls_openalex_hosted_bad_identifier_falls_back_to_external(
 
 def test_get_pdf_urls_success_external_url(fetcher, caplog):
     """Test _get_pdf_urls extracts the correct URL."""
-=======
-        url = fetcher._get_pdf_url(response_object)
-    assert url == AnyUrl("http://example.com/file.pdf")
-    assert "Malformed OpenAlex identifier" in caplog.text
-
-
-def test_get_pdf_url_success_external_url(fetcher, caplog):
-    """Test _get_pdf_url extracts the correct URL."""
->>>>>>> 3d85f80 (Wrap PDF urls in AnyUrl)
     test_pdf_url = AnyUrl("http://example.com/file.pdf")
     response_object = {
         "has_content": {"pdf": False, "grobid_xml": False},
