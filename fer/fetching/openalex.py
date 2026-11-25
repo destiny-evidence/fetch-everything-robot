@@ -124,12 +124,13 @@ class OpenalexFetcher(BasePublisherFetcher):
         has_content: dict[str, bool] = response_object.get("has_content", {})
         locations = response_object.get("locations", [])
         has_openalex_hosted_pdf = has_content.get("pdf", False)
+        api_key_available = bool(self.api_config.headers.get("api_key"))
 
         if not has_openalex_hosted_pdf and not locations:
             logger.debug("No full-text content or locations found in response object.")
             return None
 
-        if has_openalex_hosted_pdf:
+        if has_openalex_hosted_pdf and api_key_available:
             logger.info("Found OpenAlex-hosted PDF.")
             full_openalex_id = response_object.get("id")
             pdf_service_base_url = "https://content.openalex.org/works/"

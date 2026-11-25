@@ -97,6 +97,26 @@ def test_get_pdf_url_success_openalex_hosted_with_external(fetcher):
     )
 
 
+def test_get_pdf_url_success_openalex_hosted_falls_back_to_external_with_no_key(
+    fetcher,
+):
+    """
+    Test _get_pdf_url extracts the correct OpenAlex-hosted URL when external locations exist.
+
+    We need to prefer the OpenAlex-hosted PDF over external locations.
+    """
+    external_pdf_url = "http://example.com/file.pdf"
+    response_object = {
+        "has_content": {"pdf": True, "grobid_xml": True},
+        "locations": [{"pdf_url": external_pdf_url}],
+        "id": "W123",
+    }
+    fetcher.api_config.headers.pop("api_key", None)
+
+    url = fetcher._get_pdf_url(response_object)
+    assert url == AnyUrl(external_pdf_url)
+
+
 def test_get_pdf_url_openalex_hosted_bad_identifier_falls_back_to_external(
     fetcher, caplog
 ):
