@@ -106,7 +106,7 @@ class OpenalexFetcher(BasePublisherFetcher):
 
         return response.json()
 
-    def _get_pdf_url(self, response_object: dict) -> AnyUrl | None:
+    def _get_pdf_urls(self, response_object: dict) -> list[AnyUrl] | None:
         """
         Extract the PDF URL from the OpenAlex response object.
 
@@ -118,11 +118,12 @@ class OpenalexFetcher(BasePublisherFetcher):
             response_object (dict): The response object from OpenAlex API.
 
         Returns:
-            AnyUrl | None: The PDF URL if found, else None.
+            list[AnyUrl] | None: The PDF URL(s) if found, else None.
 
         """
+        url_candidates = []
         has_content: dict[str, bool] = response_object.get("has_content", {})
-        locations = response_object.get("locations", [])
+        locations = response_object.get("best_oa_location") or {}
         has_openalex_hosted_pdf = has_content.get("pdf", False)
         api_key_available = bool(self.api_config.headers.get("api_key"))
 
@@ -145,19 +146,19 @@ class OpenalexFetcher(BasePublisherFetcher):
                     )
                     logger.error(error_message)
                 else:
-                    return AnyUrl(
-                        f"{pdf_service_base_url}{openalex_identifier.identifier}.pdf"
+                    url_candidates.append(
+                        AnyUrl(
+                            f"{pdf_service_base_url}{openalex_identifier.identifier}.pdf"
+                        )
                     )
 
-        logger.debug("No OpenAlex-hosted PDF found, checking external locations.")
-        pdf_url = None
+        if not url_candidates:
+            logger.debug("No OpenAlex-hosted PDF found, checking external locations.")
 
-        for loc in locations:
-            if loc["pdf_url"]:
-                logger.info("Found external PDF URL from OpenAlex.")
-                pdf_url = loc["pdf_url"]
-                break
-        return AnyUrl(pdf_url) if pdf_url else None
+        if locations.get("pdf_url"):
+            logger.info("Found external PDF URL from OpenAlex.")
+            url_candidates.append(AnyUrl(locations["pdf_url"]))
+        return url_candidates if url_candidates else None
 
     async def download_one_pdf(
         self,
@@ -232,22 +233,30 @@ class OpenalexFetcher(BasePublisherFetcher):
                 )
             work = await self._get_work_doi(doi)
         openalex_id = work.get("id", None)
-        pdf_url = self._get_pdf_url(work)
+        pdf_url_candidates = self._get_pdf_urls(work)
         pdf_path: Path | None = None
-        if pdf_url is not None:
-            pdf_path = await self.download_one_pdf(
-                pdf_url=pdf_url,
-                filepath=output_directory / f"{uid}.pdf",
-                headers=self.api_config.headers,
-            )
-            if pdf_path is not None:
-                return RetrievedFullText(
-                    doi=doi,
-                    uid=uid,
-                    openalex_id=openalex_id,
-                    fulltext_path=pdf_path,
-                    file_format="pdf",
-                )
+        if pdf_url_candidates:
+            for candidate_url in pdf_url_candidates:
+                try:
+                    pdf_path = await self.download_one_pdf(
+                        pdf_url=candidate_url,
+                        filepath=output_directory / f"{uid}.pdf",
+                        headers=self.api_config.headers,
+                    )
+                except FullTextStreamError as stream_error:
+                    logger.error(
+                        f"Failed to download PDF from {candidate_url}: {stream_error}"
+                    )
+                    continue
+
+                if pdf_path:
+                    return RetrievedFullText(
+                        doi=doi,
+                        uid=uid,
+                        openalex_id=openalex_id,
+                        fulltext_path=pdf_path,
+                        file_format="pdf",
+                    )
 
         warning_message = f"No PDF found for {doi=} {openalex_id=}."
         return RetrievedFullText(

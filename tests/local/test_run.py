@@ -282,7 +282,7 @@ async def test_main_openalex_identifier_end_to_end(
             json={
                 "id": f"https://openalex.org/{openalex_id}",
                 "doi": f"https://doi.org/{doi}",
-                "locations": [{"pdf_url": "https://files.example.test/test.pdf"}],
+                "best_oa_location": {"pdf_url": "https://files.example.test/test.pdf"},
             },
         ),
         httpx2.Response(
@@ -290,7 +290,7 @@ async def test_main_openalex_identifier_end_to_end(
             json={
                 "id": f"https://openalex.org/{openalex_id}",
                 "doi": f"https://doi.org/{doi}",
-                "locations": [{"pdf_url": "https://files.example.test/test.pdf"}],
+                "best_oa_location": {"pdf_url": "https://files.example.test/test.pdf"},
             },
         ),
         httpx2.Response(200, content=pdf_content),
