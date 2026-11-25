@@ -185,8 +185,10 @@ class OpenalexFetcher(BasePublisherFetcher):
             parsed_url.scheme == "https" and parsed_url.host == "content.openalex.org"
         )
         download_headers = dict(headers) if headers and is_openalex_content else {}
-        sends_key = bool(download_headers.get(key_header))
-
+        sends_key = any(
+            name.lower() == key_header.lower() and bool(value)
+            for name, value in download_headers.items()
+        )
         return await stream_file(
             url=pdf_url,
             destination=filepath,

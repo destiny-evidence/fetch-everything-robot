@@ -204,15 +204,15 @@ async def test_download_one_pdf_success_openalex_hosted(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("pdf_url", "expected_headers"),
+    ("api_key_header", "pdf_url", "expected_headers"),
     [
-        ("http://example.com/file.pdf", None),
-        ("https://example.com/file.pdf", None),
-        ("http://content.openalex.org/file.pdf", None),
+        ("api_key", "http://example.com/file.pdf", None),
+        ("Api_Key", "https://example.com/file.pdf", None),
+        ("API_KEY", "http://content.openalex.org/file.pdf", None),
     ],
 )
 async def test_download_one_pdf_removes_api_key_for_external_urls(
-    mocker, fetcher, temporary_test_file, pdf_url, expected_headers
+    mocker, fetcher, temporary_test_file, api_key_header, pdf_url, expected_headers
 ):
     """
     Test download_one_pdf removes the API key from headers when
@@ -223,7 +223,7 @@ async def test_download_one_pdf_removes_api_key_for_external_urls(
     test_headers = {
         "user-agent": "test-agent",
         "accept": "application/json",
-        "api_key": "a-dummy-test-api-key",  # pragma: allowlist secret
+        api_key_header: "a-dummy-test-api-key",  # pragma: allowlist secret
     }
 
     mock_stream = mocker.patch(
