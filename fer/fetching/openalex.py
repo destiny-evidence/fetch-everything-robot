@@ -146,18 +146,26 @@ class OpenalexFetcher(BasePublisherFetcher):
                     )
                     logger.error(error_message)
                 else:
-                    url_candidates.append(
-                        AnyUrl(
-                            f"{pdf_service_base_url}{openalex_identifier.identifier}.pdf"
+                    try:
+                        url_candidates.append(
+                            AnyUrl(
+                                f"{pdf_service_base_url}{openalex_identifier.identifier}.pdf"
+                            )
                         )
-                    )
+                    except ValidationError as bad_openalex_url:
+                        logger.error(
+                            f"Malformed OpenAlex-hosted PDF URL: {bad_openalex_url}"
+                        )
 
         if not url_candidates:
             logger.debug("No OpenAlex-hosted PDF found, checking external locations.")
 
         if locations.get("pdf_url"):
             logger.info("Found external PDF URL from OpenAlex.")
-            url_candidates.append(AnyUrl(locations["pdf_url"]))
+            try:
+                url_candidates.append(AnyUrl(locations["pdf_url"]))
+            except ValidationError as bad_external_url:
+                logger.error(f"Malformed external PDF URL: {bad_external_url}")
         return url_candidates if url_candidates else None
 
     async def download_one_pdf(
@@ -258,7 +266,11 @@ class OpenalexFetcher(BasePublisherFetcher):
                         file_format="pdf",
                     )
 
-        warning_message = f"No PDF found for {doi=} {openalex_id=}."
+        warning_message = (
+            f"All PDF downloads failed for {doi=} {openalex_id=}."
+            if pdf_url_candidates
+            else f"No PDF URLs found for {doi=} {openalex_id=}."
+        )
         return RetrievedFullText(
             doi=doi,
             uid=uid,
