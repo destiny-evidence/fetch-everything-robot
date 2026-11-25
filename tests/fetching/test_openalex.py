@@ -148,18 +148,78 @@ def test_get_pdf_url_none(fetcher, response_object, expected_log_message, caplog
 
 
 @pytest.mark.asyncio
-async def test_download_one_pdf(mocker, fetcher, temporary_test_file):
-    """Test download_one_pdf calls stream_file correctly."""
-    url = "http://example.com/file.pdf"
+async def test_download_one_pdf_success_openalex_hosted(
+    mocker, fetcher, temporary_test_file
+):
+    """
+    Test download_one_pdf calls stream_file correctly on OpenAlex-hosted PDFs.
+
+    This tests that the API is not passed to external providers via redirects
+    and only used for HTTPS requests to OpenAlex URLs.
+
+
+    """
+    url = "https://content.openalex.org/works/W12345.pdf"
+    test_headers = {
+        "user-agent": "test-agent",
+        "accept": "application/json",
+        "api_key": "a-dummy-test-api-key",  # pragma: allowlist secret
+    }
+    mock_stream = mocker.patch(
+        "fer.fetching.openalex.stream_file", new_callable=mocker.AsyncMock
+    )
+    mock_stream.return_value = temporary_test_file
+    result = await fetcher.download_one_pdf(url, temporary_test_file, test_headers)
+    assert result == temporary_test_file
+    (
+        mock_stream.assert_called_once_with(
+            url=url,
+            destination=temporary_test_file,
+            headers=test_headers,
+            follow_redirects=False,
+        ),
+        "Expect headers to be passed and redirects to not be followed when downloading OpenAlex PDFs",
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("pdf_url", "expected_headers"),
+    [
+        ("http://example.com/file.pdf", None),
+        ("https://example.com/file.pdf", None),
+        ("http://content.openalex.org/file.pdf", None),
+    ],
+)
+async def test_download_one_pdf_removes_api_key_for_external_urls(
+    mocker, fetcher, temporary_test_file, pdf_url, expected_headers
+):
+    """
+    Test download_one_pdf removes the API key from headers when
+    called with an external URL or when not using https.
+
+    """
+    url = pdf_url
+    test_headers = {
+        "user-agent": "test-agent",
+        "accept": "application/json",
+        "api_key": "a-dummy-test-api-key",  # pragma: allowlist secret
+    }
 
     mock_stream = mocker.patch(
         "fer.fetching.openalex.stream_file", new_callable=mocker.AsyncMock
     )
     mock_stream.return_value = temporary_test_file
-    result = await fetcher.download_one_pdf(url, temporary_test_file)
+    result = await fetcher.download_one_pdf(url, temporary_test_file, test_headers)
     assert result == temporary_test_file
-    mock_stream.assert_called_once_with(
-        url=url, destination=temporary_test_file, headers=None
+    (
+        mock_stream.assert_called_once_with(
+            url=url,
+            destination=temporary_test_file,
+            headers=expected_headers,
+            follow_redirects=True,
+        ),
+        "Expected headers to be removed for external URLs before sending to stream_file. Redirects can be followed if we're not sending the key.",
     )
 
 

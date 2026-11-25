@@ -267,6 +267,8 @@ async def stream_file(
     destination: Path,
     headers: dict | None = None,
     response_validator: Callable[[httpx2.Headers], None] | None = None,
+    *,
+    follow_redirects: bool = True,
 ) -> Path | None:
     """
     Stream bytes from a file from a URL and save it to the specified destination.
@@ -277,6 +279,8 @@ async def stream_file(
         headers (dict | None): Optional headers to include. Defaults to None.
         response_validator (Callable[[httpx2.Headers], None] | None):
             Optional function to validate the response headers. Defaults to None.
+        follow_redirects (bool, optional): Whether to follow redirects.
+            Defaults to True.
 
     Returns:
         Path | None: The path to the downloaded file or None if the download failed.
@@ -288,7 +292,7 @@ async def stream_file(
 
     try:
         async with (
-            httpx2.AsyncClient(follow_redirects=True) as client,
+            httpx2.AsyncClient(follow_redirects=follow_redirects) as client,
             client.stream("GET", str(url), headers=headers) as response,
         ):
             response.raise_for_status()

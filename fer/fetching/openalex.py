@@ -177,7 +177,21 @@ class OpenalexFetcher(BasePublisherFetcher):
             Path | None: The path to the downloaded PDF or None if download failed.
 
         """
-        return await stream_file(url=pdf_url, destination=filepath, headers=headers)
+        key_header = self.api_config.api_key_placement or "api_key"
+        download_headers = dict(headers) if headers else {}
+        parsed_url = AnyUrl(pdf_url)
+        is_openalex_content = (
+            parsed_url.scheme == "https" and parsed_url.host == "content.openalex.org"
+        )
+        download_headers = dict(headers) if headers and is_openalex_content else {}
+        sends_key = bool(download_headers.get(key_header))
+
+        return await stream_file(
+            url=pdf_url,
+            destination=filepath,
+            headers=download_headers or None,
+            follow_redirects=not sends_key,
+        )
 
     async def _openalex_retrieval(
         self, study: DOIStudy | OpenAlexStudy, output_directory: Path
