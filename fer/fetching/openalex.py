@@ -189,7 +189,6 @@ class OpenalexFetcher(BasePublisherFetcher):
 
         """
         key_header = self.api_config.api_key_placement or "api_key"
-        download_headers = dict(headers) if headers else {}
         parsed_url = AnyUrl(pdf_url)
         is_openalex_content = (
             parsed_url.scheme == "https" and parsed_url.host == "content.openalex.org"
