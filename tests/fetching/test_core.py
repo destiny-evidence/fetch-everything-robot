@@ -5,7 +5,7 @@ from uuid import uuid4
 import httpx2
 import pytest
 from destiny_sdk.identifiers import DOIIdentifier, ExternalIdentifierType
-from pytest_mock import MockerFixture
+from pytest_mock import MockType
 
 from fer.fetching.core import (
     AsyncHTTPXRetryClient,
@@ -145,9 +145,7 @@ async def test_stream_file_success(mocker, temporary_test_file):
     assert content == test_content, "Streamed content should match expected content"
 
 
-def _mock_stream_response(
-    mocker, body: AsyncGenerator[bytes]
-) -> MockerFixture.MagicMock:
+def _mock_stream_response(mocker, body: AsyncGenerator[bytes]) -> MockType:
     """Build a mock streaming response that yields `body` from `aiter_bytes`."""
     response = mocker.MagicMock()
     response.__aenter__.return_value = response
