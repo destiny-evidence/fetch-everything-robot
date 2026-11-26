@@ -125,7 +125,8 @@ class OpenalexFetcher(BasePublisherFetcher):
         has_content: dict[str, bool] = response_object.get("has_content", {})
         locations = response_object.get("best_oa_location") or {}
         has_openalex_hosted_pdf = has_content.get("pdf", False)
-        api_key_available = bool(self.api_config.headers.get("api_key"))
+        key_header = self.api_config.api_key_placement or "api_key"
+        api_key_available = bool(self.api_config.headers.get(key_header))
 
         if not has_openalex_hosted_pdf and not locations:
             logger.debug("No full-text content or locations found in response object.")
