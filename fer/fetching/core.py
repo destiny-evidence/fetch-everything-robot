@@ -1,6 +1,5 @@
 """Core fetching utilities and models."""
 
-import tempfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import Literal
@@ -226,25 +225,6 @@ class AsyncHTTPXRetryClient(httpx2.AsyncClient):
         return self
 
 
-async def download_temporary_file(url: AnyUrl) -> Path | None:
-    """
-    Stream bytes from a file from a URL and save it to a temporary file.
-    By some definition of "temporary", since the file will persist until deleted.
-
-    Args:
-        url (AnyUrl): The URL of the file to download.
-
-    Returns:
-        Path | None: The path to the temporary file or None if the download failed.
-
-    """
-    with tempfile.NamedTemporaryFile(delete_on_close=False, delete=False) as temp_file:
-        output_temporary_file = await stream_file(AnyUrl(url), Path(temp_file.name))
-        if output_temporary_file:
-            return Path(temp_file.name)
-    return None
-
-
 def delete_temporary_file(temp_file_path: Path) -> None:
     """
     Delete a temporary file.
@@ -273,6 +253,11 @@ async def stream_file(
     """
     Stream bytes from a file from a URL and save it to the specified destination.
 
+    The destination is created exclusively. If a file already exists there,
+    whether left over or being written by another download, it is never
+    overwritten or treated as a successful download, and
+    `FullTextStreamError` is raised instead.
+
     Args:
         url (AnyUrl): The URL of the file to download.
         destination (Path): The destination file path.
@@ -285,11 +270,10 @@ async def stream_file(
     Returns:
         Path | None: The path to the downloaded file or None if the download failed.
 
-    """
-    if destination.exists():
-        logger.info(f"File already exists: {destination}, skipping download.")
-        return destination
+    Raises:
+        FullTextStreamError: If the download fails or the destination already exists.
 
+    """
     created_file = False
     stream_complete = False
     try:
@@ -321,6 +305,10 @@ async def stream_file(
         logger.error(f"Streaming error for {url}: {stream_error}")
         error_message = f"Streaming error for {url}: {stream_error}"
         raise FullTextStreamError(error_message) from stream_error
+    except FileExistsError as file_exists_error:
+        error_message = f"File already exists, not overwriting: {destination}"
+        logger.error(error_message)
+        raise FullTextStreamError(error_message) from file_exists_error
     finally:
         if created_file and not stream_complete:
             destination.unlink(missing_ok=True)

@@ -1,9 +1,11 @@
+import asyncio
 from collections.abc import AsyncGenerator
 from uuid import uuid4
 
 import httpx2
 import pytest
 from destiny_sdk.identifiers import DOIIdentifier, ExternalIdentifierType
+from pytest_mock import MockType
 
 from fer.fetching.core import (
     AsyncHTTPXRetryClient,
@@ -11,7 +13,6 @@ from fer.fetching.core import (
     DOIStudyCollection,
     FullTextStreamError,
     IncompleteFullTextError,
-    download_temporary_file,
     stream_file,
 )
 from fer.fetching.elsevier import ElsevierFetcher
@@ -117,22 +118,6 @@ def test_async_httpx_retry_client_uses_proxy_transport(mocker):
     assert client.max_retries == test_max_retries
 
 
-@pytest.mark.asyncio
-async def test_download_temporary_file(mocker, tmp_path):
-    temp_file = tmp_path / "mocked_temp_file"
-    temp_file.write_bytes(b"test content")
-    mocker.patch("fer.fetching.core.stream_file", return_value=temp_file)
-
-    test_url = "http://example.com/testfile"
-    temp_file_path = await download_temporary_file(test_url)
-
-    assert temp_file_path.exists(), "Temporary file should exist"
-
-    temp_file_path.unlink()
-
-    assert not temp_file_path.exists(), "Temporary file should be deleted"
-
-
 def test_delete_temporary_file(temporary_test_file):
     temporary_test_file.write_text("Temporary file content")
 
@@ -160,25 +145,75 @@ async def test_stream_file_success(mocker, temporary_test_file):
     assert content == test_content, "Streamed content should match expected content"
 
 
+def _mock_stream_response(mocker, body: AsyncGenerator[bytes]) -> MockType:
+    """Build a mock streaming response that yields `body` from `aiter_bytes`."""
+    response = mocker.MagicMock()
+    response.__aenter__.return_value = response
+    response.aiter_bytes.return_value = body
+    return response
+
+
 @pytest.mark.asyncio
-async def test_stream_file_destination_exists(mocker, caplog, temporary_test_file):
-    mocked_httpx_stream = mocker.patch("httpx2.AsyncClient.stream")
-    test_url = "http://example.com/streamfile"
-    temporary_test_file.write_text("Existing content")
+async def test_stream_file_does_not_overwrite_existing_file(mocker, tmp_path):
+    destination = tmp_path / "download.pdf"
+    destination.write_bytes(b"existing content")
+    mocker.patch(
+        "httpx2.AsyncClient.stream",
+        return_value=_mock_stream_response(mocker, _one_chunk_data(b"new content")),
+    )
 
-    with caplog.at_level("INFO"):
-        streamed_file_path = await stream_file(test_url, temporary_test_file)
-
-    assert (
-        streamed_file_path == temporary_test_file
-    ), "Streamed file path should match existing file"
-    assert (
-        "File already exists" in caplog.text
-    ), "Expect that we logged that the file already exists"
+    with pytest.raises(FullTextStreamError, match="already exists"):
+        await stream_file("http://example.com/streamfile", destination)
 
     assert (
-        mocked_httpx_stream.call_count == 0
-    ), "Expect that httpx2.AsyncClient.stream should not be called"
+        destination.read_bytes() == b"existing content"
+    ), "Original content in the file should not be overwritten by subsequent downloads"
+
+
+@pytest.mark.asyncio
+async def test_stream_file_second_overlapping_download_fails(mocker, tmp_path):
+    destination = tmp_path / "download.pdf"
+    first_chunk_written = asyncio.Event()
+    allow_first_to_finish = asyncio.Event()
+
+    async def first_download_body() -> AsyncGenerator[bytes]:
+        """
+        Async generator for the first download body.
+
+        Downloads are resumed only after the file has been created and "first " written to it.
+        """
+        yield b"first "
+        first_chunk_written.set()
+        await allow_first_to_finish.wait()
+        yield b"download"
+
+    mocker.patch(
+        "httpx2.AsyncClient.stream",
+        side_effect=[
+            _mock_stream_response(mocker, first_download_body()),
+            _mock_stream_response(mocker, _one_chunk_data(b"second download")),
+        ],
+    )
+
+    # Start the first download and pause it part-way through writing the file.
+    first_download = asyncio.create_task(
+        stream_file("http://example.com/first.pdf", destination)
+    )
+    await first_chunk_written.wait()
+
+    # A second download to the same destination must fail, not return the
+    # half-written file as a success.
+    with pytest.raises(FullTextStreamError, match="already exists"):
+        await stream_file("http://example.com/second.pdf", destination)
+
+    # The first download finishes cleanly and its file is intact.
+    allow_first_to_finish.set()
+    assert (
+        await first_download == destination
+    ), "First download should complete successfully and return the destination path"
+    assert (
+        destination.read_bytes() == b"first download"
+    ), "Downloaded file content should match the expected content"
 
 
 @pytest.mark.asyncio
