@@ -52,7 +52,7 @@ class OpenalexFetcher(BasePublisherFetcher):
             self.api_config.init_api_key(settings)
         except APIKeyNotPresentError as openalex_api_key_error:
             error_message = (
-                f"Failed to initialize OpenAlex API key: {openalex_api_key_error}. "
+                f"Failed to initialise OpenAlex API key: {openalex_api_key_error}. "
                 "OpenAlex will be skipped."
             )
             logger.error(error_message)

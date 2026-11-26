@@ -125,7 +125,7 @@ class APIConfig(BaseModel):
 
     def init_api_key(self, settings: Settings) -> None:
         """
-        Populate request headers with the API if one is configured.
+        Populate proper request headers with the API key if one is configured.
 
         Raises:
             APIKeyNotPresentError: if the API key is not present in settings.
