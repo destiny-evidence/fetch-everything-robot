@@ -296,7 +296,7 @@ async def test_openalex_retrieval_download_one_pdf_fails_returns_none(
     mock_download_one_pdf.return_value = None
     mock_get_work_doi_value = {
         "id": "W1234567890",
-        "locations": [{"pdf_url": "http://example.com/file.pdf"}],
+        "best_oa_location": {"pdf_url": "http://example.com/file.pdf"},
     }
     mocker.patch.object(
         fetcher,
@@ -311,7 +311,7 @@ async def test_openalex_retrieval_download_one_pdf_fails_returns_none(
     assert result.fulltext_path is None
     assert result.doi == test_study_doi
     assert result.uid == test_study.uid
-    assert "No PDF found for" in result.error
+    assert "All PDF downloads failed for doi" in result.error
 
 
 @pytest.mark.asyncio
@@ -477,7 +477,9 @@ async def test_fetch_many_full_texts_empty_pdf_download_does_not_abort_a_batch(
         side_effect=lambda doi: {
             "id": "W123456",
             "doi": doi,
-            "locations": [{"pdf_url": f"https://example.org/{uid_by_doi[doi]}.pdf"}],
+            "best_oa_location": {
+                "pdf_url": f"https://example.org/{uid_by_doi[doi]}.pdf"
+            },
         },
     )
 
