@@ -53,7 +53,7 @@ class OpenalexFetcher(BasePublisherFetcher):
         except APIKeyNotPresentError as openalex_api_key_error:
             error_message = (
                 f"Failed to initialise OpenAlex API key: {openalex_api_key_error}. "
-                "OpenAlex will be skipped."
+                "OpenAlex-hosted PDF downloads disabled."
             )
             logger.error(error_message)
 
