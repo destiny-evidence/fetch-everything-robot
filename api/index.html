@@ -21427,8 +21427,7 @@ representing the saved full text files.</p>
 <span class="normal">364</span>
 <span class="normal">365</span>
 <span class="normal">366</span>
-<span class="normal">367</span>
-<span class="normal">368</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">OpenalexFetcher</span><span class="p">(</span><span class="n">BasePublisherFetcher</span><span class="p">):</span>
+<span class="normal">367</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">OpenalexFetcher</span><span class="p">(</span><span class="n">BasePublisherFetcher</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Openalex fetcher implementation."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Settings</span><span class="p">,</span> <span class="n">wait_time_seconds</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -21584,7 +21583,6 @@ representing the saved full text files.</p>
 
 <span class="sd">        """</span>
         <span class="n">key_header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_config</span><span class="o">.</span><span class="n">api_key_placement</span> <span class="ow">or</span> <span class="s2">"api_key"</span>
-        <span class="n">download_headers</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">headers</span><span class="p">)</span> <span class="k">if</span> <span class="n">headers</span> <span class="k">else</span> <span class="p">{}</span>
         <span class="n">parsed_url</span> <span class="o">=</span> <span class="n">AnyUrl</span><span class="p">(</span><span class="n">pdf_url</span><span class="p">)</span>
         <span class="n">is_openalex_content</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">parsed_url</span><span class="o">.</span><span class="n">scheme</span> <span class="o">==</span> <span class="s2">"https"</span> <span class="ow">and</span> <span class="n">parsed_url</span><span class="o">.</span><span class="n">host</span> <span class="o">==</span> <span class="s2">"content.openalex.org"</span>
@@ -22034,8 +22032,7 @@ Defaults to None.</p>
 <span class="normal">203</span>
 <span class="normal">204</span>
 <span class="normal">205</span>
-<span class="normal">206</span>
-<span class="normal">207</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">download_one_pdf</span><span class="p">(</span>
+<span class="normal">206</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">download_one_pdf</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">pdf_url</span><span class="p">:</span> <span class="n">AnyUrl</span><span class="p">,</span>
     <span class="n">filepath</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
@@ -22055,7 +22052,6 @@ Defaults to None.</p>
 
 <span class="sd">    """</span>
     <span class="n">key_header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_config</span><span class="o">.</span><span class="n">api_key_placement</span> <span class="ow">or</span> <span class="s2">"api_key"</span>
-    <span class="n">download_headers</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">headers</span><span class="p">)</span> <span class="k">if</span> <span class="n">headers</span> <span class="k">else</span> <span class="p">{}</span>
     <span class="n">parsed_url</span> <span class="o">=</span> <span class="n">AnyUrl</span><span class="p">(</span><span class="n">pdf_url</span><span class="p">)</span>
     <span class="n">is_openalex_content</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">parsed_url</span><span class="o">.</span><span class="n">scheme</span> <span class="o">==</span> <span class="s2">"https"</span> <span class="ow">and</span> <span class="n">parsed_url</span><span class="o">.</span><span class="n">host</span> <span class="o">==</span> <span class="s2">"content.openalex.org"</span>
@@ -22168,7 +22164,8 @@ representing the saved PDF files.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>fer/fetching/openalex.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">283</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">282</span>
+<span class="normal">283</span>
 <span class="normal">284</span>
 <span class="normal">285</span>
 <span class="normal">286</span>
@@ -22252,8 +22249,7 @@ representing the saved PDF files.</p>
 <span class="normal">364</span>
 <span class="normal">365</span>
 <span class="normal">366</span>
-<span class="normal">367</span>
-<span class="normal">368</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">fetch_many_full_texts</span><span class="p">(</span>
+<span class="normal">367</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">fetch_many_full_texts</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">study_collection</span><span class="p">:</span> <span class="n">DOIStudyCollection</span> <span class="o">|</span> <span class="n">OpenAlexStudyCollection</span><span class="p">,</span>
     <span class="n">output_directory</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
