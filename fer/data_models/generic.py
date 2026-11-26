@@ -125,25 +125,32 @@ class APIConfig(BaseModel):
 
     def init_api_key(self, settings: Settings) -> None:
         """
-        Populate proper request headers with API key if present.
+        Populate proper request headers with the API key if one is configured.
 
         Raises:
-            ApiKeyNotPresentError: if the API key is not present in settings.
+            APIKeyNotPresentError: if the API key is not present in settings.
 
         """
-        if self.require_api_key:
-            logger.debug(f"Initialising API key for {self.name} API")
-            api_key = (
-                getattr(settings, self.api_key_env_var_name, None)
-                if self.api_key_env_var_name
-                else None
-            )
-            if api_key is None or len(api_key.get_secret_value()) == 0:
+        api_key = (
+            getattr(settings, self.api_key_env_var_name, None)
+            if self.api_key_env_var_name
+            else None
+        )
+        has_key = api_key is not None and len(api_key.get_secret_value()) > 0
+        if not has_key:
+            if self.require_api_key:
                 error_message = f"API key for {self.name} is not present in settings."
                 raise APIKeyNotPresentError(error_message)
+            logger.info(f"No API key for {self.name}, skipping header population")
+            return
+        if self.api_key_placement is None:
+            logger.warning(
+                f"API key provided for {self.name} but no placement set - ignoring."
+            )
+            return
+        logger.info(f"Setting API key for {self.name}")
+        if api_key is not None:
             self.headers[self.api_key_placement] = api_key.get_secret_value()
-        else:
-            logger.info("API does not require an API key, skipping header population.")
 
     @staticmethod
     def build_query_single(doi: str, url: str) -> str:

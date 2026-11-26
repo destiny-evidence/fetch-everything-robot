@@ -2,13 +2,14 @@
 
 import asyncio
 from pathlib import Path
-from typing import TYPE_CHECKING
 
+from destiny_sdk.identifiers import OpenAlexIdentifier
 from httpx2 import HTTPError
 from loguru import logger
-from pydantic import AnyUrl
+from pydantic import AnyUrl, ValidationError
 
 from fer.config import Settings
+from fer.data_models.generic import APIConfig, APIKeyNotPresentError
 from fer.data_models.openalex import get_openalex_api_config
 from fer.fetching import BasePublisherFetcher
 from fer.fetching.core import (
@@ -22,9 +23,6 @@ from fer.fetching.core import (
     stream_file,
 )
 from fer.utils import format_doi, validate_doi
-
-if TYPE_CHECKING:
-    from fer.data_models.generic import APIConfig
 
 
 class OpenAlexAPIError(Exception):
@@ -50,6 +48,15 @@ class OpenalexFetcher(BasePublisherFetcher):
         self.settings = settings
         self.wait_time_seconds = wait_time_seconds
         self.api_config: APIConfig = get_openalex_api_config(settings)
+        try:
+            self.api_config.init_api_key(settings)
+        except APIKeyNotPresentError as openalex_api_key_error:
+            error_message = (
+                f"Failed to initialise OpenAlex API key: {openalex_api_key_error}. "
+                "OpenAlex-hosted PDF downloads disabled."
+            )
+            logger.error(error_message)
+
         self.base_url: AnyUrl = self.api_config.url
         self.query_params: dict | None = self.api_config.query_params
         self.headers: dict = self.api_config.headers
@@ -99,28 +106,68 @@ class OpenalexFetcher(BasePublisherFetcher):
 
         return response.json()
 
-    def _get_pdf_url(self, response_object: dict) -> AnyUrl | None:
+    def _get_pdf_urls(self, response_object: dict) -> list[AnyUrl] | None:
         """
         Extract the PDF URL from the OpenAlex response object.
 
         Retrieves the best pdf URL, if available.
+        This prefers OpenAlex-hosted material first, and then falls back
+        to external URLs provided by OpenAlex.
 
         Args:
             response_object (dict): The response object from OpenAlex API.
 
         Returns:
-            AnyUrl | None: The PDF URL if found, else None.
+            list[AnyUrl] | None: The PDF URL(s) if found, else None.
 
         """
-        if "locations" not in response_object:
+        url_candidates = []
+        has_content: dict[str, bool] = response_object.get("has_content", {})
+        locations = response_object.get("best_oa_location") or {}
+        has_openalex_hosted_pdf = has_content.get("pdf", False)
+        key_header = self.api_config.api_key_placement or "api_key"
+        api_key_available = bool(self.api_config.headers.get(key_header))
+
+        if not has_openalex_hosted_pdf and not locations:
+            logger.debug("No full-text content or locations found in response object.")
             return None
-        locations = response_object["locations"]
-        pdf_url = None
-        for loc in locations:
-            if loc["pdf_url"]:
-                pdf_url = loc["pdf_url"]
-                break
-        return pdf_url
+
+        if has_openalex_hosted_pdf and api_key_available:
+            logger.info("Found OpenAlex-hosted PDF.")
+            full_openalex_id = response_object.get("id")
+            pdf_service_base_url = "https://content.openalex.org/works/"
+            if full_openalex_id:
+                try:
+                    openalex_identifier = OpenAlexIdentifier(
+                        identifier=full_openalex_id
+                    )
+                except ValidationError as bad_openalex_identifier:
+                    error_message = (
+                        f"Malformed OpenAlex identifier: {bad_openalex_identifier}"
+                    )
+                    logger.error(error_message)
+                else:
+                    try:
+                        url_candidates.append(
+                            AnyUrl(
+                                f"{pdf_service_base_url}{openalex_identifier.identifier}.pdf"
+                            )
+                        )
+                    except ValidationError as bad_openalex_url:
+                        logger.error(
+                            f"Malformed OpenAlex-hosted PDF URL: {bad_openalex_url}"
+                        )
+
+        if not url_candidates:
+            logger.debug("No OpenAlex-hosted PDF found, checking external locations.")
+
+        if locations.get("pdf_url"):
+            logger.info("Found external PDF URL from OpenAlex.")
+            try:
+                url_candidates.append(AnyUrl(locations["pdf_url"]))
+            except ValidationError as bad_external_url:
+                logger.error(f"Malformed external PDF URL: {bad_external_url}")
+        return url_candidates if url_candidates else None
 
     async def download_one_pdf(
         self,
@@ -141,7 +188,23 @@ class OpenalexFetcher(BasePublisherFetcher):
             Path | None: The path to the downloaded PDF or None if download failed.
 
         """
-        return await stream_file(url=pdf_url, destination=filepath, headers=headers)
+        key_header = self.api_config.api_key_placement or "api_key"
+        download_headers = dict(headers) if headers else {}
+        parsed_url = AnyUrl(pdf_url)
+        is_openalex_content = (
+            parsed_url.scheme == "https" and parsed_url.host == "content.openalex.org"
+        )
+        download_headers = dict(headers) if headers and is_openalex_content else {}
+        sends_key = any(
+            name.lower() == key_header.lower() and bool(value)
+            for name, value in download_headers.items()
+        )
+        return await stream_file(
+            url=pdf_url,
+            destination=filepath,
+            headers=download_headers or None,
+            follow_redirects=not sends_key,
+        )
 
     async def _openalex_retrieval(
         self, study: DOIStudy | OpenAlexStudy, output_directory: Path
@@ -179,22 +242,36 @@ class OpenalexFetcher(BasePublisherFetcher):
                 )
             work = await self._get_work_doi(doi)
         openalex_id = work.get("id", None)
-        pdf_url = self._get_pdf_url(work)
+        pdf_url_candidates = self._get_pdf_urls(work)
         pdf_path: Path | None = None
-        if pdf_url is not None:
-            pdf_path = await self.download_one_pdf(
-                pdf_url=pdf_url, filepath=output_directory / f"{uid}.pdf"
-            )
-            if pdf_path is not None:
-                return RetrievedFullText(
-                    doi=doi,
-                    uid=uid,
-                    openalex_id=openalex_id,
-                    fulltext_path=pdf_path,
-                    file_format="pdf",
-                )
+        if pdf_url_candidates:
+            for candidate_url in pdf_url_candidates:
+                try:
+                    pdf_path = await self.download_one_pdf(
+                        pdf_url=candidate_url,
+                        filepath=output_directory / f"{uid}.pdf",
+                        headers=self.api_config.headers,
+                    )
+                except FullTextStreamError as stream_error:
+                    logger.error(
+                        f"Failed to download PDF from {candidate_url}: {stream_error}"
+                    )
+                    continue
 
-        warning_message = f"No PDF found for {doi=} {openalex_id=}."
+                if pdf_path:
+                    return RetrievedFullText(
+                        doi=doi,
+                        uid=uid,
+                        openalex_id=openalex_id,
+                        fulltext_path=pdf_path,
+                        file_format="pdf",
+                    )
+
+        warning_message = (
+            f"All PDF downloads failed for {doi=} {openalex_id=}."
+            if pdf_url_candidates
+            else f"No PDF URLs found for {doi=} {openalex_id=}."
+        )
         return RetrievedFullText(
             doi=doi,
             uid=uid,

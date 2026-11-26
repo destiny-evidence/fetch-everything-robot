@@ -3,6 +3,7 @@
 import pytest
 from destiny_sdk.identifiers import DOIIdentifier
 from httpx2 import AsyncClient, HTTPError, MockTransport, Request, Response
+from pydantic import AnyUrl
 
 from fer.fetching.core import DOIStudyCollection, FullTextStreamError
 from fer.fetching.openalex import OpenalexFetcher
@@ -65,38 +66,220 @@ async def test_get_work_http_error(mocker, fetcher):
         await fetcher._get_work_doi(doi)
 
 
-def test_get_pdf_url_success(fetcher):
-    """Test _get_pdf_url extracts the correct URL."""
+def test_get_pdf_urls_success_openalex_hosted_no_external(fetcher):
+    """Test _get_pdf_urls extracts the correct OpenAlex-hosted URL."""
     response_object = {
-        "locations": [{"pdf_url": None}, {"pdf_url": "http://example.com/file.pdf"}]
+        "has_content": {"pdf": True, "grobid_xml": True},
+        "best_oa_location": {},
+        "id": "W123",
     }
-    url = fetcher._get_pdf_url(response_object)
-    assert url == "http://example.com/file.pdf"
+    expected_url = AnyUrl(
+        f"https://content.openalex.org/works/{response_object['id']}.pdf"
+    )
+    url_list = fetcher._get_pdf_urls(response_object)
+    assert url_list == [expected_url]
 
 
-def test_get_pdf_url_none(fetcher):
-    """Test _get_pdf_url returns None when no PDF is available."""
-    # scenario 1: locations exist but no pdf_url
-    response_object = {"locations": [{"pdf_url": None}]}
-    assert fetcher._get_pdf_url(response_object) is None
+def test_get_pdf_urls_success_openalex_hosted_with_external(fetcher):
+    """
+    Test _get_pdf_urls extracts the correct OpenAlex-hosted URL when external locations exist.
 
-    # scenario 2: no locations key
-    assert fetcher._get_pdf_url({}) is None
+    We need to prefer the OpenAlex-hosted PDF over external locations.
+    """
+    test_oa_id = "W123"
+    expected_external_best_oa_url = AnyUrl("http://example.com/file.pdf")
+    expected_oa_hosted_url = AnyUrl(
+        f"https://content.openalex.org/works/{test_oa_id}.pdf"
+    )
+    response_object = {
+        "has_content": {"pdf": True, "grobid_xml": True},
+        "best_oa_location": {"pdf_url": expected_external_best_oa_url},
+        "id": test_oa_id,
+    }
+
+    url_list = fetcher._get_pdf_urls(response_object)
+    assert url_list == [expected_oa_hosted_url, expected_external_best_oa_url]
+
+
+def test_get_pdf_urls_success_openalex_hosted_falls_back_to_external_with_no_key(
+    fetcher,
+):
+    """
+    Test _get_pdf_urls extracts the correct OpenAlex-hosted URL when external locations exist.
+
+    We need to prefer the OpenAlex-hosted PDF over external locations.
+    """
+    test_oa_id = "W123"
+    external_pdf_url = "http://example.com/file.pdf"
+    response_object = {
+        "has_content": {"pdf": True, "grobid_xml": True},
+        "best_oa_location": {"pdf_url": external_pdf_url},
+        "id": test_oa_id,
+    }
+    fetcher.api_config.headers.pop("api_key", None)
+
+    url = fetcher._get_pdf_urls(response_object)
+    assert url == [AnyUrl(external_pdf_url)]
+
+
+def test_get_pdf_urls_openalex_hosted_bad_identifier_falls_back_to_external(
+    fetcher, caplog
+):
+    """
+    Test bad identifier validation errors are handled and we fall
+    back to the external PDF URL if available.
+
+    """
+    response_object = {
+        "has_content": {"pdf": True, "grobid_xml": True},
+        "best_oa_location": {"pdf_url": "http://example.com/file.pdf"},
+        "id": "INVALID_ID",
+    }
+    with caplog.at_level("ERROR"):
+        urls = fetcher._get_pdf_urls(response_object)
+    assert urls == [AnyUrl("http://example.com/file.pdf")]
+    assert "Malformed OpenAlex identifier" in caplog.text
+
+
+def test_get_pdf_urls_success_external_url(fetcher, caplog):
+    """Test _get_pdf_urls extracts the correct URL."""
+    test_pdf_url = AnyUrl("http://example.com/file.pdf")
+    response_object = {
+        "has_content": {"pdf": False, "grobid_xml": False},
+        "best_oa_location": {"pdf_url": test_pdf_url},
+    }
+    with caplog.at_level("DEBUG"):
+        urls = fetcher._get_pdf_urls(response_object)
+    assert urls == [test_pdf_url]
+    assert "No OpenAlex-hosted PDF found" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("response_object", "expected_log_message"),
+    [
+        ({"best_oa_location": {"pdf_url": None}}, "No OpenAlex-hosted PDF found"),
+        (
+            {"has_content": {"pdf": False, "grobid_xml": False}},
+            "No full-text content or locations found in response object",
+        ),
+        ({}, "No full-text content or locations found in response object"),
+    ],
+)
+def test_get_pdf_urls_none(fetcher, response_object, expected_log_message, caplog):
+    """Test _get_pdf_urls returns None when no PDF is available."""
+    with caplog.at_level("DEBUG"):
+        assert fetcher._get_pdf_urls(response_object) is None
+    assert expected_log_message in caplog.text
+
+
+def test_get_pdf_urls_handles_all_invalid_urls(fetcher, caplog):
+    """
+    Test _get_pdf_urls handles malformed URLs.
+
+    URLs fail pydantic validation and should be handled.
+    """
+    response_object = {
+        "has_content": {"pdf": False, "grobid_xml": False},
+        "best_oa_location": {"pdf_url": "123456"},
+    }
+    with caplog.at_level("ERROR"):
+        urls = fetcher._get_pdf_urls(response_object)
+    assert urls is None
+    assert "Malformed external PDF URL" in caplog.text
+
+
+def test_get_pdf_urls_valid_hosted_url_invalid_external(fetcher, caplog):
+    """
+    Test _get_pdf_urls returns OpenAlex-hosted PDF URL.
+
+    Should happen even if the external URL is invalid,
+    we want to return a list of candidate URLs.
+    """
+    response_object = {
+        "has_content": {"pdf": True, "grobid_xml": False},
+        "id": "https://openalex.org/W12345",
+        "best_oa_location": {"pdf_url": "123456"},
+    }
+    with caplog.at_level("ERROR"):
+        urls = fetcher._get_pdf_urls(response_object)
+    assert urls is not None
+    assert any("content.openalex.org" in str(url) for url in urls)
+    assert "Malformed external PDF URL" in caplog.text
 
 
 @pytest.mark.asyncio
-async def test_download_one_pdf(mocker, fetcher, temporary_test_file):
-    """Test download_one_pdf calls stream_file correctly."""
-    url = "http://example.com/file.pdf"
+async def test_download_one_pdf_success_openalex_hosted(
+    mocker, fetcher, temporary_test_file
+):
+    """
+    Test download_one_pdf calls stream_file correctly on OpenAlex-hosted PDFs.
+
+    This tests that the API is not passed to external providers via redirects
+    and only used for HTTPS requests to OpenAlex URLs.
+
+
+    """
+    url = "https://content.openalex.org/works/W12345.pdf"
+    test_headers = {
+        "user-agent": "test-agent",
+        "accept": "application/json",
+        "api_key": "a-dummy-test-api-key",  # pragma: allowlist secret
+    }
+    mock_stream = mocker.patch(
+        "fer.fetching.openalex.stream_file", new_callable=mocker.AsyncMock
+    )
+    mock_stream.return_value = temporary_test_file
+    result = await fetcher.download_one_pdf(url, temporary_test_file, test_headers)
+    assert result == temporary_test_file
+    (
+        mock_stream.assert_called_once_with(
+            url=url,
+            destination=temporary_test_file,
+            headers=test_headers,
+            follow_redirects=False,
+        ),
+        "Expect headers to be passed and redirects to not be followed when downloading OpenAlex PDFs",
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("api_key_header", "pdf_url", "expected_headers"),
+    [
+        ("api_key", "http://example.com/file.pdf", None),
+        ("Api_Key", "https://example.com/file.pdf", None),
+        ("API_KEY", "http://content.openalex.org/file.pdf", None),
+    ],
+)
+async def test_download_one_pdf_removes_api_key_for_external_urls(
+    mocker, fetcher, temporary_test_file, api_key_header, pdf_url, expected_headers
+):
+    """
+    Test download_one_pdf removes the API key from headers when
+    called with an external URL or when not using https.
+
+    """
+    url = pdf_url
+    test_headers = {
+        "user-agent": "test-agent",
+        "accept": "application/json",
+        api_key_header: "a-dummy-test-api-key",  # pragma: allowlist secret
+    }
 
     mock_stream = mocker.patch(
         "fer.fetching.openalex.stream_file", new_callable=mocker.AsyncMock
     )
     mock_stream.return_value = temporary_test_file
-    result = await fetcher.download_one_pdf(url, temporary_test_file)
+    result = await fetcher.download_one_pdf(url, temporary_test_file, test_headers)
     assert result == temporary_test_file
-    mock_stream.assert_called_once_with(
-        url=url, destination=temporary_test_file, headers=None
+    (
+        mock_stream.assert_called_once_with(
+            url=url,
+            destination=temporary_test_file,
+            headers=expected_headers,
+            follow_redirects=True,
+        ),
+        "Expected headers to be removed for external URLs before sending to stream_file. Redirects can be followed if we're not sending the key.",
     )
 
 
@@ -113,7 +296,7 @@ async def test_openalex_retrieval_download_one_pdf_fails_returns_none(
     mock_download_one_pdf.return_value = None
     mock_get_work_doi_value = {
         "id": "W1234567890",
-        "locations": [{"pdf_url": "http://example.com/file.pdf"}],
+        "best_oa_location": {"pdf_url": "http://example.com/file.pdf"},
     }
     mocker.patch.object(
         fetcher,
@@ -128,7 +311,7 @@ async def test_openalex_retrieval_download_one_pdf_fails_returns_none(
     assert result.fulltext_path is None
     assert result.doi == test_study_doi
     assert result.uid == test_study.uid
-    assert "No PDF found for" in result.error
+    assert "All PDF downloads failed for doi" in result.error
 
 
 @pytest.mark.asyncio
@@ -140,7 +323,7 @@ async def test_fetch_many_full_texts_success(
     mock_get_work = mocker.patch.object(
         fetcher, "_get_work_doi", new_callable=mocker.AsyncMock
     )
-    mock_get_pdf_url = mocker.patch.object(fetcher, "_get_pdf_url")
+    mock_get_pdf_urls = mocker.patch.object(fetcher, "_get_pdf_urls")
     mock_download = mocker.patch.object(
         fetcher,
         "download_one_pdf",
@@ -157,9 +340,9 @@ async def test_fetch_many_full_texts_success(
     mock_sleep = mocker.patch("asyncio.sleep", new_callable=mocker.AsyncMock)
 
     mock_get_work.side_effect = [{"some": "data"}, {"more": "data"}]
-    mock_get_pdf_url.side_effect = [
-        "http://example.com/file_one.pdf",
-        "http://example.com/file_two.pdf",
+    mock_get_pdf_urls.side_effect = [
+        ["http://example.com/file_one.pdf"],
+        ["http://example.com/file_two.pdf"],
     ]
     mock_download.side_effect = [
         tmp_path / f"{test_uuids[0]}.pdf",
@@ -194,10 +377,10 @@ async def test_fetch_many_full_texts_no_pdf(
     mock_get_work = mocker.patch.object(
         fetcher, "_get_work_doi", new_callable=mocker.AsyncMock
     )
-    mock_get_pdf_url = mocker.patch.object(fetcher, "_get_pdf_url")
+    mock_get_pdf_urls = mocker.patch.object(fetcher, "_get_pdf_urls")
     mocker.patch("asyncio.sleep", new_callable=mocker.AsyncMock)
     mock_get_work.side_effect = [{"some": "data"}, {"more": "data"}]
-    mock_get_pdf_url.side_effect = [None, None]
+    mock_get_pdf_urls.side_effect = [None, None]
     results = await fetcher.fetch_many_full_texts(test_study_collection, tmp_path)
 
     assert all(
@@ -211,6 +394,10 @@ async def test_fetch_many_full_texts_no_pdf(
     assert all(
         result.fulltext_path is None for result in results
     ), "PDF path should be None when no PDF URL is available"
+    assert all(
+        result.error is not None and "No PDF URLs found" in result.error
+        for result in results
+    ), "Expect error message to indicate no PDF URLs found when none are available"
 
 
 @pytest.mark.asyncio
@@ -243,14 +430,14 @@ async def test_fetch_many_full_texts_stream_error(
     mock_get_work = mocker.patch.object(
         fetcher, "_get_work_doi", new_callable=mocker.AsyncMock
     )
-    mock_get_pdf_url = mocker.patch.object(fetcher, "_get_pdf_url")
+    mock_get_pdf_urls = mocker.patch.object(fetcher, "_get_pdf_urls")
     mock_download = mocker.patch.object(
         fetcher, "download_one_pdf", new_callable=mocker.AsyncMock
     )
     mocker.patch("asyncio.sleep", new_callable=mocker.AsyncMock)
 
     mock_get_work.return_value = {}
-    mock_get_pdf_url.return_value = "http://url"
+    mock_get_pdf_urls.return_value = ["http://url"]
     mock_download.side_effect = FullTextStreamError("Stream failed")
     results = await fetcher.fetch_many_full_texts(test_study_collection, tmp_path)
 
@@ -258,8 +445,9 @@ async def test_fetch_many_full_texts_stream_error(
         result.fulltext_path is None for result in results
     ), "PDF path should be None when stream error occurs"
     assert all(
-        result.error is not None for result in results
-    ), "Error message should be present when stream error occurs"
+        result.error is not None and "All PDF downloads failed" in result.error
+        for result in results
+    ), "Expect error message to indicate all PDF downloads failed when stream error occurs"
 
 
 @pytest.mark.asyncio
@@ -289,7 +477,9 @@ async def test_fetch_many_full_texts_empty_pdf_download_does_not_abort_a_batch(
         side_effect=lambda doi: {
             "id": "W123456",
             "doi": doi,
-            "locations": [{"pdf_url": f"https://example.org/{uid_by_doi[doi]}.pdf"}],
+            "best_oa_location": {
+                "pdf_url": f"https://example.org/{uid_by_doi[doi]}.pdf"
+            },
         },
     )
 
@@ -367,7 +557,7 @@ async def test_fetch_many_full_texts_openalex_collection_success(
         fetcher, "_get_work_doi", new_callable=mocker.AsyncMock
     )
     mocker.patch.object(
-        fetcher, "_get_pdf_url", return_value="http://example.com/file.pdf"
+        fetcher, "_get_pdf_urls", return_value=["http://example.com/file.pdf"]
     )
 
     test_uuids = [s.uid for s in test_openalex_study_collection.studies]
@@ -421,7 +611,7 @@ async def test_fetch_many_full_texts_openalex_collection_no_pdf(
         new_callable=mocker.AsyncMock,
         return_value={"id": "W1234567890"},
     )
-    mocker.patch.object(fetcher, "_get_pdf_url", return_value=None)
+    mocker.patch.object(fetcher, "_get_pdf_urls", return_value=None)
     mocker.patch("asyncio.sleep", new_callable=mocker.AsyncMock)
     results = await fetcher.fetch_many_full_texts(
         test_openalex_study_collection, tmp_path

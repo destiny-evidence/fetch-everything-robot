@@ -221,6 +221,32 @@ async def test_stream_file_stream_error(mocker, temporary_test_file):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "error", [httpx2.StreamError("stream failed"), httpx2.ReadError("read failed")]
+)
+async def test_stream_file_removes_partial_file_on_failure(mocker, tmp_path, error):
+    async def failing_stream() -> AsyncGenerator[bytes]:
+        yield b"partial content"
+        raise error
+
+    destination = tmp_path / "download.pdf"
+    response = mocker.MagicMock()
+    response.__aenter__.return_value = response
+    response.aiter_bytes.return_value = failing_stream()
+    mocker.patch("httpx2.AsyncClient.stream", return_value=response)
+
+    with pytest.raises(FullTextStreamError):
+        await stream_file("http://example.com/hosted.pdf", destination)
+    assert not destination.exists()
+
+    response.aiter_bytes.return_value = _one_chunk_data(b"complete content")
+    assert (
+        await stream_file("http://example.com/external.pdf", destination) == destination
+    )
+    assert destination.read_bytes() == b"complete content"
+
+
+@pytest.mark.asyncio
 async def test_stream_file_empty_downloaded_file(mocker, temporary_test_file, caplog):
     test_url = "http://example.com/streamfile"
 
